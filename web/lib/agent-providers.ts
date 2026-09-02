@@ -14,10 +14,13 @@ export const PROVIDERS = ['codex', 'claude', 'gemini'] as const;
 export type Provider = (typeof PROVIDERS)[number];
 
 // 화면에 보일 이름과, 그 선택이 실제로 돌려면 어떤 CLI에 로그인해야 하는지.
+// label은 "Gemini, Claude, GPT" 같은 사용자의 멘탈모델을 따르고, cli에는 실제
+// 실행되는 도구 이름을 괄호로 남겨 둔다 — 로그인 안내(requires)와 실제
+// 터미널에서 보게 될 이름이 다르면 헷갈린다.
 export const PROVIDER_META: Record<Provider, { label: string; requires: string }> = {
-  codex: { label: 'Codex', requires: 'ChatGPT 구독 · codex login' },
-  claude: { label: 'Claude Code', requires: 'Claude 구독 · claude auth login' },
-  gemini: { label: 'Antigravity', requires: 'Google 계정 · agy' },
+  codex: { label: 'GPT (Codex)', requires: 'ChatGPT 구독 · codex login' },
+  claude: { label: 'Claude', requires: 'Claude 구독 · claude auth login' },
+  gemini: { label: 'Gemini (Antigravity)', requires: 'Google 계정 · agy' },
 };
 
 export function isProvider(value: unknown): value is Provider {
