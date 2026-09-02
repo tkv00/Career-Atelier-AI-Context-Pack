@@ -1,0 +1,6 @@
+{
+  "id": "comma",
+  "displayName": "콤마",
+  "description": "완성된 자소서에서 본문 근거만 골라 15자 이내 소제목으로 압축하고 사용자 승인을 기다리는 우주 카피라이터 로봇",
+  "spritesheetPath": "spritesheet.webp"
+}

@@ -160,10 +160,10 @@ Career Atelier는 세 번째 방법입니다. **이미 구독 중인 CLI 도구*
 </tr>
 
 <tr>
-<td width="130" align="center"><img src="docs/images/agents/agent-subtitle.png" width="100" alt="소제목"></td>
+<td width="130" align="center"><img src="docs/images/agents/agent-subtitle.png" width="100" alt="콤마"></td>
 <td>
 
-### 소제목 · 문항 소제목 제안
+### 콤마 · 문항 소제목 제안
 
 **실행** Antigravity (Gemini 3) · **저장** `artifacts` (kind: `subtitle`)
 

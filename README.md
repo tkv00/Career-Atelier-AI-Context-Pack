@@ -160,10 +160,10 @@ Questions are stored by category (company, role, experience) so you can draft an
 </tr>
 
 <tr>
-<td width="130" align="center"><img src="docs/images/agents/agent-subtitle.png" width="100" alt="Sojemok"></td>
+<td width="130" align="center"><img src="docs/images/agents/agent-subtitle.png" width="100" alt="Comma"></td>
 <td>
 
-### Sojemok — section headings
+### Comma — section headings
 
 **Runs on** Antigravity (Gemini 3) · **Writes to** `artifacts` (kind: `subtitle`)
 
