@@ -235,7 +235,7 @@ function seed() {
 
   database.prepare(`INSERT INTO profiles (id, display_name, target_roles, interests, summary, updated_at)
     VALUES (?, ?, ?, ?, ?, ?)`).run(
-    'me', '김도연', toJson(['Product Manager', 'AI Product']), toJson(['AI', '커리어', '생산성']),
+    'me', '사용자', toJson(['Product Manager', 'AI Product']), toJson(['AI', '커리어', '생산성']),
     '데이터로 문제를 구조화하고 팀이 실행할 수 있는 언어로 바꾸는 기획자', timestamp,
   );
 

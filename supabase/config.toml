@@ -241,7 +241,7 @@ host = "smtp.resend.com"
 port = 465
 user = "resend"
 pass = "env(RESEND_API_KEY)"
-admin_email = "noreply@kimdoyeon.site"
+admin_email = "env(RESEND_ADMIN_EMAIL)"
 sender_name = "Career Atelier"
 
 # Uncomment to customize email template

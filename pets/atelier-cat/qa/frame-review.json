@@ -1,6 +1,6 @@
 {
   "ok": true,
-  "frames_root": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames",
+  "frames_root": "pets/atelier-cat/frames",
   "errors": [],
   "warnings": [],
   "rows": [
@@ -15,7 +15,7 @@
       "frames": [
         {
           "index": 0,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/idle/00.png",
+          "file": "pets/atelier-cat/frames/idle/00.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 19992,
@@ -30,7 +30,7 @@
         },
         {
           "index": 1,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/idle/01.png",
+          "file": "pets/atelier-cat/frames/idle/01.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 20392,
@@ -45,7 +45,7 @@
         },
         {
           "index": 2,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/idle/02.png",
+          "file": "pets/atelier-cat/frames/idle/02.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 19961,
@@ -60,7 +60,7 @@
         },
         {
           "index": 3,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/idle/03.png",
+          "file": "pets/atelier-cat/frames/idle/03.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 19903,
@@ -75,7 +75,7 @@
         },
         {
           "index": 4,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/idle/04.png",
+          "file": "pets/atelier-cat/frames/idle/04.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 19727,
@@ -90,7 +90,7 @@
         },
         {
           "index": 5,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/idle/05.png",
+          "file": "pets/atelier-cat/frames/idle/05.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 19856,
@@ -116,7 +116,7 @@
       "frames": [
         {
           "index": 0,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/running-right/00.png",
+          "file": "pets/atelier-cat/frames/running-right/00.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 13159,
@@ -131,7 +131,7 @@
         },
         {
           "index": 1,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/running-right/01.png",
+          "file": "pets/atelier-cat/frames/running-right/01.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 14019,
@@ -146,7 +146,7 @@
         },
         {
           "index": 2,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/running-right/02.png",
+          "file": "pets/atelier-cat/frames/running-right/02.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 13512,
@@ -161,7 +161,7 @@
         },
         {
           "index": 3,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/running-right/03.png",
+          "file": "pets/atelier-cat/frames/running-right/03.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 13167,
@@ -176,7 +176,7 @@
         },
         {
           "index": 4,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/running-right/04.png",
+          "file": "pets/atelier-cat/frames/running-right/04.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 13918,
@@ -191,7 +191,7 @@
         },
         {
           "index": 5,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/running-right/05.png",
+          "file": "pets/atelier-cat/frames/running-right/05.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 13483,
@@ -206,7 +206,7 @@
         },
         {
           "index": 6,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/running-right/06.png",
+          "file": "pets/atelier-cat/frames/running-right/06.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 13943,
@@ -221,7 +221,7 @@
         },
         {
           "index": 7,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/running-right/07.png",
+          "file": "pets/atelier-cat/frames/running-right/07.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 15011,
@@ -247,7 +247,7 @@
       "frames": [
         {
           "index": 0,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/running-left/00.png",
+          "file": "pets/atelier-cat/frames/running-left/00.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 13794,
@@ -262,7 +262,7 @@
         },
         {
           "index": 1,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/running-left/01.png",
+          "file": "pets/atelier-cat/frames/running-left/01.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 14297,
@@ -277,7 +277,7 @@
         },
         {
           "index": 2,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/running-left/02.png",
+          "file": "pets/atelier-cat/frames/running-left/02.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 13872,
@@ -292,7 +292,7 @@
         },
         {
           "index": 3,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/running-left/03.png",
+          "file": "pets/atelier-cat/frames/running-left/03.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 13170,
@@ -307,7 +307,7 @@
         },
         {
           "index": 4,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/running-left/04.png",
+          "file": "pets/atelier-cat/frames/running-left/04.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 13053,
@@ -322,7 +322,7 @@
         },
         {
           "index": 5,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/running-left/05.png",
+          "file": "pets/atelier-cat/frames/running-left/05.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 13483,
@@ -337,7 +337,7 @@
         },
         {
           "index": 6,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/running-left/06.png",
+          "file": "pets/atelier-cat/frames/running-left/06.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 14352,
@@ -352,7 +352,7 @@
         },
         {
           "index": 7,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/running-left/07.png",
+          "file": "pets/atelier-cat/frames/running-left/07.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 13641,
@@ -378,7 +378,7 @@
       "frames": [
         {
           "index": 0,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/waving/00.png",
+          "file": "pets/atelier-cat/frames/waving/00.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 19820,
@@ -393,7 +393,7 @@
         },
         {
           "index": 1,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/waving/01.png",
+          "file": "pets/atelier-cat/frames/waving/01.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 18653,
@@ -408,7 +408,7 @@
         },
         {
           "index": 2,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/waving/02.png",
+          "file": "pets/atelier-cat/frames/waving/02.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 19449,
@@ -423,7 +423,7 @@
         },
         {
           "index": 3,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/waving/03.png",
+          "file": "pets/atelier-cat/frames/waving/03.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 19619,
@@ -449,7 +449,7 @@
       "frames": [
         {
           "index": 0,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/jumping/00.png",
+          "file": "pets/atelier-cat/frames/jumping/00.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 18065,
@@ -464,7 +464,7 @@
         },
         {
           "index": 1,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/jumping/01.png",
+          "file": "pets/atelier-cat/frames/jumping/01.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 14582,
@@ -479,7 +479,7 @@
         },
         {
           "index": 2,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/jumping/02.png",
+          "file": "pets/atelier-cat/frames/jumping/02.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 15138,
@@ -494,7 +494,7 @@
         },
         {
           "index": 3,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/jumping/03.png",
+          "file": "pets/atelier-cat/frames/jumping/03.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 12895,
@@ -509,7 +509,7 @@
         },
         {
           "index": 4,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/jumping/04.png",
+          "file": "pets/atelier-cat/frames/jumping/04.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 15697,
@@ -535,7 +535,7 @@
       "frames": [
         {
           "index": 0,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/failed/00.png",
+          "file": "pets/atelier-cat/frames/failed/00.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 16101,
@@ -550,7 +550,7 @@
         },
         {
           "index": 1,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/failed/01.png",
+          "file": "pets/atelier-cat/frames/failed/01.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 17445,
@@ -565,7 +565,7 @@
         },
         {
           "index": 2,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/failed/02.png",
+          "file": "pets/atelier-cat/frames/failed/02.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 18833,
@@ -580,7 +580,7 @@
         },
         {
           "index": 3,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/failed/03.png",
+          "file": "pets/atelier-cat/frames/failed/03.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 20140,
@@ -595,7 +595,7 @@
         },
         {
           "index": 4,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/failed/04.png",
+          "file": "pets/atelier-cat/frames/failed/04.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 20453,
@@ -610,7 +610,7 @@
         },
         {
           "index": 5,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/failed/05.png",
+          "file": "pets/atelier-cat/frames/failed/05.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 20316,
@@ -625,7 +625,7 @@
         },
         {
           "index": 6,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/failed/06.png",
+          "file": "pets/atelier-cat/frames/failed/06.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 18208,
@@ -640,7 +640,7 @@
         },
         {
           "index": 7,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/failed/07.png",
+          "file": "pets/atelier-cat/frames/failed/07.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 16021,
@@ -666,7 +666,7 @@
       "frames": [
         {
           "index": 0,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/waiting/00.png",
+          "file": "pets/atelier-cat/frames/waiting/00.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 16313,
@@ -681,7 +681,7 @@
         },
         {
           "index": 1,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/waiting/01.png",
+          "file": "pets/atelier-cat/frames/waiting/01.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 16271,
@@ -696,7 +696,7 @@
         },
         {
           "index": 2,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/waiting/02.png",
+          "file": "pets/atelier-cat/frames/waiting/02.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 14979,
@@ -711,7 +711,7 @@
         },
         {
           "index": 3,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/waiting/03.png",
+          "file": "pets/atelier-cat/frames/waiting/03.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 14113,
@@ -726,7 +726,7 @@
         },
         {
           "index": 4,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/waiting/04.png",
+          "file": "pets/atelier-cat/frames/waiting/04.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 15223,
@@ -741,7 +741,7 @@
         },
         {
           "index": 5,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/waiting/05.png",
+          "file": "pets/atelier-cat/frames/waiting/05.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 15916,
@@ -767,7 +767,7 @@
       "frames": [
         {
           "index": 0,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/running/00.png",
+          "file": "pets/atelier-cat/frames/running/00.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 15996,
@@ -782,7 +782,7 @@
         },
         {
           "index": 1,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/running/01.png",
+          "file": "pets/atelier-cat/frames/running/01.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 17382,
@@ -797,7 +797,7 @@
         },
         {
           "index": 2,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/running/02.png",
+          "file": "pets/atelier-cat/frames/running/02.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 24173,
@@ -812,7 +812,7 @@
         },
         {
           "index": 3,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/running/03.png",
+          "file": "pets/atelier-cat/frames/running/03.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 14907,
@@ -827,7 +827,7 @@
         },
         {
           "index": 4,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/running/04.png",
+          "file": "pets/atelier-cat/frames/running/04.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 18489,
@@ -842,7 +842,7 @@
         },
         {
           "index": 5,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/running/05.png",
+          "file": "pets/atelier-cat/frames/running/05.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 15559,
@@ -868,7 +868,7 @@
       "frames": [
         {
           "index": 0,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/review/00.png",
+          "file": "pets/atelier-cat/frames/review/00.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 15004,
@@ -883,7 +883,7 @@
         },
         {
           "index": 1,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/review/01.png",
+          "file": "pets/atelier-cat/frames/review/01.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 17418,
@@ -898,7 +898,7 @@
         },
         {
           "index": 2,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/review/02.png",
+          "file": "pets/atelier-cat/frames/review/02.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 17074,
@@ -913,7 +913,7 @@
         },
         {
           "index": 3,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/review/03.png",
+          "file": "pets/atelier-cat/frames/review/03.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 15843,
@@ -928,7 +928,7 @@
         },
         {
           "index": 4,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/review/04.png",
+          "file": "pets/atelier-cat/frames/review/04.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 20160,
@@ -943,7 +943,7 @@
         },
         {
           "index": 5,
-          "file": "/Users/kimdoyeon/Documents/Codex/2026-08-30/1-2-3-4-5-6/work/pets/atelier-cat/frames/review/05.png",
+          "file": "pets/atelier-cat/frames/review/05.png",
           "width": 192,
           "height": 208,
           "nontransparent_pixels": 14243,
