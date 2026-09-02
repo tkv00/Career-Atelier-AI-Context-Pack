@@ -92,6 +92,10 @@ to. None of that helps debug.
 
 ## How to suggest a feature
 
+This is not only for new features. A design change, an awkward screen you'd
+lay out differently, or a fix to how an existing feature behaves are just as
+welcome here as a brand-new capability.
+
 Open an issue describing the problem before proposing the solution. "I have to
 retype my certificate number for every application" is more useful than "add a
 certificates table", because it leaves room for a better answer.

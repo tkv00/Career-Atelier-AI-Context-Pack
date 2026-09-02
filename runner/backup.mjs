@@ -30,7 +30,7 @@ const OWNED_TABLES = [
   'agent_runs',
 ];
 
-const BACKUP_INTERVAL_MS = 30 * 60 * 1000; // 30분마다 한 번.
+const BACKUP_INTERVAL_MS = 2 * 60 * 60 * 1000; // 2시간마다 한 번.
 
 // "~/career-atelier-backups" 같은 물결 경로를 사용자가 그대로 입력할 수 있어야 한다.
 export function expandPath(input) {

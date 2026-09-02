@@ -124,6 +124,11 @@ Do not narrate what the next line obviously does.
 **Commit messages are in English**, imperative mood, with the reasoning in the
 body. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
+**`README.md` and `README.ko.md` change together.** They are two languages of
+the same document, not two documents. A change to one — a new section, an
+updated screenshot, a corrected fact — goes into the other in the same pass.
+Never leave one ahead of the other.
+
 **No new dependencies** without a reason the standard library cannot meet.
 
 <br>

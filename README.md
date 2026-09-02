@@ -461,7 +461,7 @@ Turn on **local folder backup** in the dashboard's runner section and give it an
 - macOS · Linux — `~/career-atelier-backups`
 - Windows — `C:\career-atelier-backups`
 
-While the runner is up it writes a full JSON export every 30 minutes, one file per day so the folder stays bounded.
+While the runner is up it writes a full JSON export every 2 hours, one file per day so the folder stays bounded.
 
 > The runner writes backups, not the browser, because a web page cannot write to an arbitrary folder on your disk. **No runner, no backup.**
 
@@ -492,7 +492,7 @@ These are fixed in code and cannot be switched off from the UI.
 
 ## Contributing
 
-Contributions are welcome. Development setup and PR expectations are in [CONTRIBUTING.md](CONTRIBUTING.md).
+Contributions are welcome — bug reports, but just as much a design change, a new feature, or a fix to how an existing one behaves. Development setup and PR expectations are in [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Everyone develops against their own Supabase project, so **there is no shared dev database to break.**
 

@@ -67,7 +67,7 @@ export function RunnerBackupForm({
 
       <p>
         {on
-          ? '이 기기의 러너가 30분마다 전체 데이터를 이 폴더에 JSON으로 저장합니다.'
+          ? '이 기기의 러너가 2시간마다 전체 데이터를 이 폴더에 JSON으로 저장합니다.'
           : '켜면 이 기기의 러너가 주기적으로 전체 데이터를 지정한 폴더에 저장합니다.'}
         {lastBackupAt && <> · 마지막 백업 {formatDateTime(lastBackupAt)}</>}
       </p>
