@@ -138,27 +138,28 @@ export function RecordsClient({
     setMessage('');
   }
 
-  function submit(formData: FormData) {
+  // 서버 액션은 실패할 수 있다(필수값 누락, RLS, 네트워크). 던져진 오류를 잡지
+  // 않으면 transition 안에서 조용히 사라져 사용자는 아무 반응도 못 본다 —
+  // 모든 호출이 이걸 거치게 해서 그런 경로가 안 생기게 한다.
+  function run(action: () => Promise<unknown>, onSuccess: string, onFailure: string, after?: () => void) {
     startTransition(async () => {
       try {
-        await saveRecord(section.id, formData);
-        setMessage('저장했습니다.');
-        closeForm();
+        await action();
+        setMessage(onSuccess);
+        after?.();
       } catch (error) {
-        setMessage(error instanceof Error ? error.message : '저장하지 못했습니다.');
+        setMessage(error instanceof Error ? error.message : onFailure);
       }
     });
   }
 
+  function submit(formData: FormData) {
+    run(() => saveRecord(section.id, formData), '저장했습니다.', '저장하지 못했습니다.', closeForm);
+  }
+
   function remove(row: RecordRow) {
-    startTransition(async () => {
-      try {
-        await deleteRecord(section.id, row.id);
-        setMessage('삭제했습니다.');
-        if (editing?.id === row.id) closeForm();
-      } catch (error) {
-        setMessage(error instanceof Error ? error.message : '삭제하지 못했습니다.');
-      }
+    run(() => deleteRecord(section.id, row.id), '삭제했습니다.', '삭제하지 못했습니다.', () => {
+      if (editing?.id === row.id) closeForm();
     });
   }
 
@@ -302,7 +303,7 @@ export function RecordsClient({
                               {course.detail && <small>{course.detail}</small>}
                               <button
                                 type="button"
-                                onClick={() => startTransition(() => void deleteCourse(course.id))}
+                                onClick={() => run(() => deleteCourse(course.id), '과목을 지웠습니다.', '과목을 지우지 못했습니다.')}
                                 disabled={pending}
                               >
                                 ×
@@ -312,7 +313,7 @@ export function RecordsClient({
                         </ul>
                       )}
                       <form
-                        action={(formData) => startTransition(() => void saveCourse(row.id, formData))}
+                        action={(formData) => run(() => saveCourse(row.id, formData), '과목을 추가했습니다.', '과목을 추가하지 못했습니다.')}
                         className="records-course-form"
                       >
                         <input name="course_name" placeholder="과목명" required />
@@ -341,7 +342,7 @@ export function RecordsClient({
                               <small>{formatBytes(file.size_bytes)}</small>
                               <button
                                 type="button"
-                                onClick={() => startTransition(() => void deleteAttachment(file.id))}
+                                onClick={() => run(() => deleteAttachment(file.id), '첨부를 지웠습니다.', '첨부를 지우지 못했습니다.')}
                                 disabled={pending}
                               >
                                 ×
@@ -352,14 +353,11 @@ export function RecordsClient({
                       )}
                       <form
                         action={(formData) =>
-                          startTransition(async () => {
-                            try {
-                              await uploadAttachment(section.id, row.id, formData);
-                              setMessage('파일을 올렸습니다.');
-                            } catch (error) {
-                              setMessage(error instanceof Error ? error.message : '업로드하지 못했습니다.');
-                            }
-                          })
+                          run(
+                            () => uploadAttachment(section.id, row.id, formData),
+                            '파일을 올렸습니다.',
+                            '업로드하지 못했습니다.',
+                          )
                         }
                         className="records-file-form"
                       >
