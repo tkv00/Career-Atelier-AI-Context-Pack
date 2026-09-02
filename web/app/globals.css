@@ -1949,6 +1949,39 @@ option {
   gap: var(--s2);
   flex-wrap: wrap;
 }
+.web-experience-hint {
+  margin: -4px 0 0;
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-control);
+  background: var(--surface-input);
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+/* 9단계 편집과 삭제는 결과가 정반대라 색으로도 구분한다 — 사이언 네온은
+   계속 다룰 수 있다는 뜻, 호박 네온은 되돌릴 수 없다는 경고. */
+.web-experience-card-actions button {
+  padding: 4px var(--s3);
+  border-radius: var(--r-chip);
+  background: transparent;
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  cursor: pointer;
+  transition: filter var(--dur-fast) var(--ease);
+}
+.web-experience-card-actions button.edit {
+  border: 1px solid var(--cyan-dim);
+  color: var(--cyan-strong);
+  box-shadow: 0 0 10px -4px var(--cyan);
+}
+.web-experience-card-actions button.delete {
+  border: 1px solid var(--danger-line);
+  color: var(--danger);
+  box-shadow: 0 0 10px -4px var(--danger);
+}
+.web-experience-card-actions button:hover {
+  filter: brightness(1.25);
+}
 .web-experience-list {
   align-self: start;
 }
@@ -1990,15 +2023,87 @@ option {
   gap: var(--s1);
 }
 .web-experience-tags span {
-  padding: 2px var(--s2);
-  border: 1px solid var(--line-soft);
+  padding: 3px var(--s2);
+  border: 1px solid var(--cyan-dim);
   border-radius: var(--r-chip);
-  color: var(--text-3);
+  background: #12303a;
+  color: var(--cyan-strong);
   font-size: 10px;
+  font-weight: 600;
 }
+.web-experience-tags em {
+  padding: 3px var(--s2);
+  border: 1px solid var(--amber-dim);
+  border-radius: var(--r-chip);
+  background: #3a2a14;
+  color: var(--amber-strong);
+  font-size: 10px;
+  font-weight: 600;
+  font-style: normal;
+}
+/* 이 버튼은 브라우저 기본 <button> 배경을 그대로 물려받고 있었다 —
+   회색 배경의 정체. 카드 안에서는 카드 자체가 배경이라 버튼은
+   완전히 투명해야 한다. */
 .web-experience-open {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s2);
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
   color: var(--cyan);
   font-size: var(--fs-xs);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.web-experience-open > span {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--surface-2);
+  border: 1px solid var(--line);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+.web-experience-open h4 {
+  color: var(--text-1);
+}
+.web-experience-preview {
+  width: min(560px, 100%);
+  max-height: 88vh;
+  overflow-y: auto;
+  display: grid;
+  gap: var(--s4);
+}
+.web-experience-preview-body {
+  display: grid;
+  gap: var(--s3);
+}
+.web-experience-preview-field {
+  display: grid;
+  gap: var(--s1);
+}
+.web-experience-preview-field > span {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+}
+.web-experience-preview-field > span b {
+  color: var(--cyan);
+  margin-right: 6px;
+}
+.web-experience-preview-field > p {
+  margin: 0;
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+  line-height: 1.65;
+  white-space: pre-wrap;
 }
 
 /* ── 10. 면접 시뮬레이션 훈련실 ──────────────────────────────────────── */

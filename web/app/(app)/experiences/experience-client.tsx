@@ -44,6 +44,7 @@ function toFormState(experience: Experience): ExperienceForm {
 export function ExperienceVault({ initialExperiences }: { initialExperiences: Experience[] }) {
   const router = useRouter();
   const [editingId, setEditingId] = useState<string | 'new' | null>(null);
+  const [previewId, setPreviewId] = useState<string | null>(null);
   const [form, setForm] = useState<ExperienceForm>({ ...EMPTY_FORM, tags: [] });
   const [customTag, setCustomTag] = useState('');
   const [saving, setSaving] = useState(false);
@@ -51,6 +52,8 @@ export function ExperienceVault({ initialExperiences }: { initialExperiences: Ex
     ...TAG_OPTIONS,
     ...initialExperiences.flatMap((experience) => (experience.tags as string[] | null) ?? []),
   ])), [initialExperiences]);
+  const previewExperience = useMemo(() => initialExperiences.find((experience) => experience.id === previewId) ?? null, [initialExperiences, previewId]);
+  const previewForm = useMemo(() => (previewExperience ? toFormState(previewExperience) : null), [previewExperience]);
 
   function startNew() {
     setForm({ ...EMPTY_FORM, tags: [] });
@@ -67,6 +70,14 @@ export function ExperienceVault({ initialExperiences }: { initialExperiences: Ex
   function cancelEdit() {
     setEditingId(null);
     setForm({ ...EMPTY_FORM, tags: [] });
+  }
+
+  function openPreview(experience: Experience) {
+    setPreviewId(experience.id);
+  }
+
+  function closePreview() {
+    setPreviewId(null);
   }
 
   function toggleTag(tag: string) {
@@ -98,6 +109,7 @@ export function ExperienceVault({ initialExperiences }: { initialExperiences: Ex
   async function handleDelete(id: string) {
     await deleteExperience(id);
     if (editingId === id) cancelEdit();
+    if (previewId === id) closePreview();
     router.refresh();
   }
 
@@ -122,6 +134,7 @@ export function ExperienceVault({ initialExperiences }: { initialExperiences: Ex
               <div><p className="eyebrow">NINE-PART FRAMEWORK</p><h3>{editingId === 'new' ? '새 경험 정리' : '경험 카드 편집'}</h3></div>
               <button type="button" className="secondary-button" onClick={cancelEdit}>닫기</button>
             </div>
+            <p className="web-experience-hint">모든 칸을 다 채우지 않아도 저장됩니다. 생각나는 것부터 적고, 나머지는 나중에 다시 돌아와 채우세요.</p>
             <form onSubmit={handleSubmit}>
               {editingId !== 'new' && <input type="hidden" name="id" value={editingId} />}
               <label className="web-experience-title">경험 제목<input type="text" name="title" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="예: 신규 사용자 이탈 구간 개선" className="field-input"/></label>
@@ -153,14 +166,42 @@ export function ExperienceVault({ initialExperiences }: { initialExperiences: Ex
               const tags = (experience.tags as string[] | null) ?? [];
               const metrics = (experience.metrics as string[] | null) ?? [];
               return <article key={experience.id}>
-                <button type="button" className="web-experience-open" onClick={() => startEdit(experience)}><span>{experience.title.slice(0, 1)}</span><div><h4>{experience.title}</h4><p>{experience.result || experience.action || experience.context || experience.situation || '내용을 더 채워 주세요.'}</p></div></button>
+                <button type="button" className="web-experience-open" onClick={() => openPreview(experience)}><span>{experience.title.slice(0, 1)}</span><div><h4>{experience.title}</h4><p>{experience.result || experience.action || experience.context || experience.situation || '내용을 더 채워 주세요.'}</p></div></button>
                 <div className="web-experience-tags">{tags.map((item) => <span key={item}>{item}</span>)}{metrics.slice(0, 2).map((item) => <em key={item}>{item}</em>)}</div>
-                <div className="web-experience-card-actions"><button type="button" onClick={() => startEdit(experience)}>9단계 편집</button><button type="button" onClick={() => handleDelete(experience.id)}>삭제</button></div>
+                <div className="web-experience-card-actions"><button type="button" className="edit" onClick={() => startEdit(experience)}>9단계 편집</button><button type="button" className="delete" onClick={() => handleDelete(experience.id)}>삭제</button></div>
               </article>;
             })}</div>
           )}
         </section>
       </div>
+
+      {previewForm && previewExperience && (
+        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="경험 카드 미리보기" onClick={closePreview}>
+          <section className="card card-pad web-experience-preview" onClick={(event) => event.stopPropagation()}>
+            <div className="web-experience-heading">
+              <div><p className="eyebrow">EXPERIENCE PREVIEW</p><h3>{previewForm.title}</h3></div>
+              <button type="button" className="secondary-button" onClick={closePreview}>닫기</button>
+            </div>
+            {previewForm.tags.length > 0 && <div className="web-experience-tags">{previewForm.tags.map((item) => <span key={item}>{item}</span>)}</div>}
+            <div className="web-experience-preview-body">
+              {SECTIONS.map((section) => (
+                <div key={section.field} className="web-experience-preview-field">
+                  <span><b>{section.number}</b>{section.label}</span>
+                  <p>{previewForm[section.field] || '아직 작성하지 않았습니다.'}</p>
+                </div>
+              ))}
+              <div className="web-experience-preview-field">
+                <span><b>09</b>결과 수치 · 객관적 변화</span>
+                <p>{previewForm.metrics || '아직 작성하지 않았습니다.'}</p>
+              </div>
+            </div>
+            <div className="web-experience-actions">
+              <button type="button" className="run-button" onClick={() => { closePreview(); startEdit(previewExperience); }}>9단계 편집</button>
+              <button type="button" className="delete" onClick={() => handleDelete(previewExperience.id)}>삭제</button>
+            </div>
+          </section>
+        </div>
+      )}
     </>
   );
 }
