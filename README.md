@@ -222,14 +222,14 @@ Each chip cycles through pending → passed → failed on click.
 
 <br>
 
-### Prompt lab
+### Prompt studio
 
 Edit each agent's system prompt directly.
 
 Every save keeps the previous body as a version you can restore at any time. Restoring is itself a new version, so nothing is ever lost.
 
 <!-- PLACEHOLDER — replace this file with a real capture. Spec: docs/images/screens/README.md -->
-<img src="docs/images/screens/04-prompt-lab.png" alt="Prompt lab" width="100%">
+<img src="docs/images/screens/04-prompt-lab.png" alt="Prompt studio" width="100%">
 
 <br>
 
@@ -406,7 +406,7 @@ Good places to start:
 - The runner is still macOS-first in places. Real Windows and Linux testing is especially useful.
 - Agents live in `runner/context-pack.mjs` and `runner/providers/`. Adding a provider means adding one file.
 - Sojemok has no character artwork yet.
-- The practice room and prompt lab have the thinnest verification.
+- The practice room and prompt studio have the thinnest verification.
 
 <br>
 

@@ -222,14 +222,14 @@ Career Atelier는 세 번째 방법입니다. **이미 구독 중인 CLI 도구*
 
 <br>
 
-### 명령 실험실
+### 프롬프트 생성실
 
 각 비서의 시스템 프롬프트를 직접 고칩니다.
 
 저장할 때마다 이전 본문이 버전으로 남고, 언제든 되돌릴 수 있습니다. 되돌리기도 새 버전으로 쌓이기 때문에 기록이 사라지지 않습니다.
 
 <!-- 자리표시자 — 이 파일을 실제 캡처로 덮어쓰세요. 규격: docs/images/screens/README.md -->
-<img src="docs/images/screens/04-prompt-lab.png" alt="명령 실험실" width="100%">
+<img src="docs/images/screens/04-prompt-lab.png" alt="프롬프트 생성실" width="100%">
 
 <br>
 
@@ -406,7 +406,7 @@ Supabase 무료 플랜은 한동안 안 쓰면 프로젝트를 정지시킵니�
 - 러너에 아직 macOS 기준으로 짜인 부분이 남아 있습니다. Windows · Linux 실제 테스트가 특히 도움이 됩니다.
 - 비서는 `runner/context-pack.mjs`와 `runner/providers/`에 정의돼 있습니다. 새 제공자를 붙이는 건 파일 하나를 추가하는 일입니다.
 - 소제목 비서의 캐릭터 이미지가 없습니다.
-- 훈련실과 명령 실험실 화면의 검증이 가장 얇습니다.
+- 훈련실과 프롬프트 생성실 화면의 검증이 가장 얇습니다.
 
 <br>
 

@@ -175,8 +175,21 @@ export async function requestCompanyResearch(essayId: string, company: string, r
 // job_id를 미리 연결해 두면 에디터가 열리자마자 solPost의 description이
 // 솔 다이얼로그의 JD 칸을 자동으로 채운다(essays/[id]/page.tsx가 이미
 // job_id로 job_posts를 조회해 jobPost prop을 채워주고 있었다).
+//
+// 이 공고로 이미 쓰던 자소서가 있으면 그리로 보내고, 없을 때만 새로 만든다.
+// 예전에는 누를 때마다 무조건 새로 만들어서 같은 공고에 빈 자소서가 계속
+// 쌓였다(2026-09-02 수정). 여러 개면 가장 최근 것을 연다.
 export async function startEssayForJobPost(jobPostId: string) {
   const { supabase, user } = await requireUser();
+
+  const { data: existing } = await supabase
+    .from('essay_projects')
+    .select('id')
+    .eq('job_id', jobPostId)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  if (existing) redirect(`/essays/${existing.id}`);
 
   const { data: jobPost, error: jobPostError } = await supabase
     .from('job_posts')

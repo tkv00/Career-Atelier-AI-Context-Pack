@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { isRunnerOnline } from '@/lib/runner-status';
 import { formatDateTime } from '@/lib/datetime';
+import { formatResetsAt, parseClaudeWindows, sumCodexTokens } from '@/lib/llm-usage';
 import { createEssay, startEssayForJobPost } from '../essays/actions';
 import { approveRunner } from '../runners/actions';
 import { RunnerBackupForm } from './runner-backup-form';
@@ -54,6 +55,8 @@ export default async function DashboardPage() {
     { data: pendingJobSearchJobs },
     { data: questionCounts },
     { data: agentRuns },
+    { data: claudeLimitEvents },
+    { data: codexUsageEvents },
   ] = await Promise.all([
     supabase.from('profiles').select('*').maybeSingle(),
     supabase.from('experience_cards').select('*').order('updated_at', { ascending: false }),
@@ -65,6 +68,9 @@ export default async function DashboardPage() {
     supabase.from('jobs').select('id').eq('kind', 'jobs').in('status', ['queued', 'running']).limit(1),
     supabase.from('essay_questions').select('job_post_id'),
     supabase.from('agent_runs').select('agent_id, provider, status, created_at').order('created_at', { ascending: false }).limit(50),
+    // 구독 잔량은 별도 테이블 없이 실행 스트림에서 되읽는다(web/lib/llm-usage.ts).
+    supabase.from('run_events').select('payload').eq('kind', 'rate_limit_event').order('created_at', { ascending: false }).limit(1),
+    supabase.from('run_events').select('payload').eq('kind', 'turn.completed').order('created_at', { ascending: false }).limit(200),
   ]);
 
   const runnerOnline = (runners ?? []).some((runner) => isRunnerOnline(runner.last_seen_at));
@@ -79,7 +85,11 @@ export default async function DashboardPage() {
   const researchActive = activeAgentIds.has('company');
   const codexRuns = (agentRuns ?? []).filter((run) => run.provider === 'codex').length;
   const claudeRuns = (agentRuns ?? []).filter((run) => run.provider === 'claude').length;
-  const totalRuns = Math.max((agentRuns ?? []).length, 1);
+
+  // Claude만 실제 잔량(창별 사용률)을 스트림으로 준다. Codex는 토큰 수만 주고
+  // 한도를 안 줘서 잔량 계산이 불가능하다 — 없는 값을 지어내지 않는다.
+  const claudeWindows = parseClaudeWindows(claudeLimitEvents?.[0]?.payload ?? null);
+  const codexTokens = sumCodexTokens((codexUsageEvents ?? []).map((row) => row.payload));
 
   return (
     <>
@@ -119,11 +129,44 @@ export default async function DashboardPage() {
           </div>
         </div>
         <aside className="cloud-usage-panel">
-          <div><p className="eyebrow">LLM CONSUMPTION</p><h3>최근 50회 사용량</h3></div>
-          <article><span className="cloud-provider-icon codex">OX</span><div><b>Codex · ChatGPT</b><small>조사·탐색·작성</small><i><em style={{ width: `${Math.round((codexRuns / totalRuns) * 100)}%` }}/></i></div><strong>{codexRuns}</strong></article>
-          <article><span className="cloud-provider-icon claude">CL</span><div><b>Claude Code</b><small>기업조사·검수</small><i><em style={{ width: `${Math.round((claudeRuns / totalRuns) * 100)}%` }}/></i></div><strong>{claudeRuns}</strong></article>
-          <article className="locked"><span className="cloud-provider-icon">00</span><div><b>API Fallback</b><small>추가 과금 방지</small><i><em style={{ width: '0%' }}/></i></div><strong>0</strong></article>
-          <p>실제 토큰이 아닌 실행 횟수 기준 · 구독 인증은 로컬 기기에만 저장</p>
+          <div><p className="eyebrow">SUBSCRIPTION QUOTA</p><h3>구독 잔량</h3></div>
+
+          <article className="quota-block">
+            <header><span className="cloud-provider-icon claude">CL</span><b>Claude Code</b></header>
+            {claudeWindows.length ? (
+              claudeWindows.map((win) => {
+                const left = Math.round((1 - win.usedRatio) * 100);
+                const tone = left <= 10 ? 'danger' : left <= 30 ? 'warn' : 'ok';
+                return (
+                  <div className="quota-window" key={win.label}>
+                    <p><span>{win.label} 창</span><strong className={tone}>{left}% 남음</strong></p>
+                    <i><em className={tone} style={{ width: `${Math.round(win.usedRatio * 100)}%` }} /></i>
+                    <small>{formatResetsAt(win.resetsAt) ?? '초기화 시각 미상'}</small>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="quota-empty">아직 측정된 값이 없습니다. 솔이나 렌즈를 한 번 실행하면 잔량이 표시됩니다.</p>
+            )}
+          </article>
+
+          <article className="quota-block">
+            <header><span className="cloud-provider-icon codex">OX</span><b>Codex · ChatGPT</b></header>
+            <div className="quota-window">
+              <p><span>누적 토큰</span><strong>{codexTokens.toLocaleString()}</strong></p>
+              <small>ChatGPT는 남은 한도를 알려주지 않습니다. 실제 사용량만 표시합니다.</small>
+            </div>
+          </article>
+
+          <article className="quota-block locked">
+            <header><span className="cloud-provider-icon">00</span><b>API Fallback</b></header>
+            <div className="quota-window">
+              <p><span>종량 과금</span><strong className="ok">차단됨</strong></p>
+              <small>한도에 닿아도 API로 넘어가지 않습니다.</small>
+            </div>
+          </article>
+
+          <p>실행 {codexRuns + claudeRuns}회 · 구독 인증은 로컬 기기에만 저장</p>
           <Link href="/activity" className="cloud-usage-link">전체 실행 기록 보기 →</Link>
         </aside>
       </section>

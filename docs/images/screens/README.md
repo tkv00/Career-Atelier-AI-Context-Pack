@@ -49,7 +49,7 @@
 
 <br>
 
-### `04-prompt-lab.png` — 명령 실험실
+### `04-prompt-lab.png` — 프롬프트 생성실
 
 경로 `/prompts`
 

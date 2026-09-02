@@ -38,11 +38,14 @@
   --line: #223145;
   --line-strong: #2d4055;
 
-  /* 글자 */
-  --text-1: #e6eef7;
-  --text-2: #9db0c4;
-  --text-3: #64788e;
-  --text-dim: #46586c;
+  /* 글자. 네 단계 모두 가장 밝은 표면(--surface-3) 위에서 WCAG AA(4.5:1)를
+     넘긴다 — 예전 --text-3(3.46)과 --text-dim(2.15)은 기준 미달이라 라벨·보조
+     설명이 잘 안 보인다는 지적을 받았다(2026-09-02). 색상·채도는 그대로 두고
+     명도만 올려 기존 위계(1 > 2 > 3 > dim)는 유지했다. */
+  --text-1: #e6eef7; /* 13.4:1 */
+  --text-2: #9db0c4; /*  7.1:1 */
+  --text-3: #8f9fb0; /*  5.8:1 */
+  --text-dim: #778da7; /* 4.6:1 */
 
   /* 강조 — 앰버는 브랜드/주요 동작, 시안은 데이터/실시간. 딱 두 개만 쓴다. */
   --amber: #f5a962;
@@ -1036,45 +1039,94 @@ option {
 .cloud-usage-panel h3 {
   font-size: var(--fs-lg);
 }
-.cloud-usage-panel article {
+/* 프로바이더별 잔량 블록. 예전에는 "최근 50회 중 몇 번"이라는 실행 횟수 막대였는데,
+   Claude가 스트림으로 실제 구독 사용률을 준다는 걸 확인해 진짜 잔량으로 바꿨다
+   (2026-09-02). 창(5시간·7일)마다 한 줄씩 쌓인다. */
+.quota-block {
   display: grid;
-  grid-template-columns: 28px minmax(0, 1fr) auto;
+  gap: var(--s2);
+  padding-bottom: var(--s3);
+  border-bottom: 1px solid var(--line-soft);
+}
+.quota-block:last-of-type {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+.quota-block.locked {
+  opacity: 0.5;
+}
+.quota-block header {
+  display: flex;
   align-items: center;
-  gap: var(--s3);
+  gap: var(--s2);
 }
-.cloud-usage-panel article.locked {
-  opacity: 0.45;
-}
-.cloud-usage-panel article > div {
-  min-width: 0;
-  display: grid;
-  gap: 3px;
-}
-.cloud-usage-panel article b {
+.quota-block header b {
   font-size: var(--fs-sm);
   font-weight: 600;
 }
-.cloud-usage-panel article small {
+.quota-window {
+  display: grid;
+  gap: 5px;
+}
+.quota-window p {
+  margin: 0;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s2);
+}
+.quota-window p span {
   color: var(--text-3);
   font-size: var(--fs-xs);
 }
-.cloud-usage-panel article i {
+.quota-window strong {
+  font-family: var(--font-mono);
+  font-size: var(--fs-base);
+  font-variant-numeric: tabular-nums;
+}
+.quota-window strong.ok {
+  color: var(--ok);
+}
+.quota-window strong.warn {
+  color: var(--warn);
+}
+.quota-window strong.danger {
+  color: var(--danger);
+}
+.quota-window i {
   display: block;
-  height: 3px;
-  border-radius: 2px;
+  height: 5px;
+  border-radius: 3px;
   background: var(--surface-3);
   overflow: hidden;
 }
-.cloud-usage-panel article em {
+.quota-window em {
   display: block;
   height: 100%;
-  border-radius: 2px;
-  background: var(--cyan);
+  border-radius: 3px;
+  background: var(--ok);
+  transition: width var(--dur) var(--ease);
 }
-.cloud-usage-panel article strong {
-  font-size: var(--fs-lg);
-  font-variant-numeric: tabular-nums;
+.quota-window em.warn {
+  background: var(--warn);
 }
+.quota-window em.danger {
+  background: var(--danger);
+}
+.quota-window small {
+  color: var(--text-dim);
+  font-size: var(--fs-xs);
+}
+.quota-empty {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--fs-xs);
+  line-height: 1.5;
+}
+
+/* 예전 "실행 횟수 막대" 마크업(article > icon/div/strong 3열 그리드)에 붙어 있던
+   규칙들은 위의 .quota-block 구조로 갈아끼우면서 전부 지웠다. 남겨 두면
+   `.cloud-usage-panel article`이 명시도로 .quota-block의 그리드를 덮어썼다. */
 .cloud-usage-panel > p {
   margin: 0;
   color: var(--text-dim);
@@ -1473,8 +1525,30 @@ option {
 }
 .application-status-scroll table {
   width: 100%;
-  min-width: 780px;
+  min-width: 880px; /* 자소서 열이 늘면서 780px로는 칸이 눌린다 */
   border-collapse: collapse;
+}
+/* 공고 행에서 바로 그 공고의 자소서로 건너뛴다. 이미 쓰던 자소서가 있으면
+   그걸 열고, 없으면 만들어서 연다. */
+.essay-link-button {
+  padding: 6px var(--s3);
+  border: 1px solid var(--amber-dim);
+  border-radius: var(--r-control);
+  background: transparent;
+  color: var(--amber);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.essay-link-button:hover:not(:disabled) {
+  background: rgba(245, 169, 98, 0.12);
+  border-color: var(--amber);
+}
+.essay-link-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .application-status-scroll th {
   padding: var(--s2) var(--s3);
@@ -2367,7 +2441,7 @@ input.interview-question-title:focus {
 .markdown-canvas a { color: var(--cyan); }
 .markdown-canvas hr { border: 0; border-top: 1px solid var(--line); margin: var(--s3) 0; }
 
-/* ── 10.5 명령 실험실(Prompt Lab) ─────────────────────────────────────
+/* ── 10.5 프롬프트 생성실(Prompt Lab) ───────────────────────────────
    v1에 있던 프롬프트 편집기를 v2로 이식(2026-09-02, "유실됨" 신고 반영).
    왼쪽 승무원 탭 → 가운데 편집기 → 오른쪽 버전 이력, 3단 레이아웃 —
    면접 훈련실(.interview-layout)과 같은 뼈대를 재사용해 두 "실험실"

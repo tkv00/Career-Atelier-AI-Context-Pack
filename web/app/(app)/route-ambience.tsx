@@ -11,7 +11,7 @@ const AMBIENCE_BY_ROUTE: { prefix: string; variant: string }[] = [
   { prefix: '/experiences', variant: 'archive' }, // 개인 기억 아카이브
   { prefix: '/interviews', variant: 'sim' }, // 시뮬레이션 훈련실
   { prefix: '/essays', variant: 'archive' }, // 문서 작성실
-  { prefix: '/prompts', variant: 'sim' }, // AI 명령 실험실 — 훈련실과 같은 계열(실험적 성격)
+  { prefix: '/prompts', variant: 'sim' }, // 프롬프트 생성실 — 훈련실과 같은 계열(실험적 성격)
   { prefix: '/activity', variant: 'vault' }, // 데이터 저장고
 ];
 

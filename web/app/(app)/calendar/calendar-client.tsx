@@ -162,7 +162,7 @@ export function CalendarClient({ events, jobs }: { events: CalendarEvent[]; jobs
       <div className="application-status-head"><div><p className="eyebrow">APPLICATION STATUS MATRIX</p><h3>채용공고별 진행상황</h3><span>전형·제출·단계별 합불을 한 화면에서 관리합니다.</span></div><b>{jobs.length}</b></div>
       <div className="application-status-scroll">
         <table>
-          <thead><tr><th>구분</th><th>채용공고</th><th>일정</th><th>링크</th><th>기업 유형</th><th>제출 여부</th><th>전형별 합불</th></tr></thead>
+          <thead><tr><th>구분</th><th>채용공고</th><th>일정</th><th>링크</th><th>기업 유형</th><th>제출 여부</th><th>전형별 합불</th><th>자소서</th></tr></thead>
           <tbody>
             {[...jobs].sort((a, b) => (a.deadline || '9999').localeCompare(b.deadline || '9999')).map((job) => (
               <tr key={job.id}>
@@ -173,6 +173,7 @@ export function CalendarClient({ events, jobs }: { events: CalendarEvent[]; jobs
                 <td><select disabled={pending} value={job.company_type} onChange={(event) => update(job.id, 'company_type', event.target.value)}>{COMPANY_TYPES.map((item) => <option key={item}>{item}</option>)}</select></td>
                 <td><select disabled={pending} className={`status-select ${progressTone({ ...job, result_status: '아직' })}`} value={job.submission_status} onChange={(event) => update(job.id, 'submission_status', event.target.value)}>{SUBMISSION_STATUSES.map((item) => <option key={item}>{item}</option>)}</select></td>
                 <td><StageToggleRow job={job} disabled={pending} onToggle={(stage) => toggleStage(job.id, stage)} /></td>
+                <td><button type="button" className="essay-link-button" disabled={pending} onClick={() => startTransition(() => startEssayForJobPost(job.id))}>자소서 →</button></td>
               </tr>
             ))}
           </tbody>
