@@ -1,0 +1,200 @@
+{
+  "pet_id": "comma",
+  "display_name": "Comma",
+  "description": "\uc644\uc131\ub41c \uc790\uae30\uc18c\uac1c\uc11c\ub97c \uc77d\uace0 \ubcf8\ubb38 \uc548\uc758 \ud575\uc2ec\ub9cc 15\uc790 \uc774\ub0b4 \uc18c\uc81c\ubaa9\uc73c\ub85c \uc555\ucd95\ud558\uba70 \uc0ac\uc6a9\uc790 \uc2b9\uc778\uc744 \uae30\ub2e4\ub9ac\ub294 \uc6b0\uc8fc \uce74\ud53c\ub77c\uc774\ud130 \ub85c\ubd07 \ucf64\ub9c8.",
+  "created_at": "2026-09-02T07:21:50.741100+00:00",
+  "atlas": {
+    "columns": 8,
+    "rows": 9,
+    "cell_width": 192,
+    "cell_height": 208,
+    "width": 1536,
+    "height": 1872
+  },
+  "rows": [
+    {
+      "state": "idle",
+      "row": 0,
+      "frames": 6,
+      "purpose": "calm resting, breathing, and blinking loop"
+    },
+    {
+      "state": "running-right",
+      "row": 1,
+      "frames": 8,
+      "purpose": "rightward drag movement loop"
+    },
+    {
+      "state": "running-left",
+      "row": 2,
+      "frames": 8,
+      "purpose": "leftward drag movement loop"
+    },
+    {
+      "state": "waving",
+      "row": 3,
+      "frames": 4,
+      "purpose": "greeting or attention gesture"
+    },
+    {
+      "state": "jumping",
+      "row": 4,
+      "frames": 5,
+      "purpose": "hover or playful jump"
+    },
+    {
+      "state": "failed",
+      "row": 5,
+      "frames": 8,
+      "purpose": "blocked, failed, or cancelled reaction"
+    },
+    {
+      "state": "waiting",
+      "row": 6,
+      "frames": 6,
+      "purpose": "waiting for approval, help, or user input"
+    },
+    {
+      "state": "running",
+      "row": 7,
+      "frames": 6,
+      "purpose": "active task work or processing"
+    },
+    {
+      "state": "review",
+      "row": 8,
+      "frames": 6,
+      "purpose": "ready or completed output review"
+    }
+  ],
+  "layout_guides": [
+    {
+      "state": "idle",
+      "path": "references/layout-guides/idle.png",
+      "width": 1152,
+      "height": 208,
+      "frames": 6,
+      "cell_width": 192,
+      "cell_height": 208,
+      "safe_margin_x": 18,
+      "safe_margin_y": 16,
+      "usage": "layout guide input only; do not copy visible guide lines into generated sprite strips"
+    },
+    {
+      "state": "running-right",
+      "path": "references/layout-guides/running-right.png",
+      "width": 1536,
+      "height": 208,
+      "frames": 8,
+      "cell_width": 192,
+      "cell_height": 208,
+      "safe_margin_x": 18,
+      "safe_margin_y": 16,
+      "usage": "layout guide input only; do not copy visible guide lines into generated sprite strips"
+    },
+    {
+      "state": "running-left",
+      "path": "references/layout-guides/running-left.png",
+      "width": 1536,
+      "height": 208,
+      "frames": 8,
+      "cell_width": 192,
+      "cell_height": 208,
+      "safe_margin_x": 18,
+      "safe_margin_y": 16,
+      "usage": "layout guide input only; do not copy visible guide lines into generated sprite strips"
+    },
+    {
+      "state": "waving",
+      "path": "references/layout-guides/waving.png",
+      "width": 768,
+      "height": 208,
+      "frames": 4,
+      "cell_width": 192,
+      "cell_height": 208,
+      "safe_margin_x": 18,
+      "safe_margin_y": 16,
+      "usage": "layout guide input only; do not copy visible guide lines into generated sprite strips"
+    },
+    {
+      "state": "jumping",
+      "path": "references/layout-guides/jumping.png",
+      "width": 960,
+      "height": 208,
+      "frames": 5,
+      "cell_width": 192,
+      "cell_height": 208,
+      "safe_margin_x": 18,
+      "safe_margin_y": 16,
+      "usage": "layout guide input only; do not copy visible guide lines into generated sprite strips"
+    },
+    {
+      "state": "failed",
+      "path": "references/layout-guides/failed.png",
+      "width": 1536,
+      "height": 208,
+      "frames": 8,
+      "cell_width": 192,
+      "cell_height": 208,
+      "safe_margin_x": 18,
+      "safe_margin_y": 16,
+      "usage": "layout guide input only; do not copy visible guide lines into generated sprite strips"
+    },
+    {
+      "state": "waiting",
+      "path": "references/layout-guides/waiting.png",
+      "width": 1152,
+      "height": 208,
+      "frames": 6,
+      "cell_width": 192,
+      "cell_height": 208,
+      "safe_margin_x": 18,
+      "safe_margin_y": 16,
+      "usage": "layout guide input only; do not copy visible guide lines into generated sprite strips"
+    },
+    {
+      "state": "running",
+      "path": "references/layout-guides/running.png",
+      "width": 1152,
+      "height": 208,
+      "frames": 6,
+      "cell_width": 192,
+      "cell_height": 208,
+      "safe_margin_x": 18,
+      "safe_margin_y": 16,
+      "usage": "layout guide input only; do not copy visible guide lines into generated sprite strips"
+    },
+    {
+      "state": "review",
+      "path": "references/layout-guides/review.png",
+      "width": 1152,
+      "height": 208,
+      "frames": 6,
+      "cell_width": 192,
+      "cell_height": 208,
+      "safe_margin_x": 18,
+      "safe_margin_y": 16,
+      "usage": "layout guide input only; do not copy visible guide lines into generated sprite strips"
+    }
+  ],
+  "references": [],
+  "chroma_key": {
+    "hex": "#FF00FF",
+    "rgb": [
+      255,
+      0,
+      255
+    ],
+    "name": "magenta",
+    "selection": "fallback"
+  },
+  "pet_notes": "Career Atelier crew member named Comma (\ucf64\ub9c8): a compact gender-neutral space copywriter robot with a wide midnight-indigo visor face, two cyan eyes, warm coral-orange armor, ivory joints, and a small gold title-press mechanism built into the chest. A narrow document ribbon spool is permanently attached from the left forearm into the chest press; a tiny blank title capsule tray is permanently attached to the right forearm. The ribbon and tray are body-attached identity props, never floating. The visual metaphor is reading a long finished essay, extracting only evidence-backed keywords, compressing them into a concise title capsule, and waiting for user approval. No readable letters or symbols.",
+  "style_preset": "pixel",
+  "style_notes": "High-detail retro pixel-art sprite matching the existing Career Atelier orbital crew: crisp hard pixel clusters, dark navy outlines, readable full-body silhouette, front three-quarter view, expressive visor eyes, coral-orange and midnight-indigo palette with cyan and warm-gold accents. No desk, no scenery, no text, no glow, no shadow.",
+  "style_contract": "Pet-safe sprite: compact full-body mascot, readable in a 192x208 cell, clear silhouette, simple face, stable palette/materials, and crisp edges for chroma-key extraction. Style `pixel`: Pixel-art-adjacent digital mascot with a chunky silhouette, simple dark outline, limited palette, flat cel shading, and visible stepped edges. User style notes: High-detail retro pixel-art sprite matching the existing Career Atelier orbital crew: crisp hard pixel clusters, dark navy outlines, readable full-body silhouette, front three-quarter view, expressive visor eyes, coral-orange and midnight-indigo palette with cyan and warm-gold accents. No desk, no scenery, no text, no glow, no shadow..",
+  "brand_name": "",
+  "brand_brief": "",
+  "brand_sources": [],
+  "pet_safe_style": "Pet-safe sprite: compact full-body mascot, readable in a 192x208 cell, clear silhouette, simple face, stable palette/materials, and crisp edges for chroma-key extraction.",
+  "primary_generation_skill": "$imagegen"
+}
