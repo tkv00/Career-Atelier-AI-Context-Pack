@@ -76,7 +76,7 @@ export function QuestionImportButton({ jobPostId, existingCount }: { jobPostId: 
         <div
           role="dialog"
           aria-modal="true"
-          className="focus-modal-backdrop"
+          className="modal-backdrop"
           onClick={close}
         >
           <div
