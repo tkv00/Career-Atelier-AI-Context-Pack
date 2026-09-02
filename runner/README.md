@@ -1,6 +1,6 @@
 # runner/ — 3·4·5단계 완료, 6단계 일부·7단계 착수, 6번째 비서(소제목/Gemini) 추가
 
-`docs/DESIGN-V2-CLOUD.md` §4·§6·§16·§19.3에 따라 잡 큐 폴링·claim·하트비트·
+`docs/DESIGN-V2-CLOUD.md` §4·§6에 따라 잡 큐 폴링·claim·하트비트·
 구독 인증 검사·환경변수 제거·스트림 중계를 구현했다(3단계). 4단계(에이전트
 이식)는 **렌즈(검수)·뮤즈(작성)·루미(뉴스)·솔(기업조사)·모카(채용탐색)**
 5개 비서 전부를 수직 슬라이스로 완성했고, 전부 실제 구독으로 라이브 검증
@@ -69,8 +69,8 @@ npm run start            # 폴링 시작
 
 ## 검증
 
-`npm run verify`에 준하는 것을 아직 이 폴더에 스크립트로 넣지 않았다(§19.5는
-v1의 `scripts/verify-local.mjs` 계승을 요구 — 다음 손질 때 추가 예정). 모의
+`npm run verify`에 준하는 것을 아직 이 폴더에 스크립트로 넣지 않았다(다음 손질
+때 추가 예정). 모의
 CLI(PATH 최우선, 실제 Codex/Claude 미호출)로 확인한 것: `providerStatus`/
 `assertSubscriptionProvider`의 구독/비구독 판정, `runProvider`의 JSONL 스트림
 파싱과 200ms 배칭, Claude `rate_limit_event` 유료 초과 감지 →
@@ -162,7 +162,7 @@ CLI(PATH 최우선, 실제 Codex/Claude 미호출)로 확인한 것: `providerSt
 호출되어(§12 "모카 완료 시 자동 연쇄") `calendar_events`를 만들거나
 갱신한다. 파싱에 실패하면 `confidence='needs_review'`로 남기고(2주 뒤로
 임시 배정), 캘린더 페이지에서 노란 배지로 표시한다. LLM 폴백(§11 2단계)은
-아직 미구현이다 — 현재 커버리지로도 §16 완료판정은 통과하지만, 애매한
+아직 미구현이다 — 현재 커버리지로도 충분하지만, 애매한
 마감일 표기("상시채용" 등)는 전부 "확인 필요"로만 남는다.
 
 15시 스케줄러(`scheduler.mjs`)는 `node-cron` 없이 기존 폴링 하트비트

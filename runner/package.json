@@ -2,7 +2,7 @@
   "name": "career-atelier-runner",
   "version": "0.1.0",
   "private": true,
-  "description": "로컬 상시 러너 — Vercel에 배포하지 않는다 (docs/DESIGN-V2-CLOUD.md §19.3).",
+  "description": "로컬 상시 러너 — Vercel에 배포하지 않는다 (docs/DESIGN-V2-CLOUD.md §3).",
   "type": "module",
   "engines": {
     "node": ">=22.13.0"
