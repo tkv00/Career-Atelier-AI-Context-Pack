@@ -197,6 +197,7 @@ Career Atelier는 세 번째 방법입니다. **이미 구독 중인 CLI 도구*
 
 루미와 모카는 각자의 카드에서 바로 실행할 수 있습니다.
 
+<!-- 자리표시자 — 이 파일을 실제 캡처로 덮어쓰세요. 규격: docs/images/screens/README.md -->
 <img src="docs/images/screens/01-dashboard.png" alt="관제실" width="100%">
 
 <br>
@@ -205,6 +206,7 @@ Career Atelier는 세 번째 방법입니다. **이미 구독 중인 CLI 도구*
 
 마감일을 달력으로 봅니다. **날짜에 마우스를 올리면** 그날 마감인 공고가 회사명·직무·현재 전형 상태와 함께 목록으로 펼쳐집니다.
 
+<!-- 자리표시자 — 이 파일을 실제 캡처로 덮어쓰세요. 규격: docs/images/screens/README.md -->
 <img src="docs/images/screens/02-calendar.png" alt="채용 캘린더" width="100%">
 
 <br>
@@ -215,6 +217,7 @@ Career Atelier는 세 번째 방법입니다. **이미 구독 중인 CLI 도구*
 
 칩을 누를 때마다 `대기 → 합격 → 불합격 → 대기`로 순환합니다.
 
+<!-- 자리표시자 — 이 파일을 실제 캡처로 덮어쓰세요. 규격: docs/images/screens/README.md -->
 <img src="docs/images/screens/03-stage-board.png" alt="전형별 합불" width="100%">
 
 <br>
@@ -225,6 +228,7 @@ Career Atelier는 세 번째 방법입니다. **이미 구독 중인 CLI 도구*
 
 저장할 때마다 이전 본문이 버전으로 남고, 언제든 되돌릴 수 있습니다. 되돌리기도 새 버전으로 쌓이기 때문에 기록이 사라지지 않습니다.
 
+<!-- 자리표시자 — 이 파일을 실제 캡처로 덮어쓰세요. 규격: docs/images/screens/README.md -->
 <img src="docs/images/screens/04-prompt-lab.png" alt="명령 실험실" width="100%">
 
 <br>
@@ -235,6 +239,7 @@ Career Atelier는 세 번째 방법입니다. **이미 구독 중인 CLI 도구*
 
 여기 적은 것만 뮤즈가 근거로 쓸 수 있습니다.
 
+<!-- 자리표시자 — 이 파일을 실제 캡처로 덮어쓰세요. 규격: docs/images/screens/README.md -->
 <img src="docs/images/screens/05-experiences.png" alt="경험 아카이브" width="100%">
 
 <br>
@@ -243,6 +248,7 @@ Career Atelier는 세 번째 방법입니다. **이미 구독 중인 CLI 도구*
 
 에코가 만든 질문에 답을 적고 다듬습니다.
 
+<!-- 자리표시자 — 이 파일을 실제 캡처로 덮어쓰세요. 규격: docs/images/screens/README.md -->
 <img src="docs/images/screens/06-interviews.png" alt="면접 훈련실" width="100%">
 
 <br>

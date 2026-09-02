@@ -197,6 +197,7 @@ All seven agents at a glance: which one is running, how the last run ended, whet
 
 Lumi and Moka launch directly from their own cards.
 
+<!-- PLACEHOLDER — replace this file with a real capture. Spec: docs/images/screens/README.md -->
 <img src="docs/images/screens/01-dashboard.png" alt="Dashboard" width="100%">
 
 <br>
@@ -205,6 +206,7 @@ Lumi and Moka launch directly from their own cards.
 
 Deadlines on a month grid. **Hover a date** and every posting due that day expands into a list with company, role, and current stage.
 
+<!-- PLACEHOLDER — replace this file with a real capture. Spec: docs/images/screens/README.md -->
 <img src="docs/images/screens/02-calendar.png" alt="Application calendar" width="100%">
 
 <br>
@@ -215,6 +217,7 @@ Outcomes are not collapsed into one pass/fail. **Resume screen, written test, co
 
 Each chip cycles through pending → passed → failed on click.
 
+<!-- PLACEHOLDER — replace this file with a real capture. Spec: docs/images/screens/README.md -->
 <img src="docs/images/screens/03-stage-board.png" alt="Per-stage outcome tracking" width="100%">
 
 <br>
@@ -225,6 +228,7 @@ Edit each agent's system prompt directly.
 
 Every save keeps the previous body as a version you can restore at any time. Restoring is itself a new version, so nothing is ever lost.
 
+<!-- PLACEHOLDER — replace this file with a real capture. Spec: docs/images/screens/README.md -->
 <img src="docs/images/screens/04-prompt-lab.png" alt="Prompt lab" width="100%">
 
 <br>
@@ -235,6 +239,7 @@ Record project experience broken into context, problem, your role, judgement, ac
 
 Only what you record here can be used as evidence by Muse.
 
+<!-- PLACEHOLDER — replace this file with a real capture. Spec: docs/images/screens/README.md -->
 <img src="docs/images/screens/05-experiences.png" alt="Experience archive" width="100%">
 
 <br>
@@ -243,6 +248,7 @@ Only what you record here can be used as evidence by Muse.
 
 Draft and refine answers to the questions Echo generated.
 
+<!-- PLACEHOLDER — replace this file with a real capture. Spec: docs/images/screens/README.md -->
 <img src="docs/images/screens/06-interviews.png" alt="Interview practice room" width="100%">
 
 <br>

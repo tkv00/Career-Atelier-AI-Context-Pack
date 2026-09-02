@@ -114,6 +114,20 @@ async function main() {
   mkdirSync(OUT, { recursive: true });
   mkdirSync(PROFILE, { recursive: true });
 
+  // 앞선 실행의 Chrome이 살아 있으면 새로 띄운 창이 아니라 그 낡은 창에 붙는다.
+  // 사용자는 새 창에서 로그인하는데 스크립트는 옛 창을 보게 되어, 원인을 알기
+  // 어려운 "로그인해도 감지 안 됨"이 된다. 먼저 확인하고 멈춘다.
+  try {
+    const stale = await fetch(`http://127.0.0.1:${PORT}/json/version`, {
+      signal: AbortSignal.timeout(1500),
+    }).then((r) => r.json());
+    console.error(`포트 ${PORT}을 이미 다른 Chrome이 쓰고 있습니다 (${stale.Browser ?? 'unknown'}).`);
+    console.error('이전 촬영 창을 닫은 뒤 다시 실행하세요.');
+    process.exit(1);
+  } catch {
+    // 연결 실패 = 포트가 비어 있음. 정상 경로다.
+  }
+
   const args = [
     `--remote-debugging-port=${PORT}`,
     `--user-data-dir=${PROFILE}`,
@@ -138,28 +152,40 @@ async function main() {
 
     await send('Page.enable');
     await send('Runtime.enable');
+    await send('Network.enable'); // 아래 로그인 대기에서 Network.getCookies를 쓴다
     await send('Emulation.setDeviceMetricsOverride', {
       width: 1440, height: 900, deviceScaleFactor: 2, mobile: false,
     });
 
     if (!headless) {
-      console.log('\nChrome 창이 열렸습니다. 그 창에서 로그인하세요.');
-      console.log('메일의 매직링크도 반드시 그 창에서 열어야 합니다.');
-      console.log('로그인이 감지되면 자동으로 촬영이 시작됩니다. (최대 10분 대기)\n');
+      console.log('\n촬영용 Chrome 창이 열렸습니다.\n');
+      console.log('  1) 그 창에서 이메일을 입력해 매직링크를 요청하세요.');
+      console.log('  2) 메일에 온 링크를 클릭하지 말고 "링크 주소 복사"를 한 뒤,');
+      console.log('     그 창의 주소창에 붙여넣어 여세요.\n');
+      console.log('  다른 브라우저에서 링크를 열면 세션이 그쪽에 생겨,');
+      console.log('  이 창은 계속 로그아웃 상태로 남습니다.\n');
+      console.log('로그인이 감지되면 자동으로 촬영이 시작됩니다. (최대 20분 대기)\n');
 
-      // Enter 입력을 기다리는 대신 로그인 상태를 직접 확인한다 — 백그라운드로
-      // 돌릴 때도 동작하고, 사용자가 창을 오가며 매직링크를 여는 흐름과도 맞는다.
-      const deadline = Date.now() + 10 * 60 * 1000;
+      // Enter 입력을 기다리는 대신 로그인 상태를 직접 확인한다. 단, 여기서
+      // 페이지를 이동시키면 안 된다 — 사용자가 로그인 폼을 채우는 중에 화면을
+      // 날려버려 로그인 자체가 불가능해진다. 쿠키만 조용히 들여다본다.
+      const deadline = Date.now() + 20 * 60 * 1000;
       let signedIn = false;
+      let hintShown = false;
       while (Date.now() < deadline) {
         await sleep(3000);
         try {
-          await send('Page.navigate', { url: `${ORIGIN}/dashboard` });
-          await sleep(2500);
-          const where = await send('Runtime.evaluate', {
-            expression: 'location.pathname', returnByValue: true,
-          });
-          if (where.result.value !== '/login') { signedIn = true; break; }
+          const { cookies } = await send('Network.getCookies', { urls: [ORIGIN] });
+          if (cookies.some((c) => /-auth-token$/.test(c.name) && c.value)) {
+            signedIn = true;
+            break;
+          }
+          // 매직링크를 요청하면 code-verifier만 먼저 생긴다. 그 상태로 오래
+          // 머물면 링크를 다른 브라우저에서 연 것이므로 한 번 짚어 준다.
+          if (!hintShown && cookies.some((c) => c.name.includes('code-verifier'))) {
+            hintShown = true;
+            console.log('\n  링크 요청은 확인됐습니다. 이제 메일의 링크를 이 창의 주소창에 붙여넣어 주세요.');
+          }
         } catch {}
         process.stdout.write('.');
       }
