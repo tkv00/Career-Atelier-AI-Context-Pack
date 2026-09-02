@@ -228,9 +228,12 @@ Every save keeps the previous body as a version you can restore at any time. Res
 
 ### Personal dossier
 
-Education, certifications, activities, training, projects, work history, and awards, each with its own fields.
+Seven sections — education, certifications, activities, training, projects, work history, and awards — each with its own fields, reached from **"My info"** in the side rail.
 
 You stop re-finding your GPA or a certificate registration number for every application. Supporting documents such as transcripts live here too — files go to a private bucket, and opening one mints a 60-second signed link rather than exposing a public URL.
+
+<!-- PLACEHOLDER — replace this file with a real capture. Spec: docs/images/screens/README.md -->
+<img src="docs/images/screens/07-records.png" alt="Personal dossier" width="100%">
 
 <br>
 
@@ -282,6 +285,8 @@ The runner is a Node process on your machine, signed in as you. It claims the jo
 <br>
 
 ## Getting started
+
+Four steps, in order: check the requirements below, install the CLI(s) you're missing, run the setup wizard, then start the two processes. Nothing here assumes you have installed anything before.
 
 ### Requirements
 
@@ -356,6 +361,8 @@ Your terminal opened before the install and has not picked up the new PATH entry
 Do not re-run it with `sudo` — that hands ownership of files under your Node install to root and causes more permission errors later. Install Node via [nvm](https://github.com/nvm-sh/nvm) instead; it lives entirely under your home directory, so global installs need no elevated permission at all.
 
 Sign-in is one-time per CLI. It survives runner restarts, so you will not repeat these steps for every agent run — only once, ever, per machine.
+
+Once at least one CLI logs in successfully, move on to "Install — three commands" below — that step connects Supabase, and does not touch the CLIs at all.
 
 </details>
 
@@ -454,7 +461,7 @@ Turn on **local folder backup** in the dashboard's runner section and give it an
 - macOS · Linux — `~/career-atelier-backups`
 - Windows — `C:\career-atelier-backups`
 
-While the runner is up it writes a full JSON export every six hours, one file per day so the folder stays bounded.
+While the runner is up it writes a full JSON export every 30 minutes, one file per day so the folder stays bounded.
 
 > The runner writes backups, not the browser, because a web page cannot write to an arbitrary folder on your disk. **No runner, no backup.**
 

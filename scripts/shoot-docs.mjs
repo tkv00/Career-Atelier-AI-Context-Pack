@@ -76,6 +76,7 @@ const SHOTS = [
   { path: '/prompts', file: '04-prompt-lab.png', script: step() },
   { path: '/experiences', file: '05-experiences.png', script: step() },
   { path: '/interviews', file: '06-interviews.png', script: step() },
+  { path: '/records', file: '07-records.png', script: step() },
 ];
 
 // CDP 최소 클라이언트 ------------------------------------------------------
