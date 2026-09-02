@@ -1,10 +1,6 @@
 node_modules/
-dist/
 .next/
-.vinext/
-.wrangler/
 .vercel/
-.openai/
 local-data/
 *.log
 

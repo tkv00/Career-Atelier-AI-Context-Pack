@@ -1,15 +1,8 @@
 # Vercel 프로젝트의 Root Directory는 web/로 설정한다. 이 파일은 그와 무관하게
-# runner/가 어떤 경로 설정에서도 클라우드 빌드에 절대 섞이지 않게 하는 명시적 안전장치다
-# (docs/DESIGN-V2-CLOUD.md §19.3 — "runner/는 절대 Vercel 빌드에 포함되지 않게 한다").
+# runner/가 어떤 경로 설정에서도 클라우드 빌드에 절대 섞이지 않게 하는 명시적 안전장치다.
 runner/
 
-# v1(로컬 전용 컴패니언 앱)은 이 리포에 같이 살지만 v2 클라우드 배포 대상이 아니다.
-app/
-server/
+# 로컬 터미널에서만 쓰는 도구들. 배포 대상이 아니다.
 scripts/
 pets/
-public/
 local-data/
-
-# 이관 스크립트는 사용자가 로컬 터미널에서 1회 실행하는 CLI다. 배포 대상이 아니다.
-scripts/migrate-v1-to-v2/
