@@ -2700,6 +2700,78 @@ input.interview-question-title:focus {
   font-size: var(--fs-xs);
 }
 
+/* 뮤즈에게 이어서 시키는 수정 요청. 본문 바로 위에 둔다 — 고칠 대상을 보면서
+   말해야 "2문단을" 같은 지시가 나온다. */
+.essay-revision {
+  display: grid;
+  gap: var(--s2);
+  margin: var(--s4) 0;
+  padding: var(--s4);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-card);
+  background: var(--surface-2);
+}
+.essay-revision > label {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.essay-revision > div {
+  display: flex;
+  gap: var(--s2);
+}
+.essay-revision input {
+  flex: 1;
+  min-width: 0;
+  min-height: 36px;
+  padding: 0 var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: var(--surface-input);
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+}
+.essay-revision input:focus {
+  border-color: var(--cyan-dim);
+  outline: none;
+  box-shadow: 0 0 0 3px #58cfe41f;
+}
+.essay-revision > p {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--fs-xs);
+  line-height: 1.6;
+}
+.essay-revision > p button {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  text-decoration: underline;
+  cursor: pointer;
+}
+.essay-revision > p button:hover:not(:disabled) {
+  color: var(--text-1);
+}
+.essay-revision-history {
+  margin: 0;
+  padding-left: var(--s5);
+  display: grid;
+  gap: 3px;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  line-height: 1.6;
+}
+.essay-revision-history li::marker {
+  color: var(--text-dim);
+}
+.essay-revision-message {
+  margin: 0;
+  color: var(--cyan) !important;
+  font-size: var(--fs-xs);
+}
+
 /* ── 11. 자소서 에디터 ───────────────────────────────────────────────── */
 
 .writing-area {

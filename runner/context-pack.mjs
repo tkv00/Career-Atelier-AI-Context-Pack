@@ -139,7 +139,9 @@ const DEFAULT_STYLE_GUIDE = [
 
 // §14 1겹 — 04-experiences.md가 비어 있으면 호출 전에 index.mjs가 실행 자체를
 // 거부한다(이 함수는 그 이후에만 불린다).
-export function createWriterContextPack(runId, { essay, experiences, jobPost }) {
+export function createWriterContextPack(runId, { essay, experiences, jobPost, currentDraft, revisionRequests }) {
+  // 요청이 하나라도 있고 고칠 본문이 있어야 '수정 모드'다.
+  const revising = Boolean(currentDraft?.trim()) && (revisionRequests?.length ?? 0) > 0;
   const workspace = workspaceRoot(runId);
   const contextDir = resolve(workspace, 'context');
   const schemaDir = resolve(workspace, 'schema');
@@ -157,6 +159,12 @@ export function createWriterContextPack(runId, { essay, experiences, jobPost }) 
       '- 02-job-description.md: 지원 직무 정보 (있을 때만, 근거로 인용 가능)',
       '- 04-experiences.md: 이 폴더 밖의 경험은 절대 인용하지 말 것 — 유일한 사실 근거',
       '- 06-style-guide.md: 문체 규칙',
+      ...(revising
+        ? [
+            '- 07-current-draft.md: 지금 화면에 있는 본문 — 이걸 고치는 것이 이번 임무다',
+            '- 08-revision-requests.md: 사용자가 요청한 수정 사항 (아래가 최신)',
+          ]
+        : []),
       '',
     ].join('\n'),
   );
@@ -176,6 +184,26 @@ export function createWriterContextPack(runId, { essay, experiences, jobPost }) 
     .join('\n\n');
   writeFileSync(resolve(contextDir, '04-experiences.md'), experiencesText);
   writeFileSync(resolve(contextDir, '06-style-guide.md'), DEFAULT_STYLE_GUIDE);
+
+  // 수정 요청이 있으면 "백지에서 쓰기"가 아니라 "이 글을 고치기"가 된다.
+  // 현재 본문과 요청 이력을 함께 넘겨, 앞서 지시한 방향을 되돌리지 않게 한다.
+  if (revising) {
+    writeFileSync(
+      resolve(contextDir, '07-current-draft.md'),
+      `## 현재 본문 (이걸 고친다)\n\n${currentDraft}`,
+    );
+    writeFileSync(
+      resolve(contextDir, '08-revision-requests.md'),
+      [
+        '## 사용자 수정 요청 (위가 오래된 것, 맨 아래가 이번 요청)',
+        '',
+        '이전 요청으로 이미 반영한 방향은 유지한 채, 맨 아래 요청을 새로 반영한다.',
+        '',
+        ...revisionRequests.map((item, index) => `${index + 1}. ${item.instruction}`),
+      ].join('\n'),
+    );
+  }
+
   writeFileSync(resolve(schemaDir, 'writer.json'), JSON.stringify(WRITER_OUTPUT_SCHEMA, null, 2));
 
   return { workspace, contextDir, outputDir, schemaPath: resolve(schemaDir, 'writer.json') };

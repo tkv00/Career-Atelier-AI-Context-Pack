@@ -29,6 +29,9 @@ import { schemaArgsFor } from './schema-compat.mjs';
 import { CONCURRENT_RUN_LIMIT, DAILY_RUN_LIMIT, HEARTBEAT_INTERVAL_MS, assertSubscriptionProvider } from './safety.mjs';
 
 const POLL_INTERVAL_MS = 5_000;
+// 자소서 수정 요청을 몇 개까지 함께 넘길지. 너무 많으면 서로 모순되는 지시가
+// 쌓여 모델이 갈피를 못 잡는다.
+const REVISION_HISTORY_LIMIT = 6;
 
 // 비서별 LLM은 prompt_templates.provider에 있다(0021). 값이 비었거나 이상하면
 // 실행을 막는 대신 codex로 떨어뜨린다 — 설정 하나 때문에 큐가 멈추면 곤란하다.
@@ -221,10 +224,19 @@ async function processWriterJob(supabase, ownerId, job) {
     return;
   }
 
-  const [{ data: essay }, { data: experiences }, { data: template }] = await Promise.all([
+  const [{ data: essay }, { data: experiences }, { data: template }, { data: revisions }] = await Promise.all([
     supabase.from('essay_projects').select('*').eq('id', essayId).maybeSingle(),
     supabase.from('experience_cards').select('*').order('updated_at', { ascending: false }),
     supabase.from('prompt_templates').select('*').eq('agent_id', 'writer').eq('is_active', true).maybeSingle(),
+    // 대화처럼 이어지게 하려면 이번 요청만으로는 부족하다 — 앞서 시킨 방향을
+    // 되돌리지 않도록 최근 몇 개를 함께 넘긴다. 오래된 것까지 전부 넣으면
+    // 서로 모순되는 지시가 쌓여 오히려 품질이 떨어진다.
+    supabase
+      .from('essay_revision_requests')
+      .select('instruction, created_at')
+      .eq('essay_id', essayId)
+      .order('created_at', { ascending: false })
+      .limit(REVISION_HISTORY_LIMIT),
   ]);
 
   if (!essay || !template) {
@@ -250,9 +262,24 @@ async function processWriterJob(supabase, ownerId, job) {
 
   const knownExperienceIds = new Set(experiences.map((item) => item.id));
   const runIdForWorkspace = randomUUID();
-  const { workspace, contextDir, schemaPath } = createWriterContextPack(runIdForWorkspace, { essay, experiences, jobPost });
+  // 오래된 것부터 읽혀야 "그다음에 이렇게 고쳐달라"는 순서가 살아난다.
+  const revisionRequests = [...(revisions ?? [])].reverse();
+  // 화면에서 고친 내용까지 반영된 지금 본문을 기준으로 삼는다. payload로
+  // 받은 게 있으면 그걸 쓰고(저장 전 편집 중인 본문), 없으면 저장된 draft다.
+  const currentDraft = job.payload?.currentDraft ?? essay.draft ?? '';
+  const revising = Boolean(currentDraft.trim()) && revisionRequests.length > 0;
 
-  const prompt = `${template.body}\n\n[작성 대상]\ncontext/01-questions.md, context/02-job-description.md, context/04-experiences.md, context/06-style-guide.md를 읽고 스키마에 맞는 JSON으로만 답하라.`;
+  const { workspace, contextDir, schemaPath } = createWriterContextPack(runIdForWorkspace, {
+    essay,
+    experiences,
+    jobPost,
+    currentDraft,
+    revisionRequests,
+  });
+
+  const prompt = revising
+    ? `${template.body}\n\n[수정 대상]\ncontext/07-current-draft.md가 지금 본문이다. context/08-revision-requests.md의 요청을 반영해 **고쳐 쓴다**. 백지에서 새로 쓰지 말고, 요청과 무관한 문장은 그대로 둔다.\ncontext/01-questions.md, context/02-job-description.md, context/04-experiences.md, context/06-style-guide.md도 함께 읽고 스키마에 맞는 JSON으로만 답하라.`
+    : `${template.body}\n\n[작성 대상]\ncontext/01-questions.md, context/02-job-description.md, context/04-experiences.md, context/06-style-guide.md를 읽고 스키마에 맞는 JSON으로만 답하라.`;
 
   await recordAndRun(supabase, ownerId, job, {
     provider,

@@ -16,6 +16,8 @@ import {
   requestReview,
   requestSubtitle,
   requestWriterDraft,
+  requestEssayRevision,
+  clearRevisionRequests,
   saveDraft,
   saveQuestionSettings,
   saveVersion,
@@ -97,6 +99,7 @@ export function EssayEditor({
   companyPending,
   subtitlePending,
   runnerOnline,
+  revisionRequests,
 }: {
   essay: Essay;
   initialVersions: EssayVersion[];
@@ -110,9 +113,13 @@ export function EssayEditor({
   companyPending: boolean;
   subtitlePending: boolean;
   runnerOnline: boolean;
+  revisionRequests: { id: string; instruction: string; created_at: string }[];
 }) {
   const router = useRouter();
   const [content, setContent] = useState(essay.draft);
+  const [revisionInput, setRevisionInput] = useState('');
+  const [revisionBusy, setRevisionBusy] = useState(false);
+  const [revisionMessage, setRevisionMessage] = useState('');
   const [revision, setRevision] = useState(essay.revision);
   const [dirty, setDirty] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved' | 'error'>('idle');
@@ -275,6 +282,40 @@ export function EssayEditor({
   async function handleRequestWriterDraft() {
     await requestWriterDraft(essay.id);
     router.refresh();
+  }
+
+  // 대화형 수정. 저장된 draft가 아니라 지금 에디터에 있는 content를 넘긴다 —
+  // 방금 손으로 고친 문장이 아직 저장 전일 수 있고, 사용자는 화면에 보이는
+  // 글이 고쳐지길 기대한다.
+  async function handleRequestRevision(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const instruction = revisionInput.trim();
+    if (!instruction) return;
+    setRevisionBusy(true);
+    setRevisionMessage('');
+    try {
+      await requestEssayRevision(essay.id, instruction, content);
+      setRevisionInput('');
+      setRevisionMessage('요청을 보냈습니다. 뮤즈가 고친 초안을 오른쪽에 올려줍니다.');
+      router.refresh();
+    } catch (error) {
+      setRevisionMessage(error instanceof Error ? error.message : '요청하지 못했습니다.');
+    } finally {
+      setRevisionBusy(false);
+    }
+  }
+
+  async function handleClearRevisions() {
+    setRevisionBusy(true);
+    try {
+      await clearRevisionRequests(essay.id);
+      setRevisionMessage('이전 요청을 지웠습니다. 다음 수정은 새 방향으로 시작합니다.');
+      router.refresh();
+    } catch (error) {
+      setRevisionMessage(error instanceof Error ? error.message : '지우지 못했습니다.');
+    } finally {
+      setRevisionBusy(false);
+    }
   }
 
   async function handleRequestCompanyResearch(event: React.FormEvent<HTMLFormElement>) {
@@ -666,6 +707,41 @@ export function EssayEditor({
             )}
           </div>
         </div>
+        <form className="essay-revision" onSubmit={handleRequestRevision}>
+          <label htmlFor="revision-input">뮤즈에게 수정 요청</label>
+          <div>
+            <input
+              id="revision-input"
+              value={revisionInput}
+              onChange={(event) => setRevisionInput(event.target.value)}
+              placeholder="예: 2문단을 더 구체적으로, 수치를 앞에 두고 짧게"
+              disabled={revisionBusy || writerPending}
+            />
+            <button type="submit" className="secondary-button" disabled={revisionBusy || writerPending || !revisionInput.trim()}>
+              {writerPending ? '고치는 중…' : '고쳐줘'}
+            </button>
+          </div>
+          <p>
+            지금 화면의 본문을 기준으로 고칩니다. 이전 요청도 함께 기억하므로 이어서 말하듯 시켜도 됩니다.
+            {revisionRequests.length > 0 && (
+              <>
+                {' · '}
+                <button type="button" onClick={handleClearRevisions} disabled={revisionBusy}>
+                  이전 요청 {revisionRequests.length}개 지우기
+                </button>
+              </>
+            )}
+          </p>
+          {revisionRequests.length > 0 && (
+            <ol className="essay-revision-history">
+              {revisionRequests.map((item) => (
+                <li key={item.id}>{item.instruction}</li>
+              ))}
+            </ol>
+          )}
+          {revisionMessage && <p className="essay-revision-message">{revisionMessage}</p>}
+        </form>
+
 
         <div className="inline-form" style={{ marginTop: 16, borderTop: '1px solid var(--line)', paddingTop: 16 }}>
           <input

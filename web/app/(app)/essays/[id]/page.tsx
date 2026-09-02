@@ -7,7 +7,7 @@ export default async function EssayPage({ params }: { params: Promise<{ id: stri
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: essay }, { data: versions }, { data: reviews }, { data: drafts }, { data: subtitles }, { data: pendingJobs }, { data: runners }] =
+  const [{ data: essay }, { data: versions }, { data: reviews }, { data: drafts }, { data: subtitles }, { data: pendingJobs }, { data: runners }, { data: revisionRequests }] =
     await Promise.all([
       supabase.from('essay_projects').select('*').eq('id', id).maybeSingle(),
       supabase.from('essay_versions').select('*').eq('essay_id', id).order('version', { ascending: false }),
@@ -40,6 +40,12 @@ export default async function EssayPage({ params }: { params: Promise<{ id: stri
         .in('status', ['queued', 'running'])
         .order('created_at', { ascending: false }),
       supabase.from('runners').select('approved, last_seen_at').eq('approved', true),
+      // 대화형 수정 이력. 오래된 것부터 보여줘야 "이렇게 시켰고 그다음 이렇게"가 읽힌다.
+      supabase
+        .from('essay_revision_requests')
+        .select('id, instruction, created_at')
+        .eq('essay_id', id)
+        .order('created_at', { ascending: true }),
     ]);
 
   if (!essay) notFound();
@@ -73,6 +79,7 @@ export default async function EssayPage({ params }: { params: Promise<{ id: stri
       companyPending={(pendingJobs ?? []).some((job) => job.kind === 'company')}
       subtitlePending={(pendingJobs ?? []).some((job) => job.kind === 'subtitle')}
       runnerOnline={runnerOnline}
+      revisionRequests={revisionRequests ?? []}
     />
   );
 }

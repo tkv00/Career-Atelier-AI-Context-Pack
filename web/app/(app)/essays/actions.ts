@@ -1,5 +1,6 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { countChars } from '@/lib/chars';
@@ -124,6 +125,47 @@ export async function requestWriterDraft(essayId: string) {
     harness_snapshot: {},
   });
   if (error) throw new Error(error.message);
+}
+
+// 대화형 수정(요청 2026-09-02) — "2문단을 더 구체적으로" 같은 지시를 받아
+// 지금 본문을 고친다. 백지에서 다시 쓰는 requestWriterDraft와 같은 잡 종류를
+// 쓰되, 요청을 먼저 남겨 두면 러너가 수정 모드로 돈다.
+//
+// currentDraft를 함께 보내는 이유: 사용자가 방금 손으로 고친 내용이 아직
+// 저장되지 않았을 수 있다. 화면에 보이는 글을 기준으로 고쳐야 말이 된다.
+export async function requestEssayRevision(essayId: string, instruction: string, currentDraft: string) {
+  const trimmed = instruction.trim();
+  if (!trimmed) throw new Error('어떻게 고칠지 적어 주세요.');
+  if (!currentDraft.trim()) throw new Error('고칠 본문이 없습니다. 먼저 초안을 만드세요.');
+
+  const { supabase, user } = await requireUser();
+
+  const { error: requestError } = await supabase.from('essay_revision_requests').insert({
+    owner_id: user.id,
+    essay_id: essayId,
+    instruction: trimmed,
+    base_draft: currentDraft,
+  });
+  if (requestError) throw new Error(requestError.message);
+
+  const { error } = await supabase.from('jobs').insert({
+    owner_id: user.id,
+    kind: 'writer',
+    payload: { essayId, currentDraft },
+    harness_snapshot: {},
+  });
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/essays/${essayId}`);
+}
+
+// 요청 이력을 지운다. 방향을 완전히 새로 잡고 싶을 때 쓴다 — 이력이 남아 있으면
+// 러너가 계속 옛 지시를 함께 반영하려 든다.
+export async function clearRevisionRequests(essayId: string) {
+  const { supabase } = await requireUser();
+  const { error } = await supabase.from('essay_revision_requests').delete().eq('essay_id', essayId);
+  if (error) throw new Error(error.message);
+  revalidatePath(`/essays/${essayId}`);
 }
 
 // 4단계 네 번째 수직 슬라이스(솔/기업조사) + 6단계 JD 입력(§10 후반).
