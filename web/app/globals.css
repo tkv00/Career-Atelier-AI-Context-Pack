@@ -3329,6 +3329,11 @@ input.interview-question-title:focus {
   align-items: flex-start;
   justify-content: space-between;
   gap: var(--s3);
+  cursor: grab;
+  user-select: none;
+}
+.focus-modal-head:active {
+  cursor: grabbing;
 }
 .focus-modal-head h2 {
   font-size: var(--fs-xl);

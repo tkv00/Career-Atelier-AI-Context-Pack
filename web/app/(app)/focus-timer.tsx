@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 const MIN_CUSTOM_MINUTES = 1;
 const MAX_CUSTOM_MINUTES = 180;
@@ -14,6 +14,9 @@ export function FocusTimer() {
   const [seconds, setSeconds] = useState(25 * 60);
   const [running, setRunning] = useState(false);
   const [sessions, setSessions] = useState(0);
+  const panelRef = useRef<HTMLElement>(null);
+  const [dragPos, setDragPos] = useState<{ top: number; left: number } | null>(null);
+  const dragOffset = useRef<{ x: number; y: number } | null>(null);
 
   function minutesFor(key: ModeKey) {
     return key === 'custom' ? customMinutes : presets[key].minutes;
@@ -37,6 +40,31 @@ export function FocusTimer() {
     if (mode === 'custom') { setSeconds(clamped * 60); setRunning(false); }
   }
 
+  // 헤더를 잡고 끌면 패널을 화면 어디로든 옮길 수 있다 — 배경을 막지 않으니
+  // 다른 작업 화면과 겹치면 안 보이는 위치로 치워 둘 수 있어야 한다.
+  function handleDragStart(event: React.MouseEvent) {
+    if (event.button !== 0 || !panelRef.current) return;
+    const rect = panelRef.current.getBoundingClientRect();
+    dragOffset.current = { x: event.clientX - rect.left, y: event.clientY - rect.top };
+    window.addEventListener('mousemove', handleDragMove);
+    window.addEventListener('mouseup', handleDragEnd);
+  }
+
+  function handleDragMove(event: MouseEvent) {
+    if (!dragOffset.current || !panelRef.current) return;
+    const width = panelRef.current.offsetWidth;
+    const height = panelRef.current.offsetHeight;
+    const left = Math.min(Math.max(0, event.clientX - dragOffset.current.x), window.innerWidth - width);
+    const top = Math.min(Math.max(0, event.clientY - dragOffset.current.y), window.innerHeight - height);
+    setDragPos({ top, left });
+  }
+
+  function handleDragEnd() {
+    dragOffset.current = null;
+    window.removeEventListener('mousemove', handleDragMove);
+    window.removeEventListener('mouseup', handleDragEnd);
+  }
+
   const total = minutesFor(mode) * 60;
   const clock = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
 
@@ -46,10 +74,16 @@ export function FocusTimer() {
         <i/><span>{running ? clock : 'FOCUS'}</span>
       </button>
       {open && (
-        <section className="focus-timer-panel" role="dialog" aria-label="우주 항해 집중 타이머">
-          <div className="focus-modal-head">
+        <section
+          ref={panelRef}
+          className="focus-timer-panel"
+          role="dialog"
+          aria-label="우주 항해 집중 타이머"
+          style={dragPos ? { top: dragPos.top, left: dragPos.left, right: 'auto', bottom: 'auto' } : undefined}
+        >
+          <div className="focus-modal-head" onMouseDown={handleDragStart}>
             <div><p className="eyebrow">ORBITAL FOCUS PROTOCOL</p><h2>집중 항해 타이머</h2></div>
-            <button onClick={() => setOpen(false)} aria-label="닫기">×</button>
+            <button onMouseDown={(event) => event.stopPropagation()} onClick={() => setOpen(false)} aria-label="닫기">×</button>
           </div>
           <div className="focus-mode-tabs">
             {(Object.keys(presets) as (keyof typeof presets)[]).map((key) => (
