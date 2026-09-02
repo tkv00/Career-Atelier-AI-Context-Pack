@@ -3187,25 +3187,22 @@ input.interview-question-title:focus {
   background: var(--amber);
 }
 
-.focus-modal-backdrop {
+/* 화면의 다른 부분을 계속 조작할 수 있어야 해서 백드롭 없는 플로팅
+   패널로 띄운다 — 런처 버튼 바로 위, 다른 곳을 클릭하면 그냥 그 클릭이
+   먹는다(모달처럼 막지 않는다). 닫기는 × 버튼이나 런처 재클릭으로만. */
+.focus-timer-panel {
   position: fixed;
-  inset: 0;
-  z-index: var(--z-modal);
-  background: #04070ccc;
-  backdrop-filter: blur(4px);
-  display: grid;
-  place-items: center;
-  padding: var(--s4);
-}
-.focus-timer-modal {
-  width: min(400px, 100%);
-  max-height: 92vh;
+  right: var(--s5);
+  bottom: calc(var(--s5) + 36px + var(--s2));
+  z-index: var(--z-float);
+  width: min(340px, calc(100vw - var(--s5) * 2));
+  max-height: min(560px, 80vh);
   overflow-y: auto;
-  padding: var(--s6);
+  padding: var(--s5);
   border: 1px solid var(--line);
   border-radius: var(--r-panel);
   background: var(--surface-1);
-  box-shadow: var(--shadow-modal);
+  box-shadow: var(--shadow-float);
   display: grid;
   gap: var(--s4);
 }
@@ -3231,7 +3228,7 @@ input.interview-question-title:focus {
 }
 .focus-mode-tabs {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--s1);
   padding: 3px;
   border: 1px solid var(--line-soft);
@@ -3239,12 +3236,12 @@ input.interview-question-title:focus {
   background: var(--surface-input);
 }
 .focus-mode-tabs button {
-  padding: var(--s2);
+  padding: var(--s1) 2px;
   border: 0;
   border-radius: var(--r-chip);
   background: transparent;
   color: var(--text-3);
-  font-size: var(--fs-xs);
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   display: grid;
@@ -3257,6 +3254,32 @@ input.interview-question-title:focus {
 .focus-mode-tabs button.active {
   background: var(--surface-3);
   color: var(--text-1);
+}
+.focus-custom-input {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s3);
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-control);
+  background: var(--surface-input);
+}
+.focus-custom-input label {
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+.focus-custom-input input {
+  width: 64px;
+  min-height: 30px;
+  padding: 0 var(--s2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-chip);
+  background: var(--surface-2);
+  color: var(--text-1);
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  text-align: center;
 }
 
 /* 항해 게이지 — conic-gradient 한 겹. 절제된 시각 표현. */
@@ -3751,6 +3774,10 @@ input.interview-question-title:focus {
   .focus-launcher {
     right: var(--s3);
     bottom: var(--s3);
+  }
+  .focus-timer-panel {
+    right: var(--s3);
+    bottom: calc(var(--s3) + 36px + var(--s2));
   }
 }
 
