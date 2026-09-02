@@ -13,13 +13,22 @@ import { QuestionImportButton } from './question-import';
 import { AgentLiveRefresh } from './agent-live-refresh';
 
 const ORBIT_AGENTS = [
-  { id: 'news', name: '루미', role: '통신·뉴스', provider: 'Codex', frame: 1 },
-  { id: 'jobs', name: '모카', role: '항로·채용탐색', provider: 'Codex', frame: 2 },
-  { id: 'company', name: '솔', role: '기업정보 해독', provider: 'Claude', frame: 3 },
-  { id: 'writer', name: '뮤즈', role: '자소서 작성', provider: 'Codex', frame: 4 },
-  { id: 'review', name: '렌즈', role: '근거 검수', provider: 'Claude', frame: 5 },
-  { id: 'interview', name: '에코', role: '면접 코치', provider: 'Codex', frame: 6 },
+  { id: 'news', name: '루미', role: '통신·뉴스', frame: 1 },
+  { id: 'jobs', name: '모카', role: '항로·채용탐색', frame: 2 },
+  { id: 'company', name: '솔', role: '기업정보 해독', frame: 3 },
+  { id: 'writer', name: '뮤즈', role: '자소서 작성', frame: 4 },
+  { id: 'review', name: '렌즈', role: '근거 검수', frame: 5 },
+  { id: 'interview', name: '에코', role: '면접 코치', frame: 6 },
+  { id: 'subtitle', name: '콤마', role: '15자 소제목', frame: 7 },
 ];
+
+// 어떤 LLM으로 도는지는 프롬프트 생성실에서 바꿀 수 있다(0021). 여기 박아 두면
+// 사용자가 바꿔도 카드에는 옛 값이 남아 서로 다른 말을 하게 된다.
+const PROVIDER_LABEL: Record<string, string> = {
+  codex: 'Codex',
+  claude: 'Claude',
+  gemini: 'Antigravity',
+};
 
 function agentSpeech(agentId: string, status: string | null | undefined, runnerOnline: boolean) {
   if (!runnerOnline) return '로컬 러너의 연결을 기다리고 있어요.';
@@ -35,6 +44,7 @@ function agentSpeech(agentId: string, status: string | null | undefined, runnerO
     writer: '경험 카드로 자소서 초안을 쓰고 있어요.',
     review: '과장 표현과 근거 누락을 검수 중이에요.',
     interview: 'JD와 경험을 대조해 예상 면접 질문을 설계 중이에요.',
+    subtitle: '본문의 핵심 근거를 15자 소제목으로 압축 중이에요.',
   } as Record<string, string>)[agentId];
   return '다음 임무를 기다리며 작업함을 정리하고 있어요.';
 }
@@ -57,6 +67,7 @@ export default async function DashboardPage() {
     { data: agentRuns },
     { data: claudeLimitEvents },
     { data: codexUsageEvents },
+    { data: promptTemplates },
   ] = await Promise.all([
     supabase.from('profiles').select('*').maybeSingle(),
     supabase.from('experience_cards').select('*').order('updated_at', { ascending: false }),
@@ -71,6 +82,7 @@ export default async function DashboardPage() {
     // 구독 잔량은 별도 테이블 없이 실행 스트림에서 되읽는다(web/lib/llm-usage.ts).
     supabase.from('run_events').select('payload').eq('kind', 'rate_limit_event').order('created_at', { ascending: false }).limit(1),
     supabase.from('run_events').select('payload').eq('kind', 'turn.completed').order('created_at', { ascending: false }).limit(200),
+    supabase.from('prompt_templates').select('agent_id, provider'),
   ]);
 
   const runnerOnline = (runners ?? []).some((runner) => isRunnerOnline(runner.last_seen_at));
@@ -85,9 +97,12 @@ export default async function DashboardPage() {
   const researchActive = activeAgentIds.has('company');
   const codexRuns = (agentRuns ?? []).filter((run) => run.provider === 'codex').length;
   const claudeRuns = (agentRuns ?? []).filter((run) => run.provider === 'claude').length;
+  const geminiRuns = (agentRuns ?? []).filter((run) => run.provider === 'gemini').length;
 
   // Claude만 실제 잔량(창별 사용률)을 스트림으로 준다. Codex는 토큰 수만 주고
   // 한도를 안 줘서 잔량 계산이 불가능하다 — 없는 값을 지어내지 않는다.
+  const providerByAgent = new Map((promptTemplates ?? []).map((row) => [row.agent_id, row.provider]));
+
   const claudeWindows = parseClaudeWindows(claudeLimitEvents?.[0]?.payload ?? null);
   const codexTokens = sumCodexTokens((codexUsageEvents ?? []).map((row) => row.payload));
 
@@ -121,7 +136,7 @@ export default async function DashboardPage() {
               return <article className={active ? 'cloud-agent active' : 'cloud-agent'} key={agent.id}>
                 <div className={active ? 'cloud-agent-speech live' : 'cloud-agent-speech'}><b>{agent.name}</b><span>{agentSpeech(agent.id, latest?.status, runnerOnline)}</span></div>
                 <div className={`cloud-space-agent frame-${agent.frame}`} aria-label={`${agent.name} 픽셀 채용 에이전트`}/>
-                <div><b>{agent.name}</b><span>{agent.role}</span><small>{agent.provider} · {active ? 'RUNNING' : latest?.status?.toUpperCase() || 'STANDBY'}</small></div>
+                <div><b>{agent.name}</b><span>{agent.role}</span><small>{PROVIDER_LABEL[providerByAgent.get(agent.id) ?? ''] ?? '미설정'} · {active ? 'RUNNING' : latest?.status?.toUpperCase() || 'STANDBY'}</small></div>
                 {agent.id === 'news' && <NewsRunButton pending={newsPending} runnerOnline={runnerOnline} />}
                 {agent.id === 'jobs' && <JobSearchButton pending={jobsPending} runnerOnline={runnerOnline} />}
               </article>;
@@ -166,7 +181,7 @@ export default async function DashboardPage() {
             </div>
           </article>
 
-          <p>실행 {codexRuns + claudeRuns}회 · 구독 인증은 로컬 기기에만 저장</p>
+          <p>실행 {codexRuns + claudeRuns + geminiRuns}회 · 구독 인증은 로컬 기기에만 저장</p>
           <Link href="/activity" className="cloud-usage-link">전체 실행 기록 보기 →</Link>
         </aside>
       </section>

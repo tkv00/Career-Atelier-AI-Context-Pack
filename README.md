@@ -160,13 +160,7 @@ Questions are stored by category (company, role, experience) so you can draft an
 </tr>
 
 <tr>
-<td width="130" align="center">
-
-**Sojemok**
-
-<sub>(no artwork yet)</sub>
-
-</td>
+<td width="130" align="center"><img src="docs/images/agents/agent-subtitle.png" width="100" alt="Sojemok"></td>
 <td>
 
 ### Sojemok — section headings
@@ -185,7 +179,9 @@ Like every other agent, its output is a suggestion until you accept it.
 
 <br>
 
-> **An agent only works if its CLI is logged in.** You do not need all three. With just Codex you get Lumi, Moka, Muse, and Echo; the rest will fail if you launch them.
+> **Which LLM each agent runs on is configurable** in the prompt studio. The table above lists the defaults.
+>
+> If you only subscribe to one, point all seven at it — schemas are converted to that provider's requirements automatically. An agent still needs its CLI signed in to actually run; otherwise the run fails.
 
 <br>
 
@@ -413,7 +409,6 @@ Good places to start:
 
 - The runner is still macOS-first in places. Real Windows and Linux testing is especially useful.
 - Agents live in `runner/context-pack.mjs` and `runner/providers/`. Adding a provider means adding one file.
-- Sojemok has no character artwork yet.
 - The practice room and prompt studio have the thinnest verification.
 
 <br>

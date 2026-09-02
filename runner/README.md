@@ -309,3 +309,32 @@ OpenAI 계정으로, Claude가 Anthropic 계정으로
 리포 루트의 `.vercelignore`가 `runner/`를 명시적으로 제외한다. Vercel 프로젝트의
 Root Directory를 `web/`로 설정하면 애초에 이 폴더가 안 올라가지만, 이중 안전장치로
 남겨 둔다.
+
+## 비서별 LLM 선택 (2026-09-02)
+
+어떤 비서가 어떤 CLI로 도는지가 `index.mjs`에 박혀 있던 걸 `prompt_templates.provider`로
+옮겼다(마이그레이션 `0021`). 웹의 프롬프트 생성실에서 고르면 다음 실행부터 반영된다.
+기본값은 이전과 같다 — 루미·모카·뮤즈·에코는 Codex, 솔·렌즈는 Claude, 소제목은 Antigravity.
+
+`harness_configs.provider_map`이 이름상 더 맞아 보이지만 그 테이블은 v1 잔재로 행이 0개이고
+코드 어디서도 읽지 않는다. `prompt_templates`는 이미 비서당 한 행이고 러너가 실행 직전에
+그 행을 읽고 있어서 조회가 늘지 않는다.
+
+**스키마는 프로바이더마다 요구사항이 달라 그대로 바꾸면 깨진다**(`schema-compat.mjs`).
+실측으로 확인한 차이 두 가지:
+
+1. **Codex는 모든 object에 `additionalProperties: false`가 없으면** CLI가 아니라 OpenAI API가
+    `invalid_json_schema` 400을 낸다. 솔·렌즈 스키마는 Claude 전용으로 쓰여 이 필드가 없었고,
+    그대로 Codex로 바꾸면 즉시 실패했다.
+2. **Antigravity는 필드에 `description`이 없으면** 실제 값 대신 "작업을 완료했습니다" 같은
+    메타 요약을 채워 넣는다(2026-09-01에 소제목에서 겪은 것과 같은 오작동).
+
+`normalizeSchema`가 두 조건을 모두 만족시켜 두므로 어느 쪽으로 바꿔도 같은 스키마가 통한다.
+Claude는 둘 다 없어도 통과하니 손해가 없다. 전달 방식도 갈린다 — Codex는 `--output-schema`에
+**파일 경로**를, Claude·Antigravity는 `--json-schema`에 **JSON 문자열**을 받는다(파일 경로를
+주면 Claude가 `JSON Parse error`로 죽는 것까지 실측했다). `schemaArgsFor`가 이 분기를 담당한다.
+
+정규화·라우팅은 실제 스키마 7개로 단위 테스트했다(14/14). 다만 **바꾼 프로바이더로 실제
+CLI를 돌려 끝까지 성공하는지는 아직 확인하지 못했다** — 예를 들어 루미를 Claude로 바꾸면
+스키마는 통과하지만, 루미 프롬프트가 기대하는 자동 웹 검색이 Claude에서도 같은 품질로
+동작하는지는 별개 문제다.

@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Database } from '@/lib/supabase/database.types';
 import { formatDateTime } from '@/lib/datetime';
-import { restorePromptVersion, savePromptVersion } from './actions';
+import { PROVIDERS, restorePromptVersion, savePromptVersion, setAgentProvider } from './actions';
 
 type Template = Database['public']['Tables']['prompt_templates']['Row'];
 type Version = Database['public']['Tables']['prompt_versions']['Row'];
@@ -21,6 +21,15 @@ const AGENT_META: Record<string, { name: string; role: string }> = {
   review: { name: '렌즈', role: '검수' },
   subtitle: { name: '소제목', role: '헤드라인' },
   interview: { name: '에코', role: '면접 코치' },
+};
+
+// 어떤 CLI에 로그인해야 이 선택이 실제로 동작하는지 함께 보여준다. 고르기만
+// 하고 로그인이 없으면 실행이 blocked_auth로 떨어지는데, 화면에 단서가 없으면
+// 원인을 찾기 어렵다.
+const PROVIDER_META: Record<string, { label: string; requires: string }> = {
+  codex: { label: 'Codex', requires: 'ChatGPT 구독 · codex login' },
+  claude: { label: 'Claude Code', requires: 'Claude 구독 · claude auth login' },
+  gemini: { label: 'Antigravity', requires: 'Google 계정 · agy' },
 };
 
 export function PromptLabClient({ templates, versions }: { templates: Template[]; versions: Version[] }) {
@@ -64,6 +73,21 @@ export function PromptLabClient({ templates, versions }: { templates: Template[]
       router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : '저장에 실패했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleProviderChange(next: string) {
+    if (!selected) return;
+    setSaving(true);
+    setMessage('');
+    try {
+      await setAgentProvider(selected.id, next);
+      setMessage(`${PROVIDER_META[next]?.label ?? next}(으)로 바꿨습니다. 다음 실행부터 적용됩니다.`);
+      router.refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'LLM을 바꾸지 못했습니다.');
     } finally {
       setSaving(false);
     }
@@ -130,6 +154,20 @@ export function PromptLabClient({ templates, versions }: { templates: Template[]
           <button type="button" className="run-button" onClick={handleSave} disabled={!dirty || saving}>
             {saving ? '저장 중…' : '새 버전 저장'}
           </button>
+        </div>
+
+        <div className="prompt-lab-provider">
+          <label>
+            <span>실행할 LLM</span>
+            <select value={selected.provider} onChange={(event) => handleProviderChange(event.target.value)} disabled={saving}>
+              {PROVIDERS.map((item) => (
+                <option key={item} value={item}>
+                  {PROVIDER_META[item]?.label ?? item}
+                </option>
+              ))}
+            </select>
+          </label>
+          <small>{PROVIDER_META[selected.provider]?.requires ?? ''}</small>
         </div>
 
         <textarea

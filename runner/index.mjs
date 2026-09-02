@@ -8,8 +8,12 @@ import { syncCalendarEvent } from './nova.mjs';
 import { markDailySearchRan, shouldRunDailySearch } from './scheduler.mjs';
 import {
   COMPANY_RESEARCH_SCHEMA,
+  INTERVIEW_OUTPUT_SCHEMA,
+  JOBS_OUTPUT_SCHEMA,
+  NEWS_OUTPUT_SCHEMA,
   REVIEW_JSON_SCHEMA,
   SUBTITLE_OUTPUT_SCHEMA,
+  WRITER_OUTPUT_SCHEMA,
   createCompanyContextPack,
   createInterviewContextPack,
   createJobsContextPack,
@@ -21,9 +25,23 @@ import {
 } from './context-pack.mjs';
 import { runProvider } from './execute.mjs';
 import { runBackup, shouldBackupNow } from './backup.mjs';
+import { schemaArgsFor } from './schema-compat.mjs';
 import { CONCURRENT_RUN_LIMIT, DAILY_RUN_LIMIT, HEARTBEAT_INTERVAL_MS, assertSubscriptionProvider } from './safety.mjs';
 
 const POLL_INTERVAL_MS = 5_000;
+
+// 비서별 LLM은 prompt_templates.provider에 있다(0021). 값이 비었거나 이상하면
+// 실행을 막는 대신 codex로 떨어뜨린다 — 설정 하나 때문에 큐가 멈추면 곤란하다.
+const KNOWN_PROVIDERS = new Set(['codex', 'claude', 'gemini']);
+function providerFor(template, fallback = 'codex') {
+  const chosen = template?.provider;
+  return KNOWN_PROVIDERS.has(chosen) ? chosen : fallback;
+}
+
+// schemaArgsFor가 정규화한 스키마를 Codex용 파일에 다시 쓸 때 쓴다.
+function writeSchema(path, schema) {
+  writeFileSync(path, JSON.stringify(schema, null, 2));
+}
 const stateDir = resolve(homedir(), '.career-atelier');
 const fingerprintPath = resolve(stateDir, 'runner-id.json');
 
@@ -149,6 +167,8 @@ async function processReviewJob(supabase, ownerId, job) {
     return;
   }
 
+  const provider = providerFor(template);
+
   let jobPost = null;
   if (essay.job_id) {
     const { data } = await supabase.from('job_posts').select('*').eq('id', essay.job_id).maybeSingle();
@@ -156,7 +176,7 @@ async function processReviewJob(supabase, ownerId, job) {
   }
 
   const runIdForWorkspace = randomUUID();
-  const { workspace, contextDir } = createReviewContextPack(runIdForWorkspace, {
+  const { workspace, contextDir, schemaPath } = createReviewContextPack(runIdForWorkspace, {
     essay,
     experiences: experiences ?? [],
     jobPost,
@@ -165,14 +185,11 @@ async function processReviewJob(supabase, ownerId, job) {
   const prompt = `${template.body}\n\n[검수 대상]\ncontext/01-essay-draft.md, context/02-experiences.md, context/03-job-description.md를 읽고 스키마에 맞는 JSON으로만 답하라.`;
 
   await recordAndRun(supabase, ownerId, job, {
-    provider: 'claude',
+    provider,
     prompt,
     workspace,
     contextDir,
-    // claude CLI의 --json-schema는 파일 경로가 아니라 JSON 문자열 자체를
-    // 요구한다(`claude -p --help`로 실측 확인) — §8 문서 예시(파일 경로)와
-    // 실제 동작이 달랐다.
-    jsonSchema: JSON.stringify(REVIEW_JSON_SCHEMA),
+    ...schemaArgsFor(provider, REVIEW_JSON_SCHEMA, schemaPath, writeSchema),
     onComplete: async (result, run) => {
       let parsed = null;
       try {
@@ -216,6 +233,8 @@ async function processWriterJob(supabase, ownerId, job) {
     return;
   }
 
+  const provider = providerFor(template);
+
   // §14 1겹 — 경험 카드가 하나도 없으면 실행 자체를 거부한다. UI에서 끌 수 없다.
   if (!experiences || experiences.length === 0) {
     await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
@@ -231,16 +250,16 @@ async function processWriterJob(supabase, ownerId, job) {
 
   const knownExperienceIds = new Set(experiences.map((item) => item.id));
   const runIdForWorkspace = randomUUID();
-  const { workspace, contextDir } = createWriterContextPack(runIdForWorkspace, { essay, experiences, jobPost });
+  const { workspace, contextDir, schemaPath } = createWriterContextPack(runIdForWorkspace, { essay, experiences, jobPost });
 
   const prompt = `${template.body}\n\n[작성 대상]\ncontext/01-questions.md, context/02-job-description.md, context/04-experiences.md, context/06-style-guide.md를 읽고 스키마에 맞는 JSON으로만 답하라.`;
 
   await recordAndRun(supabase, ownerId, job, {
-    provider: 'codex',
+    provider,
     prompt,
     workspace,
     contextDir,
-    outputSchema: resolve(workspace, 'schema', 'writer.json'),
+    ...schemaArgsFor(provider, WRITER_OUTPUT_SCHEMA, schemaPath, writeSchema),
     onComplete: async (result, run) => {
       let parsed = null;
       try {
@@ -284,16 +303,18 @@ async function processNewsJob(supabase, ownerId, job) {
     return;
   }
 
+  const provider = providerFor(template);
+
   const interests = (profile?.interests ?? []);
   const runIdForWorkspace = randomUUID();
-  const { workspace } = createNewsContextPack(runIdForWorkspace, { interests });
+  const { workspace, schemaPath } = createNewsContextPack(runIdForWorkspace, { interests });
   const prompt = `${template.body}\n\n[대상]\ncontext/01-interests.md를 읽고 스키마에 맞는 JSON으로만 답하라.`;
 
   await recordAndRun(supabase, ownerId, job, {
-    provider: 'codex',
+    provider,
     prompt,
     workspace,
-    outputSchema: resolve(workspace, 'schema', 'news.json'),
+    ...schemaArgsFor(provider, NEWS_OUTPUT_SCHEMA, schemaPath, writeSchema),
     onComplete: async (result, run) => {
       let parsed = null;
       try {
@@ -334,8 +355,10 @@ async function processCompanyJob(supabase, ownerId, job) {
     return;
   }
 
+  const provider = providerFor(template);
+
   const runIdForWorkspace = randomUUID();
-  const { workspace, contextDir } = createCompanyContextPack(runIdForWorkspace, {
+  const { workspace, contextDir, schemaPath } = createCompanyContextPack(runIdForWorkspace, {
     company: jobPost.company,
     role: jobPost.role,
     jobDescription: jobPost.description,
@@ -343,11 +366,11 @@ async function processCompanyJob(supabase, ownerId, job) {
   const prompt = `${template.body}\n\n[조사 대상]\ncontext/01-company.md, context/02-job-description.md를 읽고 스키마에 맞는 JSON으로만 답하라.`;
 
   await recordAndRun(supabase, ownerId, job, {
-    provider: 'claude',
+    provider,
     prompt,
     workspace,
     contextDir,
-    jsonSchema: JSON.stringify(COMPANY_RESEARCH_SCHEMA),
+    ...schemaArgsFor(provider, COMPANY_RESEARCH_SCHEMA, schemaPath, writeSchema),
     onComplete: async (result, run) => {
       let parsed = null;
       try {
@@ -384,17 +407,19 @@ async function processJobSearchJob(supabase, ownerId, job) {
     return;
   }
 
+  const provider = providerFor(template);
+
   const targetRoles = profile?.target_roles ?? [];
   const interests = profile?.interests ?? [];
   const runIdForWorkspace = randomUUID();
-  const { workspace } = createJobsContextPack(runIdForWorkspace, { targetRoles, interests, experiences: experiences ?? [] });
+  const { workspace, schemaPath } = createJobsContextPack(runIdForWorkspace, { targetRoles, interests, experiences: experiences ?? [] });
   const prompt = `${template.body}\n\n[대상]\ncontext/01-profile.md, context/02-experiences.md를 읽고 스키마에 맞는 JSON으로만 답하라.`;
 
   await recordAndRun(supabase, ownerId, job, {
-    provider: 'codex',
+    provider,
     prompt,
     workspace,
-    outputSchema: resolve(workspace, 'schema', 'jobs.json'),
+    ...schemaArgsFor(provider, JOBS_OUTPUT_SCHEMA, schemaPath, writeSchema),
     onComplete: async (result) => {
       let parsed = null;
       try {
@@ -495,8 +520,10 @@ async function processInterviewJob(supabase, ownerId, job) {
     return;
   }
 
+  const provider = providerFor(template);
+
   const runIdForWorkspace = randomUUID();
-  const { workspace, contextDir } = createInterviewContextPack(runIdForWorkspace, {
+  const { workspace, contextDir, schemaPath } = createInterviewContextPack(runIdForWorkspace, {
     jobPost,
     researchNotes: researchNotes ?? [],
     experiences: experiences ?? [],
@@ -505,11 +532,11 @@ async function processInterviewJob(supabase, ownerId, job) {
   const prompt = `${template.body}\n\n[작성 대상]\ncontext/01-job-description.md, context/02-company-research.md, context/03-experiences.md, context/04-existing-questions.md를 읽고 스키마에 맞는 JSON으로만 답하라. 답안은 Markdown이며 경험 카드에 없는 사실은 만들지 않는다.`;
 
   await recordAndRun(supabase, ownerId, job, {
-    provider: 'codex',
+    provider,
     prompt,
     workspace,
     contextDir,
-    outputSchema: resolve(workspace, 'schema', 'interview.json'),
+    ...schemaArgsFor(provider, INTERVIEW_OUTPUT_SCHEMA, schemaPath, writeSchema),
     onComplete: async (result, run) => {
       let parsed = null;
       try {
@@ -577,6 +604,8 @@ async function processSubtitleJob(supabase, ownerId, job) {
     return;
   }
 
+  const provider = providerFor(template);
+
   if (!essay.draft || !essay.draft.trim()) {
     await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
     console.log(`잡 ${job.id}: 본문이 비어 있어 소제목 실행을 거부합니다.`);
@@ -584,11 +613,11 @@ async function processSubtitleJob(supabase, ownerId, job) {
   }
 
   const runIdForWorkspace = randomUUID();
-  const { workspace, contextDir } = createSubtitleContextPack(runIdForWorkspace, { essay, existingSubtitle: essay.subtitle });
+  const { workspace, contextDir, schemaPath } = createSubtitleContextPack(runIdForWorkspace, { essay, existingSubtitle: essay.subtitle });
   const prompt = `${template.body}\n\n[대상]\ncontext/01-essay-draft.md, context/02-question.md, context/03-existing-subtitle.md를 읽고 스키마에 맞는 JSON으로만 답하라. 파일을 새로 만들거나 수정하지 말고 답변만 하라.`;
 
   await recordAndRun(supabase, ownerId, job, {
-    provider: 'gemini',
+    provider,
     // §13 effort 계층화 — 소제목은 짧은 카피라이팅이라 flash-medium이면
     // 충분하다. 명시하지 않으면 agy가 멀티 모델(Claude/GPT 포함)이라
     // 기본값이 무엇이든 Gemini로 고정한다(사용자 요청).
@@ -596,7 +625,7 @@ async function processSubtitleJob(supabase, ownerId, job) {
     prompt,
     workspace,
     contextDir,
-    jsonSchema: JSON.stringify(SUBTITLE_OUTPUT_SCHEMA),
+    ...schemaArgsFor(provider, SUBTITLE_OUTPUT_SCHEMA, schemaPath, writeSchema),
     onComplete: async (result, run) => {
       let parsed = null;
       try {
@@ -650,7 +679,7 @@ async function processJob(supabase, ownerId, job) {
   // 그 외 kind는 아직 4단계에서 구체화하지 않았다 — payload.provider/prompt를
   // 그대로 받는 범용 경로(3단계 검증용)로 실행한다.
   const payload = job.payload || {};
-  const provider = payload.provider === 'claude' ? 'claude' : 'codex';
+  const provider = providerFor({ provider: payload.provider });
   const prompt = String(payload.prompt || '');
 
   if (!prompt) {

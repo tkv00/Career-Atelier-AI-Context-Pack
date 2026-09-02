@@ -953,6 +953,7 @@ export type Database = {
           is_active: boolean
           name: string
           owner_id: string
+          provider: string
           updated_at: string
           variables: Json
           version: number
@@ -964,6 +965,7 @@ export type Database = {
           is_active?: boolean
           name: string
           owner_id: string
+          provider?: string
           updated_at?: string
           variables?: Json
           version?: number
@@ -975,6 +977,7 @@ export type Database = {
           is_active?: boolean
           name?: string
           owner_id?: string
+          provider?: string
           updated_at?: string
           variables?: Json
           version?: number
