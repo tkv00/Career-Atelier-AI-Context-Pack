@@ -3362,11 +3362,6 @@ input.interview-question-title:focus {
   position: relative;
   min-height: 100vh;
   overflow: hidden;
-  display: grid;
-  grid-template-columns: minmax(260px, 0.82fr) minmax(420px, 1.18fr) minmax(350px, 430px);
-  align-items: center;
-  gap: clamp(16px, 2vw, 40px);
-  padding: var(--s12) clamp(24px, 3.5vw, 68px);
   isolation: isolate;
   background:
     radial-gradient(circle at 50% 48%, #142b4138 0%, transparent 35%),
@@ -3405,12 +3400,12 @@ input.interview-question-title:focus {
 /* 참고 포트폴리오의 나선팔·색 전이·포인터 반응을 Canvas 2D로 옮겼다.
    WebGL 패키지를 추가하지 않아 로그인 한 화면 때문에 번들 전체가 무거워지지 않는다. */
 .galaxy-spiral-stage {
-  position: relative;
-  grid-column: 2;
-  grid-row: 1;
-  justify-self: center;
-  width: min(100%, 720px);
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(88vw, 112vh, 1080px);
   aspect-ratio: 1;
+  transform: translate(-50%, -50%);
   pointer-events: none;
   z-index: 1;
 }
@@ -3432,90 +3427,17 @@ input.interview-question-title:focus {
   height: 100%;
   filter: drop-shadow(0 0 22px #5a63db24);
 }
-.galaxy-spiral-kicker,
-.galaxy-spiral-telemetry {
-  position: absolute;
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.12em;
-  white-space: nowrap;
-}
-.galaxy-spiral-kicker {
-  top: 13%;
-  left: 2%;
-  gap: 8px;
-  padding: 7px 10px;
-  border-left: 1px solid #62d6e6a8;
-  color: #6b8d9d;
-  background: linear-gradient(90deg, #07131dcc, transparent);
-}
-.galaxy-spiral-kicker b {
-  color: #d8f6fa;
-  font-size: 10px;
-}
-.galaxy-spiral-telemetry {
-  right: 1%;
-  bottom: 13%;
-  gap: 9px;
-  padding: 7px 10px;
-  border-right: 1px solid #dfb46f9e;
-  background: linear-gradient(270deg, #0a141dcc, transparent);
-  color: #6f8d9b;
-}
-.galaxy-spiral-telemetry span { color: var(--amber-strong); }
-.galaxy-spiral-telemetry b { color: #abdce3; font-size: 9px; }
-.galaxy-spiral-telemetry em { color: #536f7c; font-style: normal; }
-.galaxy-spiral-telemetry i {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--cyan);
-  box-shadow: 0 0 9px var(--cyan);
-}
-
-.galaxy-cockpit {
-  position: absolute;
-  top: 0;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: var(--s3);
-  padding: var(--s2) var(--s6);
-  border: 1px solid var(--line-soft);
-  border-top: 0;
-  border-radius: 0 0 var(--r-control) var(--r-control);
-  background: #0a1119cc;
-  backdrop-filter: blur(8px);
-  font-family: var(--font-mono);
-  font-size: var(--fs-hud);
-  letter-spacing: var(--tracking-hud);
-  color: var(--text-3);
-  white-space: nowrap;
-}
-.galaxy-cockpit span { color: var(--amber); }
-.galaxy-cockpit b { color: var(--text-2); font-weight: 600; }
-.galaxy-cockpit em { font-style: normal; color: var(--text-dim); }
-.galaxy-cockpit i {
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: var(--cyan);
-}
-
 .galaxy-login-copy {
-  position: relative;
-  grid-column: 1;
-  grid-row: 1;
+  position: absolute;
+  top: clamp(58px, 7vh, 88px);
+  left: 50%;
   z-index: 3;
-  max-width: 520px;
+  width: min(920px, calc(100% - 40px));
+  text-align: center;
+  transform: translateX(-50%);
 }
 .galaxy-login-copy > p {
-  margin: 0 0 var(--s4);
+  margin: 0 0 var(--s2);
   color: var(--text-3);
   font-family: var(--font-mono);
   font-size: var(--fs-hud);
@@ -3523,65 +3445,35 @@ input.interview-question-title:focus {
 }
 .galaxy-login-copy h1 {
   margin: 0;
-  font-size: clamp(34px, 5vw, 52px);
-  font-weight: 700;
-  letter-spacing: -0.045em;
-  line-height: 1.16;
+  font-family: var(--font-space-grotesk), var(--font-sans);
+  font-size: clamp(38px, 4.4vw, 64px);
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1.08;
 }
 .galaxy-login-copy h1 span {
   color: var(--amber-strong);
 }
-.galaxy-route {
-  display: flex;
-  align-items: center;
-  gap: var(--s2);
-  margin: var(--s6) 0 var(--s4);
-  flex-wrap: wrap;
-}
-@media (min-width: 901px) {
-  /* 데스크톱의 단계 표시는 한 항로이므로 마지막 단계만 다음 줄로 떨어지지 않는다. */
-  .galaxy-route { flex-wrap: nowrap; }
-}
-.galaxy-route span {
-  flex-shrink: 0;
-  padding: var(--s1) var(--s3);
-  border: 1px solid var(--line-soft);
-  border-radius: var(--r-chip);
-  background: #0a111a99;
-  color: var(--text-3);
-  font-family: var(--font-mono);
-  font-size: var(--fs-hud);
-  letter-spacing: 0.06em;
-}
-.galaxy-route i {
-  flex-shrink: 0;
-  width: 18px;
-  height: 1px;
-  background: var(--line-strong);
-}
-.galaxy-login-copy small {
-  color: var(--text-3);
-  font-size: var(--fs-sm);
-  line-height: 1.7;
-}
 
 .galaxy-login-card {
-  position: relative;
-  grid-column: 3;
-  grid-row: 1;
+  position: absolute;
+  left: 50%;
+  bottom: clamp(24px, 4.5vh, 52px);
   z-index: 4;
-  padding: var(--s6);
+  width: min(560px, calc(100% - 32px));
+  padding: var(--s4);
   border: 1px solid var(--line);
-  border-radius: var(--r-panel);
+  border-radius: var(--r-card);
   background: #0c141fee;
   backdrop-filter: blur(12px);
   box-shadow: var(--shadow-modal);
   display: grid;
-  gap: var(--s4);
+  gap: var(--s3);
   overflow: hidden;
+  transform: translateX(-50%);
 }
 .galaxy-login-card.loading {
-  min-height: 380px;
+  min-height: 126px;
 }
 .galaxy-card-scan {
   position: absolute;
@@ -3599,68 +3491,39 @@ input.interview-question-title:focus {
 }
 .galaxy-login-card header > div:nth-child(2) {
   display: grid;
+  gap: 1px;
+}
+.galaxy-login-card header h2 {
+  margin: 0;
+  font-size: var(--fs-lg);
+  letter-spacing: -0.02em;
 }
 .galaxy-login-card header p {
   margin: 0;
   color: var(--text-3);
-  font-family: var(--font-mono);
-  font-size: var(--fs-hud);
-  letter-spacing: var(--tracking-hud);
-}
-.galaxy-login-card header span {
-  color: var(--text-2);
-  font-size: var(--fs-sm);
-}
-.galaxy-login-card header em {
-  margin-left: auto;
-  padding: 2px var(--s2);
-  border: 1px solid var(--ok-line);
-  border-radius: var(--r-chip);
-  background: var(--ok-bg);
-  color: var(--ok);
-  font-family: var(--font-mono);
-  font-size: 9px;
-  font-style: normal;
-  letter-spacing: 0.08em;
-}
-.galaxy-card-heading {
-  display: grid;
-  gap: var(--s1);
-  padding-bottom: var(--s4);
-  border-bottom: 1px solid var(--line-soft);
-}
-.galaxy-card-heading span {
-  color: var(--text-dim);
-  font-family: var(--font-mono);
-  font-size: var(--fs-hud);
-  letter-spacing: var(--tracking-hud);
-}
-.galaxy-card-heading h2 {
-  font-size: var(--fs-2xl);
-  letter-spacing: -0.03em;
-}
-.galaxy-card-heading p {
-  margin: 0;
-  color: var(--text-3);
-  font-size: var(--fs-sm);
+  font-size: var(--fs-xs);
 }
 .galaxy-login-card form {
   display: grid;
-  gap: var(--s3);
-}
-.galaxy-login-card label {
-  display: grid;
+  grid-template-columns: minmax(0, 1fr) 148px;
   gap: var(--s2);
 }
+.galaxy-login-card label {
+  display: block;
+  min-width: 0;
+}
 .galaxy-login-card label > span {
-  color: var(--text-3);
-  font-family: var(--font-mono);
-  font-size: var(--fs-hud);
-  letter-spacing: var(--tracking-hud);
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
 }
 .galaxy-login-card label > div {
   display: flex;
   align-items: center;
+  height: 42px;
   border: 1px solid var(--line);
   border-radius: var(--r-control);
   background: var(--surface-input);
@@ -3680,7 +3543,7 @@ input.interview-question-title:focus {
 .galaxy-login-card label input {
   flex: 1;
   min-width: 0;
-  padding: 11px var(--s3) 11px 0;
+  padding: 9px var(--s3) 9px 0;
   border: 0;
   background: transparent;
   color: var(--text-1);
@@ -3688,7 +3551,7 @@ input.interview-question-title:focus {
   outline: none;
 }
 .galaxy-login-card form button {
-  min-height: 42px;
+  height: 42px;
   border: 1px solid var(--amber-dim);
   border-radius: var(--r-control);
   background: linear-gradient(180deg, var(--amber), #e2954f);
@@ -3738,73 +3601,10 @@ input.interview-question-title:focus {
   background: currentColor;
   flex-shrink: 0;
 }
-.galaxy-login-card footer {
-  display: flex;
-  gap: var(--s3);
-  padding-top: var(--s3);
-  border-top: 1px solid var(--line-soft);
-  flex-wrap: wrap;
-}
-.galaxy-login-card footer span {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  color: var(--text-dim);
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.06em;
-}
-.galaxy-login-card footer i {
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: var(--text-dim);
-}
-
-.galaxy-login-footer {
-  position: absolute;
-  bottom: var(--s5);
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 2;
-  display: flex;
-  align-items: center;
-  gap: var(--s3);
-  color: var(--text-dim);
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.1em;
-  white-space: nowrap;
-}
-.galaxy-login-footer span { color: var(--text-3); }
-.galaxy-login-footer i {
-  width: 3px;
-  height: 3px;
-  border-radius: 50%;
-  background: var(--line-strong);
-}
 
 /* ── 14. 반응형 ──────────────────────────────────────────────────────── */
 
-/* 13인치급 화면에서는 세 열이 제목을 한 글자만 남기고 꺾는다. 은하는
-   가운데 배경으로 보내고 두 열을 넉넉히 쓰는 편이 정보 위계도 선명하다. */
 @media (max-width: 1320px) {
-  .galaxy-login {
-    grid-template-columns: minmax(0, 1fr) minmax(340px, 400px);
-    gap: var(--s6);
-  }
-  .galaxy-spiral-stage {
-    position: absolute;
-    grid-column: unset;
-    grid-row: unset;
-    left: 49%;
-    top: 50%;
-    width: min(62vw, 640px);
-    transform: translate(-50%, -50%);
-    opacity: 0.68;
-  }
-  .galaxy-login-copy { grid-column: 1; }
-  .galaxy-login-card { grid-column: 2; }
   .cloud-mission-deck,
   .calendar-workspace {
     grid-template-columns: minmax(0, 1fr);
@@ -3832,33 +3632,16 @@ input.interview-question-title:focus {
 }
 
 @media (max-width: 900px) {
-  .galaxy-login {
-    grid-template-columns: minmax(0, 1fr);
-    gap: var(--s6);
-    padding: var(--s12) var(--s5) var(--s10);
-    align-content: center;
-  }
-  /* 모바일에서는 은하를 배경 깊이로 물려 폼과 제목의 가독성을 지킨다. */
+  /* 작은 화면에서도 중심 좌표는 바꾸지 않고 캔버스만 화면 밖으로 키운다.
+     그래야 은하 중심이 제목이나 입력창을 피해 옆으로 밀리지 않는다. */
   .galaxy-spiral-stage {
-    position: absolute;
-    left: 50%;
-    top: 24%;
-    width: min(96vw, 560px);
-    opacity: 0.42;
-    transform: translate(-50%, -50%);
+    width: min(170vw, 90vh, 760px);
   }
-  .galaxy-spiral-kicker,
-  .galaxy-spiral-telemetry { display: none; }
-  .galaxy-login-copy,
-  .galaxy-login-card {
-    grid-column: 1;
-    grid-row: auto;
+  .galaxy-login-copy {
+    top: 58px;
   }
   .galaxy-login-copy h1 {
-    font-size: clamp(28px, 8vw, 38px);
-  }
-  .galaxy-login-footer {
-    display: none;
+    font-size: clamp(30px, 8.5vw, 44px);
   }
   .cloud-agent-line {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -3975,15 +3758,26 @@ input.interview-question-title:focus {
   .cloud-agent-line {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .galaxy-login {
-    padding: var(--s10) var(--s4) var(--s8);
+  .galaxy-spiral-stage {
+    width: min(178vw, 82vh, 720px);
+  }
+  .galaxy-login-copy {
+    top: 48px;
+    width: calc(100% - 32px);
+  }
+  .galaxy-login-copy > p {
+    margin-bottom: var(--s1);
+    font-size: 9px;
+  }
+  .galaxy-login-copy h1 {
+    font-size: clamp(28px, 8.8vw, 36px);
   }
   .galaxy-login-card {
-    padding: var(--s5);
+    bottom: var(--s4);
+    padding: var(--s4);
   }
-  .galaxy-cockpit {
-    font-size: 8px;
-    padding: 5px var(--s3);
+  .galaxy-login-card form {
+    grid-template-columns: minmax(0, 1fr);
   }
   .interview-agent-panel ul {
     grid-template-columns: 1fr 1fr;

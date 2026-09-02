@@ -118,7 +118,7 @@ function SpiralGalaxyHero() {
       canvas.height = Math.floor(height * ratio);
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
 
-      const count = width < 520 ? 1800 : 3200;
+      const count = window.innerWidth < 600 ? 2200 : 4800;
       particles = Array.from({ length: count }, (_, index) => {
         const radius = Math.pow(Math.random(), .72);
         const branch = (index % 5) / 5 * Math.PI * 2;
@@ -228,9 +228,7 @@ function SpiralGalaxyHero() {
 
   return (
     <div className="galaxy-spiral-stage" aria-hidden="true">
-      <div className="galaxy-spiral-kicker"><span>LOCAL GROUP</span><b>CAREER ATELIER</b></div>
       <canvas ref={canvasRef} className="galaxy-spiral-canvas" />
-      <div className="galaxy-spiral-telemetry"><span>CA-GX</span><i/><b>5 SPIRAL ARMS</b><em>INTERACTIVE FIELD</em></div>
     </div>
   );
 }
@@ -239,18 +237,14 @@ export default function LoginPage() {
   return <main className="galaxy-login">
     <StarfieldCanvas/>
     <div className="galaxy-nebula nebula-one" aria-hidden="true"/><div className="galaxy-nebula nebula-two" aria-hidden="true"/>
-    <SpiralGalaxyHero/>
-    <div className="galaxy-cockpit" aria-hidden="true"><span>CA-04</span><i/><b>ORBITAL ACCESS CHANNEL</b><em>AUTH SIGNAL · ENCRYPTED</em></div>
     <section className="galaxy-login-copy">
-      <p>CAREER ATELIER · PERSONAL CAREER OS</p>
-      <h1>당신의 경험을<br/><span>다음 궤도</span>로.</h1>
-      <div className="galaxy-route"><span>01 경험</span><i/><span>02 조사</span><i/><span>03 작성</span><i/><span>04 면접</span></div>
-      <small>개인 AI 에이전트가 기업 조사부터 면접 준비까지<br/>하나의 작전선에서 이어갑니다.</small>
+      <p>CAREER ATELIER</p>
+      <h1>당신의 경험을 <span>다음 궤도로.</span></h1>
     </section>
+    <SpiralGalaxyHero/>
     <Suspense fallback={<div className="galaxy-login-card loading"/>}>
       <LoginForm/>
     </Suspense>
-    <div className="galaxy-login-footer"><span>SUBSCRIPTION ONLY</span><i/>API OVERAGE LOCKED<i/>PRIVATE WORKSPACE</div>
   </main>;
 }
 
@@ -277,15 +271,13 @@ function LoginForm() {
 
   return <section className="galaxy-login-card" aria-label="Career Atelier 로그인">
     <div className="galaxy-card-scan" aria-hidden="true"/>
-    <header><BrandIcon priority/><div><p>SECURE DOCKING</p><span>개인 작전선 로그인</span></div><em>ONLINE</em></header>
-    <div className="galaxy-card-heading"><span>WELCOME, COMMANDER</span><h2>Career Atelier</h2><p>{env.allowedEmail ? `${env.allowedEmail} 계정으로만 도킹할 수 있습니다.` : '등록된 이메일로 일회용 매직링크를 전송합니다.'}</p></div>
+    <header><BrandIcon priority/><div><h2>Career Atelier</h2><p>{env.allowedEmail ? `${env.allowedEmail} 계정으로만 로그인할 수 있습니다.` : '이메일로 일회용 매직링크를 보내드립니다.'}</p></div></header>
     {linkError && <div className="galaxy-auth-message error">{linkErrorMessages[linkError] ?? '로그인에 실패했습니다. 다시 시도해 주세요.'}</div>}
     <form onSubmit={handleSubmit}>
-      <label><span>COMMANDER EMAIL</span><div><i>@</i><input type="email" required autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com"/></div></label>
-      <button type="submit" disabled={status === 'sending'}><span>{status === 'sending' ? '신호 전송 중…' : '매직링크로 작전선 입장'}</span><i>→</i></button>
+      <label><span>이메일</span><div><i>@</i><input type="email" required autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com"/></div></label>
+      <button type="submit" disabled={status === 'sending'}><span>{status === 'sending' ? '전송 중…' : '매직링크 받기'}</span><i>→</i></button>
     </form>
     {status === 'sent' && <div className="galaxy-auth-message success"><i/>메일함에 도킹 링크를 보냈습니다.</div>}
     {status === 'error' && <div className="galaxy-auth-message error">{errorMessage}</div>}
-    <footer><span><i/>SUPABASE AUTH</span><span><i/>ENCRYPTED LINK</span><span><i/>NO PASSWORD</span></footer>
   </section>;
 }
