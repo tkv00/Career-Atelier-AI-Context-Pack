@@ -10,7 +10,7 @@ const NAV = [
   { id: '항해 일정', href: '/calendar', icon: '◷' },
   { id: '기억 아카이브', href: '/experiences', icon: '✦', agent: true },
   { id: '나의 정보', href: '/records', icon: '▦' },
-  { id: '훈련실', href: '/interviews', icon: '◎' },
+  { id: '면접 훈련실', href: '/interviews', icon: '◎' },
   { id: '프롬프트 생성실', href: '/prompts', icon: '◇' },
   { id: '데이터고', href: '/activity', icon: '▤' },
 ];
