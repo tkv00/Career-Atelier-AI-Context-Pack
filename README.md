@@ -330,7 +330,9 @@ You need two terminals.
 
 ```bash
 # terminal 1 — web app
-cd web && npm install && npm run dev
+cd web
+npm install
+npm run dev
 ```
 
 ```bash
