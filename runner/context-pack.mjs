@@ -277,7 +277,10 @@ export const COMPANY_RESEARCH_SCHEMA = {
   },
 };
 
-export function createCompanyContextPack(runId, { company, role, jobDescription }) {
+// instruction은 사용자가 다이얼로그에 자유 형식으로 적은 추가 지시(예: "경쟁사
+// 대비 기술 스택 차이 위주로", "최근 인수합병 이슈 확인해줘") — 회사/직무/JD로는
+// 못 담는 조사 방향을 사용자가 직접 얹을 수 있게 한다.
+export function createCompanyContextPack(runId, { company, role, jobDescription, instruction }) {
   const workspace = workspaceRoot(runId);
   const contextDir = resolve(workspace, 'context');
   const schemaDir = resolve(workspace, 'schema');
@@ -288,6 +291,7 @@ export function createCompanyContextPack(runId, { company, role, jobDescription 
 
   writeFileSync(resolve(contextDir, '01-company.md'), `## 기업\n${company}\n\n## 직무\n${role || '(미지정)'}`);
   writeFileSync(resolve(contextDir, '02-job-description.md'), jobDescription || '(JD 미제공)');
+  writeFileSync(resolve(contextDir, '03-user-instruction.md'), (instruction || '').trim() || '(추가 지시 없음 — 회사·직무·JD 기준으로 일반 조사)');
   writeFileSync(resolve(schemaDir, 'company.json'), JSON.stringify(COMPANY_RESEARCH_SCHEMA, null, 2));
 
   return { workspace, contextDir, outputDir, schemaPath: resolve(schemaDir, 'company.json') };

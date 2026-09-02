@@ -389,8 +389,9 @@ async function processCompanyJob(supabase, ownerId, job) {
     company: jobPost.company,
     role: jobPost.role,
     jobDescription: jobPost.description,
+    instruction: job.payload?.instruction,
   });
-  const prompt = `${template.body}\n\n[조사 대상]\ncontext/01-company.md, context/02-job-description.md를 읽고 스키마에 맞는 JSON으로만 답하라.`;
+  const prompt = `${template.body}\n\n[조사 대상]\ncontext/01-company.md, context/02-job-description.md를 읽어라. context/03-user-instruction.md에 사용자가 추가로 지시한 조사 방향이 있으면 그것도 반드시 반영하라. 스키마에 맞는 JSON으로만 답하라.`;
 
   await recordAndRun(supabase, ownerId, job, {
     provider,

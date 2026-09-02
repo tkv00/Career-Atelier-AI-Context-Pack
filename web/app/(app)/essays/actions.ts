@@ -174,7 +174,7 @@ export async function clearRevisionRequests(essayId: string) {
 // 때마다 이전 행이 essay 연결만 잃은 채 고아로 쌓이고, 모카가 채워둔
 // url·fit_score 같은 원본 메타데이터도 조용히 버려진다. 새 essay면 그때만
 // insert 후 연결한다.
-export async function requestCompanyResearch(essayId: string, company: string, role: string, jobDescription: string) {
+export async function requestCompanyResearch(essayId: string, company: string, role: string, jobDescription: string, instruction: string) {
   const { supabase, user } = await requireUser();
 
   const { data: essay, error: essayFetchError } = await supabase
@@ -207,7 +207,7 @@ export async function requestCompanyResearch(essayId: string, company: string, r
   const { error: jobError } = await supabase.from('jobs').insert({
     owner_id: user.id,
     kind: 'company',
-    payload: { essayId, jobPostId },
+    payload: { essayId, jobPostId, instruction: instruction.trim() },
     harness_snapshot: {},
   });
   if (jobError) throw new Error(jobError.message);

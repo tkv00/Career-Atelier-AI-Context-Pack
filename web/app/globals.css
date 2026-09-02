@@ -2537,20 +2537,20 @@ input.interview-question-title:focus {
 .markdown-canvas:focus {
   background: #0c1620;
 }
-.markdown-canvas h1 { font-size: var(--fs-xl); margin: var(--s3) 0 var(--s2); }
-.markdown-canvas h2 { font-size: var(--fs-lg); margin: var(--s3) 0 var(--s2); }
-.markdown-canvas h3 { font-size: var(--fs-md); margin: var(--s2) 0 var(--s1); color: var(--text-2); }
-.markdown-canvas p { margin: 0 0 var(--s2); }
-.markdown-canvas ul,
-.markdown-canvas ol { margin: 0 0 var(--s2); padding-left: var(--s5); }
-.markdown-canvas li { margin-bottom: 2px; }
-.markdown-canvas blockquote {
+.markdown-canvas h1, .markdown-preview h1 { font-size: var(--fs-xl); margin: var(--s3) 0 var(--s2); }
+.markdown-canvas h2, .markdown-preview h2 { font-size: var(--fs-lg); margin: var(--s3) 0 var(--s2); }
+.markdown-canvas h3, .markdown-preview h3 { font-size: var(--fs-md); margin: var(--s2) 0 var(--s1); color: var(--text-2); }
+.markdown-canvas p, .markdown-preview p { margin: 0 0 var(--s2); }
+.markdown-canvas ul, .markdown-preview ul,
+.markdown-canvas ol, .markdown-preview ol { margin: 0 0 var(--s2); padding-left: var(--s5); }
+.markdown-canvas li, .markdown-preview li { margin-bottom: 2px; }
+.markdown-canvas blockquote, .markdown-preview blockquote {
   margin: 0 0 var(--s2);
   padding: var(--s1) 0 var(--s1) var(--s3);
   border-left: 2px solid var(--cyan-dim);
   color: var(--text-2);
 }
-.markdown-canvas code {
+.markdown-canvas code, .markdown-preview code {
   padding: 1px 5px;
   border-radius: var(--r-chip);
   background: var(--surface-3);
@@ -2558,8 +2558,18 @@ input.interview-question-title:focus {
   font-size: var(--fs-sm);
   color: var(--cyan-strong);
 }
-.markdown-canvas a { color: var(--cyan); }
-.markdown-canvas hr { border: 0; border-top: 1px solid var(--line); margin: var(--s3) 0; }
+.markdown-canvas a, .markdown-preview a { color: var(--cyan); }
+.markdown-canvas hr, .markdown-preview hr { border: 0; border-top: 1px solid var(--line); margin: var(--s3) 0; }
+
+/* 기업 조사 미리보기 등 읽기 전용 마크다운 렌더링 — 위 규칙들과 태그
+   스타일을 공유하되, 편집기(.markdown-canvas)의 포커스·플레이스홀더는
+   갖지 않는다. */
+.markdown-preview {
+  color: var(--text-1);
+  font-size: var(--fs-sm);
+  line-height: 1.7;
+}
+.markdown-preview > :first-child { margin-top: 0; }
 
 /* ── 10.5 프롬프트 생성실(Prompt Lab) ───────────────────────────────
    v1에 있던 프롬프트 편집기를 v2로 이식(2026-09-02, "유실됨" 신고 반영).

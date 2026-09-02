@@ -1,47 +1,9 @@
 'use client';
 
 import { useEffect, useRef } from 'react';
+import { markdownToHtml } from '@/lib/markdown';
 
 type Props = { value: string; onChange: (value: string) => void; onBlur?: () => void; placeholder?: string; ariaLabel?: string };
-
-const escapeHtml = (value: string) => value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-
-function inlineMarkdown(value: string) {
-  return escapeHtml(value)
-    .replace(/`([^`]+)`/g, '<code>$1</code>')
-    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
-    .replace(/__([^_]+)__/g, '<strong>$1</strong>')
-    .replace(/(?<!\*)\*([^*]+)\*(?!\*)/g, '<em>$1</em>')
-    .replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>');
-}
-
-function markdownToHtml(markdown: string) {
-  if (!markdown.trim()) return '';
-  const output: string[] = [];
-  let list: 'ul' | 'ol' | null = null;
-  const closeList = () => { if (list) output.push(`</${list}>`); list = null; };
-  for (const rawLine of markdown.replace(/\r/g, '').split('\n')) {
-    const line = rawLine.trimEnd();
-    const unordered = line.match(/^[-*]\s+(.*)$/);
-    const ordered = line.match(/^\d+\.\s+(.*)$/);
-    if (unordered || ordered) {
-      const nextList = unordered ? 'ul' : 'ol';
-      if (list !== nextList) { closeList(); list = nextList; output.push(`<${list}>`); }
-      output.push(`<li>${inlineMarkdown((unordered || ordered)?.[1] || '')}</li>`);
-      continue;
-    }
-    closeList();
-    if (!line) output.push('<p><br></p>');
-    else if (/^###\s+/.test(line)) output.push(`<h3>${inlineMarkdown(line.replace(/^###\s+/, ''))}</h3>`);
-    else if (/^##\s+/.test(line)) output.push(`<h2>${inlineMarkdown(line.replace(/^##\s+/, ''))}</h2>`);
-    else if (/^#\s+/.test(line)) output.push(`<h1>${inlineMarkdown(line.replace(/^#\s+/, ''))}</h1>`);
-    else if (/^>\s?/.test(line)) output.push(`<blockquote>${inlineMarkdown(line.replace(/^>\s?/, ''))}</blockquote>`);
-    else if (/^---+$/.test(line)) output.push('<hr>');
-    else output.push(`<p>${inlineMarkdown(line)}</p>`);
-  }
-  closeList();
-  return output.join('');
-}
 
 function inlineToMarkdown(node: Node): string {
   if (node.nodeType === Node.TEXT_NODE) return node.textContent || '';

@@ -9,6 +9,10 @@ import { loadLocalDraft, saveLocalDraft } from '@/lib/local-drafts';
 import { countChars } from '@/lib/chars';
 import { formatDateTime } from '@/lib/datetime';
 import { diffLines } from '@/lib/diff';
+import { markdownToHtml } from '@/lib/markdown';
+import { companyResearchToMarkdown, isCompanyResult, sanitizeFileName, type CompanyResult } from '@/lib/company-research';
+import { downloadTextFile } from '@/lib/download-text';
+import { downloadMarkdownAsPdf } from '@/lib/pdf';
 import {
   applySubtitle,
   forceSaveDraft,
@@ -46,14 +50,6 @@ type EvidenceItem = { paragraph_index: number; experience_id: string; quoted_fac
 type WriterResult = { draft: string; evidence: EvidenceItem[] };
 
 type SubtitleResult = { subtitle: string; rationale: string };
-
-type CompanyFact = { claim: string; source_url: string };
-type CompanyResult = {
-  summary: string;
-  facts: CompanyFact[];
-  role_requirements: string[];
-  writing_material: string[];
-};
 
 const PROVIDER_LABEL: Record<string, string> = {
   codex: 'Codex(ChatGPT 구독)',
@@ -142,6 +138,7 @@ export function EssayEditor({
   const [companyName, setCompanyName] = useState(jobPost?.company ?? '');
   const [companyRole, setCompanyRole] = useState(jobPost?.role ?? '');
   const [companyJd, setCompanyJd] = useState(jobPost?.description ?? '');
+  const [companyInstruction, setCompanyInstruction] = useState('');
   const [savingCompany, setSavingCompany] = useState(false);
   const [subtitle, setSubtitle] = useState(essay.subtitle ?? '');
   const [savingSubtitle, setSavingSubtitle] = useState(false);
@@ -322,7 +319,7 @@ export function EssayEditor({
     event.preventDefault();
     setSavingCompany(true);
     try {
-      await requestCompanyResearch(essay.id, companyName, companyRole, companyJd);
+      await requestCompanyResearch(essay.id, companyName, companyRole, companyJd, companyInstruction);
       setShowCompanyForm(false);
       router.refresh();
     } finally {
@@ -564,6 +561,17 @@ export function EssayEditor({
                 style={{ marginTop: 4, resize: 'vertical' }}
               />
             </label>
+            <label style={{ fontSize: 12, color: 'var(--text-3)' }}>
+              추가로 궁금한 점 · 선택
+              <textarea
+                value={companyInstruction}
+                onChange={(event) => setCompanyInstruction(event.target.value)}
+                rows={3}
+                placeholder="예: 경쟁사 대비 기술 스택 차이 위주로 알려줘 / 최근 조직개편이나 인수합병 이슈가 있는지 확인해줘"
+                className="field-input"
+                style={{ marginTop: 4, resize: 'vertical' }}
+              />
+            </label>
             <div style={{ display: 'flex', gap: 8 }}>
               <button type="submit" className="run-button" disabled={savingCompany}>
                 {savingCompany ? '요청 중…' : '기업 조사 요청 (솔)'}
@@ -764,7 +772,7 @@ export function EssayEditor({
           <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '4px 0 14px' }}>
             {formatDateTime(companyResearch.created_at)} · {PROVIDER_LABEL[companyResearch.provider] ?? companyResearch.provider}
           </p>
-          <CompanyResearchContent note={companyResearch} />
+          <CompanyResearchContent note={companyResearch} company={jobPost?.company ?? companyName} role={jobPost?.role ?? companyRole} />
         </section>
       )}
 
@@ -835,12 +843,6 @@ function isWriterResult(value: unknown): value is WriterResult {
   return typeof record.draft === 'string' && Array.isArray(record.evidence);
 }
 
-function isCompanyResult(value: unknown): value is CompanyResult {
-  if (!value || typeof value !== 'object') return false;
-  const record = value as Record<string, unknown>;
-  return typeof record.summary === 'string' && Array.isArray(record.facts);
-}
-
 function isSubtitleResult(value: unknown): value is SubtitleResult {
   if (!value || typeof value !== 'object') return false;
   const record = value as Record<string, unknown>;
@@ -875,8 +877,10 @@ function SubtitleContent({
 }
 
 // research_notes.body에는 러너가 저장한 원본 JSON 문자열이 그대로 들어있다
-// (artifacts처럼 별도 metadata.parsed 컬럼이 없다).
-function CompanyResearchContent({ note }: { note: ResearchNote }) {
+// (artifacts처럼 별도 metadata.parsed 컬럼이 없다). 화면에는 항상 마크다운으로
+// 조립해 보여준다 — 미리보기·MD 다운로드·PDF 다운로드가 정확히 같은 내용을
+// 보게 하려는 것이라, 필드별 커스텀 레이아웃과 마크다운 두 갈래로 관리하지 않는다.
+function CompanyResearchContent({ note, company, role }: { note: ResearchNote; company: string; role: string }) {
   let parsed: unknown = null;
   try {
     parsed = JSON.parse(note.body);
@@ -888,44 +892,48 @@ function CompanyResearchContent({ note }: { note: ResearchNote }) {
     return <pre style={{ whiteSpace: 'pre-wrap', fontSize: 13, color: 'var(--text-2)' }}>{note.body}</pre>;
   }
 
+  const markdown = companyResearchToMarkdown(parsed as CompanyResult, {
+    company,
+    role,
+    createdAt: formatDateTime(note.created_at),
+    providerLabel: PROVIDER_LABEL[note.provider] ?? note.provider,
+  });
+
+  return <CompanyResearchMarkdownView markdown={markdown} fileBaseName={`${company}-${role}-기업조사`} />;
+}
+
+function CompanyResearchMarkdownView({ markdown, fileBaseName }: { markdown: string; fileBaseName: string }) {
+  const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [pdfError, setPdfError] = useState('');
+
+  async function handleDownloadPdf() {
+    setDownloadingPdf(true);
+    setPdfError('');
+    try {
+      await downloadMarkdownAsPdf(markdown, `${sanitizeFileName(fileBaseName)}.pdf`);
+    } catch (error) {
+      setPdfError(error instanceof Error ? error.message : 'PDF를 만들지 못했습니다.');
+    } finally {
+      setDownloadingPdf(false);
+    }
+  }
+
+  function handleDownloadMd() {
+    downloadTextFile(markdown, `${sanitizeFileName(fileBaseName)}.md`, 'text/markdown');
+  }
+
   return (
     <div>
-      <p style={{ fontSize: 13, lineHeight: 1.6 }}>{parsed.summary}</p>
-      {parsed.role_requirements.length > 0 && (
-        <>
-          <p style={{ fontSize: 11, color: 'var(--text-dim)', fontWeight: 700, margin: '10px 0 4px' }}>요구 역량</p>
-          <div className="count-pills">
-            {parsed.role_requirements.map((item, index) => (
-              <span key={index}>{item}</span>
-            ))}
-          </div>
-        </>
-      )}
-      {parsed.facts.length > 0 && (
-        <>
-          <p style={{ fontSize: 11, color: 'var(--text-dim)', fontWeight: 700, margin: '10px 0 4px' }}>확인된 사실</p>
-          <ul style={{ paddingLeft: 18, fontSize: 13, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {parsed.facts.map((fact, index) => (
-              <li key={index}>
-                {fact.claim}{' '}
-                <a href={fact.source_url} target="_blank" rel="noreferrer" style={{ color: 'var(--cyan)', fontSize: 11 }}>
-                  출처
-                </a>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-      {parsed.writing_material.length > 0 && (
-        <>
-          <p style={{ fontSize: 11, color: 'var(--text-dim)', fontWeight: 700, margin: '10px 0 4px' }}>자소서 작성 각도</p>
-          <ul style={{ paddingLeft: 18, fontSize: 13, display: 'flex', flexDirection: 'column', gap: 6 }}>
-            {parsed.writing_material.map((item, index) => (
-              <li key={index}>{item}</li>
-            ))}
-          </ul>
-        </>
-      )}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+        <button type="button" className="secondary-button" onClick={handleDownloadMd}>
+          MD 다운로드
+        </button>
+        <button type="button" className="secondary-button" onClick={handleDownloadPdf} disabled={downloadingPdf}>
+          {downloadingPdf ? 'PDF 만드는 중…' : 'PDF 다운로드'}
+        </button>
+      </div>
+      {pdfError && <p style={{ fontSize: 12, color: 'var(--danger)', margin: '0 0 10px' }}>{pdfError}</p>}
+      <div className="markdown-preview" dangerouslySetInnerHTML={{ __html: markdownToHtml(markdown) }} />
     </div>
   );
 }
