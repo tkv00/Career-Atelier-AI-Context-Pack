@@ -25,8 +25,8 @@
 | `nova.mjs` | 노바 — 마감일 결정론적 파싱(1단계) + `calendar_events` 동기화 |
 | `scheduler.mjs` | 매일 15시(KST) 자동 채용 탐색 트리거 여부 판정(§12) |
 | `lib/env.mjs` | `.env` 로더 |
-| `lib/keychain.mjs` | macOS 키체인 read/write/delete (`security` CLI) |
-| `lib/supabase-client.mjs` | 이메일 OTP 로그인, 세션을 키체인에 저장·자동 갱신 |
+| `lib/session-store.mjs` | 세션 read/write/delete (`~/.career-atelier/session.json`, 권한 0600) |
+| `lib/supabase-client.mjs` | 이메일 OTP 로그인, 세션을 파일에 저장·자동 갱신 |
 
 ## 상시 러너 기기
 
@@ -41,9 +41,12 @@
 키는 쓰지 않는다 — 러너도 앱의 유일한 사용자 세션으로 로그인해 RLS를 그대로
 적용받는다(§6, §19.2 #2·#3).
 
-세션(access/refresh token)은 **macOS 키체인**(`career-atelier-runner` 항목)에만
-저장한다. 리프레시 토큰 로테이션이 켜져 있어(`config.toml`
-`enable_refresh_token_rotation`) 갱신될 때마다 키체인 값도 같이 갱신한다.
+세션(access/refresh token)은 **`~/.career-atelier/session.json`**(권한 0600)에만
+저장한다. 원래 macOS 키체인(`security` CLI)이었으나, 키체인이 macOS 전용이라
+Windows/Linux 러너가 아예 로그인할 수 없었다 — OS 무관 파일로 바꿨다
+(2026-09-02, `lib/session-store.mjs`). 리프레시 토큰 로테이션이 켜져 있어
+(`config.toml` `enable_refresh_token_rotation`) 갱신될 때마다 파일 값도 같이
+갱신한다.
 
 ## 사용법
 
@@ -283,9 +286,9 @@ status` 같은 쿼터 안 쓰는 전용 서브커맨드가 없다. 대신 `agy m
 실행하므로, 그 상태로 성공했다는 것 자체가 API 키/Vertex 경로가 아니라
 개인 계정 OAuth라는 근거가 된다.
 
-**실제 Google 계정 구독으로 라이브 검증했다**(2026-09-01, 계정
-tkv0000@yu.ac.kr — 이 앱의 사용자 계정과는 다른, 별도의 AI 도구
-구독 계정이다. Codex가 OpenAI 계정으로, Claude가 Anthropic 계정으로
+**실제 Google 계정 구독으로 라이브 검증했다**(2026-09-01, 이 앱의
+사용자 계정과는 다른 별도의 AI 도구 구독 계정으로 로그인. Codex가
+OpenAI 계정으로, Claude가 Anthropic 계정으로
 로그인하는 것과 같은 성격): 실제 자소서 본문("3개월간 목표를 정량화해
 출석률을 85%까지 끌어올렸다") → 잡 큐 → 러너 claim → Antigravity CLI
 실행 → `{"subtitle":"목표 정량화로 출석률 85%","rationale":"..."}` 정확히

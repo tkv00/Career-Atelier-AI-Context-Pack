@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { createInterface } from 'node:readline/promises';
 import { env } from './env.mjs';
-import { clearSession, loadSession, saveSession } from './keychain.mjs';
+import { clearSession, loadSession, saveSession } from './session-store.mjs';
 
 // 러너는 서버가 아니라 이 앱의 유일한 사용자 본인 세션으로 로그인해 RLS 적용을
 // 받는다(§6) — service_role은 절대 쓰지 않는다(§19.2 #2, #3). 브라우저가 없는
@@ -44,7 +44,7 @@ export async function logout() {
 }
 
 // 반환된 supabase 클라이언트는 토큰이 자동 갱신될 때마다(리프레시 토큰 로테이션
-// 포함, config.toml enable_refresh_token_rotation) 키체인에 다시 저장한다 —
+// 포함, config.toml enable_refresh_token_rotation) 세션 파일에 다시 저장한다 —
 // 그러지 않으면 재시작 후 로그인이 끊긴다.
 export async function connectAsRunner() {
   const stored = await loadSession();
