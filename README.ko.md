@@ -304,6 +304,65 @@ Career Atelier는 세 번째 방법입니다. **이미 구독 중인 CLI 도구*
 | Claude Code | 솔 · 렌즈 | `npm install -g @anthropic-ai/claude-code` → `claude auth login` |
 | Antigravity | 소제목 | [antigravity.google](https://antigravity.google) 설치 후 `agy` 실행 |
 
+**셋 다 설치할 필요는 없습니다.** 이미 구독 중인 것 하나만 설치하세요. 로그인을 안 해 둔 CLI가 담당하는 비서만 비활성 상태로 남고, 나머지는 그대로 동작합니다.
+
+<br>
+
+<details>
+<summary><b>이 CLI들을 한 번도 안 써봤다면 — 완전 처음부터 따라하기</b></summary>
+
+<br>
+
+아래 각 항목은 위 준비물 표의 Node.js 말고는 아무것도 설치돼 있지 않다고 가정합니다.
+
+**Codex CLI (OpenAI)** — ChatGPT Plus·Pro·Team·Business 중 하나가 있어야 합니다.
+
+```bash
+npm install -g @openai/codex
+codex --version
+codex login
+```
+
+`codex login`을 실행하면 브라우저가 열립니다. 구독에 쓰는 ChatGPT 계정으로 로그인하고, **API 키가 아니라 구독 로그인**을 선택하세요. 이 프로젝트는 API 키 방식의 과금을 코드 레벨에서 거부하므로, API 키로 로그인을 마쳐도 여기서는 동작하지 않습니다.
+
+**Claude Code CLI (Anthropic)** — Claude Pro 또는 Max 구독이 있어야 합니다.
+
+```bash
+npm install -g @anthropic-ai/claude-code
+claude --version
+claude auth login
+```
+
+흐름은 동일합니다. 브라우저가 열리면 Claude 계정으로 로그인하고 구독 로그인을 선택하세요.
+
+**Antigravity CLI (Google)** — Google 계정이 있어야 합니다.
+
+```bash
+# macOS · Linux
+curl -fsSL https://antigravity.google/cli/install.sh | bash
+```
+
+Antigravity는 npm 패키지가 아니므로, Windows에서는 [antigravity.google](https://antigravity.google)에서 설치 프로그램을 내려받아 안내를 따르세요. 이후 과정은 동일합니다.
+
+```bash
+agy --version
+agy
+```
+
+처음 `agy`를 실행하면 브라우저가 열리고 Google 로그인을 요구합니다.
+
+**설치 직후 명령어가 "인식할 수 없습니다"/"command not found"로 나온다면**
+
+터미널을 설치 전에 이미 열어 둔 상태라 새로 추가된 PATH를 못 읽은 것입니다. 터미널을 완전히 닫았다가 새로 열고 `--version` 확인을 다시 시도하세요 — OS를 가리지 않고 가장 흔한 원인입니다.
+
+**macOS·Linux에서 `npm install -g`가 권한 오류(`EACCES`)로 실패한다면**
+
+`sudo`로 다시 실행하지 마세요. 그 순간부터 Node 설치 폴더의 소유권이 root로 넘어가서 이후 다른 권한 오류를 계속 만들어냅니다. 대신 [nvm](https://github.com/nvm-sh/nvm)으로 Node를 설치하세요 — 사용자 홈 디렉터리 안에만 설치되므로 전역 설치에도 관리자 권한이 전혀 필요 없습니다.
+
+로그인은 CLI마다 한 번만 하면 됩니다. 러너를 껐다 켜도 로그인 상태는 유지되므로, 이 절차를 실행할 때마다 반복할 필요는 없습니다 — 기기당 평생 한 번입니다.
+
+</details>
+
 <br>
 
 ### 설치 — 명령 3줄

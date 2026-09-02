@@ -194,7 +194,6 @@ All seven agents at a glance: which one is running, how the last run ended, whet
 
 Lumi and Moka launch directly from their own cards.
 
-<!-- PLACEHOLDER — replace this file with a real capture. Spec: docs/images/screens/README.md -->
 <img src="docs/images/screens/01-dashboard.png" alt="Dashboard" width="100%">
 
 <br>
@@ -203,7 +202,6 @@ Lumi and Moka launch directly from their own cards.
 
 Deadlines on a month grid. **Hover a date** and every posting due that day expands into a list with company, role, and current stage.
 
-<!-- PLACEHOLDER — replace this file with a real capture. Spec: docs/images/screens/README.md -->
 <img src="docs/images/screens/02-calendar.png" alt="Application calendar" width="100%">
 
 <br>
@@ -214,7 +212,6 @@ Outcomes are not collapsed into one pass/fail. **Resume screen, written test, co
 
 Each chip cycles through pending → passed → failed on click.
 
-<!-- PLACEHOLDER — replace this file with a real capture. Spec: docs/images/screens/README.md -->
 <img src="docs/images/screens/03-stage-board.png" alt="Per-stage outcome tracking" width="100%">
 
 <br>
@@ -225,7 +222,6 @@ Edit each agent's system prompt directly.
 
 Every save keeps the previous body as a version you can restore at any time. Restoring is itself a new version, so nothing is ever lost.
 
-<!-- PLACEHOLDER — replace this file with a real capture. Spec: docs/images/screens/README.md -->
 <img src="docs/images/screens/04-prompt-lab.png" alt="Prompt studio" width="100%">
 
 <br>
@@ -302,7 +298,66 @@ The runner is a Node process on your machine, signed in as you. It claims the jo
 |---|---|---|
 | Codex | Lumi · Moka · Muse · Echo | `npm install -g @openai/codex` → `codex login` |
 | Claude Code | Sol · Lens | `npm install -g @anthropic-ai/claude-code` → `claude auth login` |
-| Antigravity | Sojemok | install from [antigravity.google](https://antigravity.google), then run `agy` |
+| Antigravity | Comma | install from [antigravity.google](https://antigravity.google), then run `agy` |
+
+You only need **one** of these working — install the CLI for whichever subscription you already pay for. An agent assigned to a CLI you skip just stays disabled; everything else still runs.
+
+<br>
+
+<details>
+<summary><b>Never used any of these CLIs before? Expand for a from-zero walkthrough</b></summary>
+
+<br>
+
+Each block below assumes nothing is installed yet — only Node.js from the Requirements table above.
+
+**Codex CLI (OpenAI)** — needs a ChatGPT Plus, Pro, Team, or Business subscription.
+
+```bash
+npm install -g @openai/codex
+codex --version
+codex login
+```
+
+`codex login` opens your browser. Sign in with the same ChatGPT account as your subscription, and pick the subscription option rather than an API key — this project refuses API-key billing on purpose, so an API-key login will not work here even if you complete it.
+
+**Claude Code CLI (Anthropic)** — needs a Claude Pro or Max subscription.
+
+```bash
+npm install -g @anthropic-ai/claude-code
+claude --version
+claude auth login
+```
+
+Same shape: browser opens, sign in with your Claude account, choose the subscription login.
+
+**Antigravity CLI (Google)** — needs a Google account.
+
+```bash
+# macOS / Linux
+curl -fsSL https://antigravity.google/cli/install.sh | bash
+```
+
+Antigravity is not an npm package, so on Windows download the installer from [antigravity.google](https://antigravity.google) and follow its prompts instead. Either way, finish with:
+
+```bash
+agy --version
+agy
+```
+
+The first `agy` run opens your browser for Google sign-in.
+
+**If a command says "not recognized" or "command not found" right after installing**
+
+Your terminal opened before the install and has not picked up the new PATH entry. Close it and open a fresh one, then retry the `--version` check — this is by far the most common cause, on every OS.
+
+**If `npm install -g` fails with a permission error on macOS or Linux (`EACCES`)**
+
+Do not re-run it with `sudo` — that hands ownership of files under your Node install to root and causes more permission errors later. Install Node via [nvm](https://github.com/nvm-sh/nvm) instead; it lives entirely under your home directory, so global installs need no elevated permission at all.
+
+Sign-in is one-time per CLI. It survives runner restarts, so you will not repeat these steps for every agent run — only once, ever, per machine.
+
+</details>
 
 <br>
 
