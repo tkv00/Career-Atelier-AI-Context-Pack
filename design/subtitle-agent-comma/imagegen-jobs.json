@@ -289,13 +289,13 @@
         "reason": "state requires its own generated animation semantics"
       },
       "mirror_policy": {},
-      "source_path": "/Users/kimdoyeon/.codex/generated_images/01a06108-e674-79a3-ad95-05b71382bb95/exec-e7ad328f-8142-43c3-b9b6-3ccc0d271132.png",
+      "source_path": "~/.codex/generated_images/01a06108-e674-79a3-ad95-05b71382bb95/exec-e7ad328f-8142-43c3-b9b6-3ccc0d271132.png",
       "completed_at": "2026-09-02T07:35:22Z"
     },
     {
       "id": "running",
       "kind": "row-strip",
-      "status": "pending",
+      "status": "complete",
       "prompt_file": "prompts/rows/running.md",
       "retry_prompt_file": "prompts/row-retries/running.md",
       "input_images": [
@@ -325,12 +325,14 @@
         "may_derive": false,
         "reason": "state requires its own generated animation semantics"
       },
-      "mirror_policy": {}
+      "mirror_policy": {},
+      "source_path": "~/.codex/generated_images/01a0610a-4f22-7843-bee5-32078f2da83a/exec-921ca85e-8d6d-438b-be29-a8eea0ff38af.png",
+      "completed_at": "2026-09-02T07:43:00Z"
     },
     {
       "id": "review",
       "kind": "row-strip",
-      "status": "pending",
+      "status": "complete",
       "prompt_file": "prompts/rows/review.md",
       "retry_prompt_file": "prompts/row-retries/review.md",
       "input_images": [
@@ -360,7 +362,9 @@
         "may_derive": false,
         "reason": "state requires its own generated animation semantics"
       },
-      "mirror_policy": {}
+      "mirror_policy": {},
+      "source_path": "~/.codex/generated_images/01a0610b-9560-76e0-9832-f838580b8274/exec-5a1b4f71-0d61-4ef5-b312-23e8e0ef0d5f.png",
+      "completed_at": "2026-09-02T07:37:45Z"
     }
   ]
 }

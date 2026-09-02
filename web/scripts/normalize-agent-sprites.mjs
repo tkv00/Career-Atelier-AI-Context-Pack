@@ -19,6 +19,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 // web/이라 원본 10MB가 배포 번들에 섞이지 않는다. 배포되는 건 정규화된 372KB뿐.
 const sourceDir = resolve(here, '..', '..', 'design', 'agent-sources');
 const assetsDir = resolve(here, '..', 'public', 'assets');
+const docsAgentDir = resolve(here, '..', '..', 'docs', 'images', 'agents');
 
 const FRAMES = 4;
 const FRAME_W = 240;
@@ -34,6 +35,15 @@ const SHEETS = [
   { id: 'review', src: 'orbit-agent-review-v2.png' },
   { id: 'writer', src: 'orbit-agent-writer-v2.png' },
   { id: 'interview', src: 'orbit-agent-interview-v1.png' },
+  {
+    id: 'subtitle',
+    frames: [
+      'orbit-agent-subtitle-work-1.png',
+      'orbit-agent-subtitle-work-2.png',
+      'orbit-agent-subtitle-work-3.png',
+      'orbit-agent-subtitle-work-4.png',
+    ],
+  },
 ];
 
 // 프레임 경계를 "폭의 1/4"로 가정하면 안 된다 — 실측해보니 시트마다 캐릭터가
@@ -98,6 +108,82 @@ function verticalBounds(data, width, height) {
   return { minY, maxY };
 }
 
+function alphaBounds(data, width, height) {
+  let minX = Infinity;
+  let minY = Infinity;
+  let maxX = -1;
+  let maxY = -1;
+  for (let y = 0; y < height; y += 1) {
+    for (let x = 0; x < width; x += 1) {
+      if (data[(y * width + x) * 4 + 3] < ALPHA_THRESHOLD) continue;
+      minX = Math.min(minX, x);
+      minY = Math.min(minY, y);
+      maxX = Math.max(maxX, x);
+      maxY = Math.max(maxY, y);
+    }
+  }
+  if (maxX < 0 || maxY < 0) throw new Error('프레임에서 불투명 픽셀을 찾지 못했습니다.');
+  return { minX, minY, maxX, maxY };
+}
+
+async function normalizeFrameFiles({ id, frames }) {
+  if (frames.length !== FRAMES) throw new Error(`${id}: ${FRAMES}개 프레임이 필요합니다.`);
+  const loaded = await Promise.all(frames.map(async (name) => {
+    const path = resolve(sourceDir, name);
+    const image = sharp(await readFile(path)).ensureAlpha();
+    const { width, height } = await image.metadata();
+    if (!width || !height) throw new Error(`${name}: 크기를 읽지 못했습니다.`);
+    const { data } = await image.raw().toBuffer({ resolveWithObject: true });
+    return { name, path, width, height, bounds: alphaBounds(data, width, height) };
+  }));
+
+  const minY = Math.min(...loaded.map((item) => item.bounds.minY));
+  const maxY = Math.max(...loaded.map((item) => item.bounds.maxY));
+  const cropH = maxY - minY + 1;
+  const widestCrop = Math.max(...loaded.map((item) => item.bounds.maxX - item.bounds.minX + 1));
+  const scale = Math.min(CHAR_H / cropH, (FRAME_W - 12) / widestCrop);
+  const finalH = Math.max(1, Math.round(cropH * scale));
+
+  const composites = [];
+  for (let frame = 0; frame < loaded.length; frame += 1) {
+    const item = loaded[frame];
+    const cropW = item.bounds.maxX - item.bounds.minX + 1;
+    const finalW = Math.max(1, Math.round(cropW * scale));
+    const buffer = await sharp(await readFile(item.path))
+      .ensureAlpha()
+      .extract({ left: item.bounds.minX, top: minY, width: cropW, height: cropH })
+      .resize(finalW, finalH, { kernel: 'nearest', fit: 'fill' })
+      .png()
+      .toBuffer();
+    composites.push({
+      input: buffer,
+      left: frame * FRAME_W + Math.round((FRAME_W - finalW) / 2),
+      top: FRAME_H - FLOOR_GAP - finalH,
+    });
+  }
+
+  const outputPath = resolve(assetsDir, `agent-${id}.png`);
+  const out = await sharp({
+    create: { width: FRAME_W * FRAMES, height: FRAME_H, channels: 4, background: { r: 0, g: 0, b: 0, alpha: 0 } },
+  })
+    .composite(composites)
+    .png({ compressionLevel: 9, palette: true, quality: 92, effort: 10 })
+    .toBuffer();
+  await writeFile(outputPath, out);
+  if (id === 'subtitle') {
+    const firstFrame = await sharp(out)
+      .extract({ left: 0, top: 0, width: FRAME_W, height: FRAME_H })
+      .png()
+      .toBuffer();
+    const docsPreview = await sharp(firstFrame)
+      .trim({ background: { r: 0, g: 0, b: 0, alpha: 0 } })
+      .png({ compressionLevel: 9, palette: true, quality: 92, effort: 10 })
+      .toBuffer();
+    await writeFile(resolve(docsAgentDir, 'agent-subtitle.png'), docsPreview);
+  }
+  console.log(`${id.padEnd(10)} 4개 투명 프레임 → ${FRAME_W * FRAMES}x${FRAME_H} | 캐릭터 높이 ${finalH}px | ${(out.length / 1024).toFixed(0)}KB`);
+}
+
 async function normalizeSheet({ id, src }) {
   const inputPath = resolve(sourceDir, src);
   const input = sharp(await readFile(inputPath)).ensureAlpha();
@@ -154,6 +240,7 @@ async function normalizeSheet({ id, src }) {
 }
 
 for (const sheet of SHEETS) {
-  await normalizeSheet(sheet);
+  if (sheet.frames) await normalizeFrameFiles(sheet);
+  else await normalizeSheet(sheet);
 }
 console.log(`\n프레임 규격: ${FRAME_W}x${FRAME_H} × ${FRAMES}프레임 · 캐릭터 높이 ${CHAR_H}px · 바닥선 하단 ${FLOOR_GAP}px`);

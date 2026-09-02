@@ -1,0 +1,125 @@
+{
+  "ok": true,
+  "chroma_key": {
+    "hex": "#FF00FF",
+    "rgb": [
+      255,
+      0,
+      255
+    ],
+    "threshold": 96.0
+  },
+  "rows": [
+    {
+      "state": "idle",
+      "frames": [
+        "design/subtitle-agent-comma/frames/idle/00.png",
+        "design/subtitle-agent-comma/frames/idle/01.png",
+        "design/subtitle-agent-comma/frames/idle/02.png",
+        "design/subtitle-agent-comma/frames/idle/03.png",
+        "design/subtitle-agent-comma/frames/idle/04.png",
+        "design/subtitle-agent-comma/frames/idle/05.png"
+      ],
+      "method": "stable-slots"
+    },
+    {
+      "state": "running-right",
+      "frames": [
+        "design/subtitle-agent-comma/frames/running-right/00.png",
+        "design/subtitle-agent-comma/frames/running-right/01.png",
+        "design/subtitle-agent-comma/frames/running-right/02.png",
+        "design/subtitle-agent-comma/frames/running-right/03.png",
+        "design/subtitle-agent-comma/frames/running-right/04.png",
+        "design/subtitle-agent-comma/frames/running-right/05.png",
+        "design/subtitle-agent-comma/frames/running-right/06.png",
+        "design/subtitle-agent-comma/frames/running-right/07.png"
+      ],
+      "method": "stable-slots"
+    },
+    {
+      "state": "running-left",
+      "frames": [
+        "design/subtitle-agent-comma/frames/running-left/00.png",
+        "design/subtitle-agent-comma/frames/running-left/01.png",
+        "design/subtitle-agent-comma/frames/running-left/02.png",
+        "design/subtitle-agent-comma/frames/running-left/03.png",
+        "design/subtitle-agent-comma/frames/running-left/04.png",
+        "design/subtitle-agent-comma/frames/running-left/05.png",
+        "design/subtitle-agent-comma/frames/running-left/06.png",
+        "design/subtitle-agent-comma/frames/running-left/07.png"
+      ],
+      "method": "stable-slots"
+    },
+    {
+      "state": "waving",
+      "frames": [
+        "design/subtitle-agent-comma/frames/waving/00.png",
+        "design/subtitle-agent-comma/frames/waving/01.png",
+        "design/subtitle-agent-comma/frames/waving/02.png",
+        "design/subtitle-agent-comma/frames/waving/03.png"
+      ],
+      "method": "stable-slots"
+    },
+    {
+      "state": "jumping",
+      "frames": [
+        "design/subtitle-agent-comma/frames/jumping/00.png",
+        "design/subtitle-agent-comma/frames/jumping/01.png",
+        "design/subtitle-agent-comma/frames/jumping/02.png",
+        "design/subtitle-agent-comma/frames/jumping/03.png",
+        "design/subtitle-agent-comma/frames/jumping/04.png"
+      ],
+      "method": "stable-slots"
+    },
+    {
+      "state": "failed",
+      "frames": [
+        "design/subtitle-agent-comma/frames/failed/00.png",
+        "design/subtitle-agent-comma/frames/failed/01.png",
+        "design/subtitle-agent-comma/frames/failed/02.png",
+        "design/subtitle-agent-comma/frames/failed/03.png",
+        "design/subtitle-agent-comma/frames/failed/04.png",
+        "design/subtitle-agent-comma/frames/failed/05.png",
+        "design/subtitle-agent-comma/frames/failed/06.png",
+        "design/subtitle-agent-comma/frames/failed/07.png"
+      ],
+      "method": "stable-slots"
+    },
+    {
+      "state": "waiting",
+      "frames": [
+        "design/subtitle-agent-comma/frames/waiting/00.png",
+        "design/subtitle-agent-comma/frames/waiting/01.png",
+        "design/subtitle-agent-comma/frames/waiting/02.png",
+        "design/subtitle-agent-comma/frames/waiting/03.png",
+        "design/subtitle-agent-comma/frames/waiting/04.png",
+        "design/subtitle-agent-comma/frames/waiting/05.png"
+      ],
+      "method": "stable-slots"
+    },
+    {
+      "state": "running",
+      "frames": [
+        "design/subtitle-agent-comma/frames/running/00.png",
+        "design/subtitle-agent-comma/frames/running/01.png",
+        "design/subtitle-agent-comma/frames/running/02.png",
+        "design/subtitle-agent-comma/frames/running/03.png",
+        "design/subtitle-agent-comma/frames/running/04.png",
+        "design/subtitle-agent-comma/frames/running/05.png"
+      ],
+      "method": "stable-slots"
+    },
+    {
+      "state": "review",
+      "frames": [
+        "design/subtitle-agent-comma/frames/review/00.png",
+        "design/subtitle-agent-comma/frames/review/01.png",
+        "design/subtitle-agent-comma/frames/review/02.png",
+        "design/subtitle-agent-comma/frames/review/03.png",
+        "design/subtitle-agent-comma/frames/review/04.png",
+        "design/subtitle-agent-comma/frames/review/05.png"
+      ],
+      "method": "stable-slots"
+    }
+  ]
+}
