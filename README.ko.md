@@ -306,7 +306,7 @@ Career Atelier는 세 번째 방법입니다. **이미 구독 중인 CLI 도구*
 
 <br>
 
-### 설치
+### 설치 — 명령 3줄
 
 Windows · macOS · Linux 모두 같은 명령입니다.
 
@@ -316,21 +316,31 @@ cd Career-Atelier-AI-Context-Pack
 npm run setup
 ```
 
-`npm run setup`이 하는 일:
+**Supabase 대시보드를 열 일도, 키를 복사해 올 일도 없습니다.** 브라우저에서 로그인 한 번만 하면 나머지는 마법사가 합니다.
 
 1. Node · Supabase CLI · AI CLI 설치 상태 확인
-2. Supabase 프로젝트 연결
-3. 테이블 · 보안 정책 · 기본 프롬프트 적용
-4. `web/.env.local`과 `runner/.env` 생성
+2. Supabase 로그인 (브라우저가 한 번 열립니다)
+3. 프로젝트 선택 — 없으면 **새로 만들고** 준비될 때까지 대기
+4. anon 키를 **직접 조회**해서 가져옴
+5. 테이블 · 보안 정책 · 기본 프롬프트 적용
+6. `web/.env.local`과 `runner/.env` 생성
+
+> DB 비밀번호는 무작위로 만들고 어디에도 저장하지 않습니다. `service_role` 키는 조회조차 하지 않습니다.
 
 <br>
 
 ### AI에게 설치 맡기기
 
-내 컴퓨터의 터미널을 사용할 수 있는 Codex·Claude Code·Gemini CLI 같은 코딩 에이전트에 아래 한 줄을 그대로 붙여 넣으세요.
+터미널을 쓸 수 있는 코딩 에이전트(Codex · Claude Code · Gemini CLI · Cursor 등)에 아래 한 줄을 붙여 넣으세요.
 
 ```text
 다음 설치 지침을 읽고 그대로 따라 Career Atelier를 설치해 줘: https://raw.githubusercontent.com/tkv00/Career-Atelier-AI-Context-Pack/refs/heads/main/docs/AI-INSTALL.md
+```
+
+에이전트라면 아래처럼 한 줄로 끝낼 수도 있습니다. `--yes`를 주면 아무것도 묻지 않고 끝까지 돕니다.
+
+```bash
+git clone https://github.com/tkv00/Career-Atelier-AI-Context-Pack.git && cd Career-Atelier-AI-Context-Pack && npm run setup -- --yes
 ```
 
 AI는 준비물을 확인하고 공식 저장소 복제, 잠긴 버전의 의존성 설치, 기존 설치 마법사 실행, 빌드 검증까지 진행합니다. 설치 지침에는 API 키 사용, 파괴적인 Git 명령, 환경변수 파일의 무단 덮어쓰기, 자동 배포를 금지하는 안전 규칙도 들어 있습니다. 로그인과 인스턴스 소유권 확인은 직접 해야 합니다. 전체 절차는 실행 전에 [docs/AI-INSTALL.md](docs/AI-INSTALL.md)에서 확인할 수 있습니다.

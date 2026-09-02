@@ -3,17 +3,23 @@
 // 돌아야 해서 셸 스크립트가 아니라 Node로 짰다 — 러너를 돌리려면 어차피 Node가
 // 필요하므로 추가 의존성이 늘지 않는다.
 //
-// 하는 일: 필수 도구 확인 → Supabase 프로젝트 연결 → 마이그레이션 적용 →
-// web/.env.local과 runner/.env 생성. 실제 계정 생성처럼 사람만 할 수 있는 일은
-// 대신 하지 않고, 어디서 무엇을 해야 하는지 안내만 한다.
+// 하는 일: 필수 도구 확인 → Supabase 로그인 → 프로젝트 선택(없으면 생성) →
+// anon 키 조회 → 마이그레이션 적용 → web/.env.local과 runner/.env 생성.
+//
+// 예전에는 사용자가 대시보드에서 프로젝트를 만들고 ref와 anon 키를 손으로
+// 복사해 와야 했다. CLI가 projects list/create와 api-keys를 전부 제공해서
+// 그 왕복이 통째로 없어졌다 — 브라우저 로그인 한 번이면 끝난다.
 //
 // 모든 값을 인자로 넘기면 아무것도 묻지 않고 끝까지 돈다 — AGENTS.md를 읽은
 // AI 코딩 에이전트가 대신 설치할 수 있어야 해서다(요청 2026-09-02). 그런
 // 환경에는 tty가 없어서, 값이 빠졌을 때 프롬프트를 띄우면 그대로 멈춰 버린다.
 //
-//   node scripts/setup.mjs --project-ref abc --anon-key eyJ... [--url https://...] [--yes]
+//   node scripts/setup.mjs                      # 로그인만 하면 프로젝트 생성·키 조회까지 알아서
+//   node scripts/setup.mjs --new-project my-app --region ap-northeast-2
+//   node scripts/setup.mjs --project-ref abc --anon-key eyJ...   # 값을 직접 줄 때
 
 import { execFileSync, spawnSync } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { createInterface } from 'node:readline/promises';
 import { dirname, resolve } from 'node:path';
@@ -22,21 +28,25 @@ import { fileURLToPath } from 'node:url';
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
 function parseArgs(argv) {
-  const out = { yes: false };
+  // 서울에서 가장 가까운 리전을 기본값으로 둔다.
+  const out = { yes: false, region: 'ap-northeast-2' };
   for (let i = 0; i < argv.length; i += 1) {
     const flag = argv[i];
     const value = argv[i + 1];
     if (flag === '--project-ref') { out.projectRef = value; i += 1; }
     else if (flag === '--anon-key') { out.anonKey = value; i += 1; }
     else if (flag === '--url') { out.url = value; i += 1; }
+    else if (flag === '--new-project') { out.newProject = value ?? 'career-atelier'; i += 1; }
+    else if (flag === '--region') { out.region = value; i += 1; }
     else if (flag === '--yes' || flag === '-y') { out.yes = true; }
   }
   return out;
 }
 const args = parseArgs(process.argv.slice(2));
 
-// 필요한 값이 전부 인자로 왔으면 stdin을 아예 건드리지 않는다.
-const interactive = !(args.projectRef && args.anonKey);
+// --yes를 주거나 필요한 값이 전부 인자로 왔으면 stdin을 아예 건드리지 않는다.
+// 프로젝트 ref와 키를 이제 CLI로 알아내므로, 에이전트는 --yes 하나만 주면 된다.
+const interactive = !args.yes && !(args.projectRef && args.anonKey);
 const rl = interactive ? createInterface({ input: process.stdin, output: process.stdout }) : null;
 const ask = async (question) => (rl ? (await rl.question(question)).trim() : '');
 
@@ -64,6 +74,43 @@ function version(command, args = ['--version']) {
   } catch {
     return null;
   }
+}
+
+// supabase CLI를 JSON으로 부르고 파싱한다. 실패하면 null — 호출부가 판단한다.
+function supabaseJson(argv) {
+  try {
+    const out = execFileSync('supabase', [...argv, '--output', 'json'], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'ignore'],
+      shell: process.platform === 'win32',
+    });
+    return JSON.parse(out);
+  } catch {
+    return null;
+  }
+}
+
+// 로그인 여부는 전용 명령이 없어서, 인증이 필요한 조회가 되는지로 판단한다.
+async function supabaseLoggedIn() {
+  return Array.isArray(supabaseJson(['orgs', 'list']));
+}
+
+// 갓 만든 프로젝트는 몇십 초 동안 연결을 못 받는다. 준비될 때까지 기다렸다가
+// 다음 단계(link → db push)로 넘어간다.
+async function waitUntilHealthy(ref, timeoutMs = 5 * 60 * 1000) {
+  const deadline = Date.now() + timeoutMs;
+  process.stdout.write('  프로젝트가 준비되기를 기다리는 중');
+  while (Date.now() < deadline) {
+    const found = (supabaseJson(['projects', 'list']) ?? []).find((p) => p.ref === ref);
+    if (found && /ACTIVE_HEALTHY/i.test(String(found.status))) {
+      console.log(' 준비됨');
+      return;
+    }
+    process.stdout.write('.');
+    await new Promise((resolve) => setTimeout(resolve, 5000));
+  }
+  console.log('');
+  warn('준비 확인이 시간 초과됐습니다. 계속 진행하지만 실패하면 잠시 뒤 다시 실행하세요.');
 }
 
 function writeEnv(path, values) {
@@ -106,24 +153,88 @@ async function main() {
   }
 
   // 2. Supabase 프로젝트 -----------------------------------------------------
-  console.log(c.bold('\n\nSupabase 프로젝트 연결\n'));
-  console.log('아직 없다면 https://supabase.com 에서 새 프로젝트를 만드세요 (무료).');
-  console.log(c.dim('프로젝트 설정 → Data API 에서 Project URL과 anon key를 복사할 수 있습니다.\n'));
+  console.log(c.bold('\n\nSupabase 프로젝트\n'));
 
-  const projectRef = args.projectRef || (await ask('프로젝트 ref (예: abcdefghijklmnop): '));
+  let projectRef = args.projectRef;
+
+  // ref를 안 줬으면 대시보드를 오가며 키를 복사하게 하지 않는다. CLI가
+  // 프로젝트 목록 조회·생성·키 조회를 전부 할 수 있어서, 로그인 한 번이면
+  // 나머지는 여기서 끝난다.
   if (!projectRef) {
-    fail('프로젝트 ref가 필요합니다. 비대화형이라면 --project-ref로 넘기세요.');
-    process.exit(1);
+    if (!(await supabaseLoggedIn())) {
+      if (!interactive) {
+        // 브라우저 로그인은 사람이 눌러야 끝난다. tty 없는 환경에서 띄우면
+        // 아무도 못 누르는 창을 열어 두고 영원히 기다린다.
+        fail('Supabase에 로그인되어 있지 않습니다. 먼저 실행하세요: supabase login');
+        process.exit(1);
+      }
+      console.log('Supabase에 로그인합니다. 브라우저가 열립니다.\n');
+      const login = spawnSync('supabase', ['login'], { stdio: 'inherit', shell: process.platform === 'win32' });
+      if (login.status !== 0) {
+        fail('supabase login 실패.');
+        process.exit(1);
+      }
+    }
+
+    const projects = supabaseJson(['projects', 'list']) ?? [];
+    const usable = projects.filter((p) => p.ref);
+
+    if (usable.length && !args.newProject) {
+      // 이미 프로젝트가 있으면 새로 만들지 않는다 — 무료 플랜은 개수 제한이 있고,
+      // 남의 프로젝트를 말없이 늘리는 건 예의가 아니다.
+      const pick = usable.length === 1 || !interactive
+        ? usable[0]
+        : usable[Number(await ask(usable.map((p, i) => `  ${i + 1}) ${p.name} (${p.ref})`).join('\n') + '\n선택 [1]: ')) - 1] ?? usable[0];
+      projectRef = pick.ref;
+      ok(`기존 프로젝트 사용: ${pick.name} (${projectRef})`);
+    } else {
+      const orgs = supabaseJson(['orgs', 'list']) ?? [];
+      if (!orgs.length) {
+        fail('Supabase 조직을 찾지 못했습니다. supabase.com에서 조직을 먼저 만드세요.');
+        process.exit(1);
+      }
+      const name = args.newProject || 'career-atelier';
+      const dbPassword = randomBytes(24).toString('base64url');
+
+      console.log(`새 프로젝트를 만듭니다: ${name} (${args.region})`);
+      const create = spawnSync(
+        'supabase',
+        ['projects', 'create', name, '--org-id', orgs[0].id, '--db-password', dbPassword, '--region', args.region],
+        { stdio: 'inherit', shell: process.platform === 'win32' },
+      );
+      if (create.status !== 0) {
+        fail('프로젝트 생성 실패.');
+        process.exit(1);
+      }
+
+      const created = (supabaseJson(['projects', 'list']) ?? []).find((p) => p.name === name);
+      if (!created?.ref) {
+        fail('만든 프로젝트를 찾지 못했습니다.');
+        process.exit(1);
+      }
+      projectRef = created.ref;
+      ok(`프로젝트 생성됨: ${projectRef}`);
+      console.log(c.dim(`  DB 비밀번호는 무작위로 만들었고 어디에도 저장하지 않습니다.`));
+      console.log(c.dim(`  필요하면 supabase.com 대시보드에서 재설정할 수 있습니다.`));
+
+      // 새 프로젝트는 곧바로 연결을 못 받는다. 준비될 때까지 기다린다.
+      await waitUntilHealthy(projectRef);
+    }
   }
 
-  const supabaseUrl =
-    args.url || (await ask(`Project URL [https://${projectRef}.supabase.co]: `)) || `https://${projectRef}.supabase.co`;
+  const supabaseUrl = args.url || `https://${projectRef}.supabase.co`;
 
-  const anonKey = args.anonKey || (await ask('anon public key: '));
+  // anon 키도 CLI로 가져온다. 사용자가 대시보드에서 복사해 올 이유가 없다.
+  let anonKey = args.anonKey;
   if (!anonKey) {
-    fail('anon key가 필요합니다. 비대화형이라면 --anon-key로 넘기세요.');
+    const keys = supabaseJson(['projects', 'api-keys', '--project-ref', projectRef]) ?? [];
+    anonKey = keys.find((k) => k.name === 'anon')?.api_key;
+  }
+  if (!anonKey) {
+    fail('anon key를 가져오지 못했습니다. --anon-key로 직접 넘기세요.');
     process.exit(1);
   }
+  ok('anon key 확보');
 
   // 3. 마이그레이션 ----------------------------------------------------------
   console.log(c.bold('\n\n데이터베이스 준비\n'));

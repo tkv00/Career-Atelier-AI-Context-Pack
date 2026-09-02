@@ -29,30 +29,34 @@ claims it, builds a context pack, runs the right CLI, and writes results back.
 
 Run these in order. Steps 1 and 4 need a human — do not pretend otherwise.
 
-### 1. Ask the human for their Supabase project (human required)
+### 1. Sign in to Supabase (human required)
 
-They need a free project at [supabase.com](https://supabase.com). From
-**Project Settings → Data API** they can copy:
+```bash
+npm install -g supabase          # if `supabase` is missing
+supabase login                   # opens a browser; only they can finish it
+```
 
-- the project ref (the subdomain, e.g. `abcdefghijklmnop`)
-- the **anon public** key
+Do not ask them for a project ref or an anon key. The wizard finds both.
 
 Never ask for, accept, or write down the `service_role` key. This project does
 not use it anywhere, and `web/lib/env.ts` fails the build if a key like it is
 present.
 
-### 2. Install and link
+### 2. Run the wizard
 
 ```bash
-npm install -g supabase          # if `supabase` is missing
-node scripts/setup.mjs --project-ref <REF> --anon-key <ANON_KEY> --yes
+node scripts/setup.mjs --yes
 ```
 
-Passing both flags makes the script fully non-interactive, which is what you
-want with no tty. It checks tooling, runs `supabase link`, applies every
-migration, and writes `web/.env.local` and `runner/.env`.
+`--yes` makes it fully non-interactive, which is what you want with no tty.
+It checks tooling, reuses their existing Supabase project or creates
+`career-atelier` and waits for it to become healthy, reads the anon key from
+the CLI, applies every migration, and writes `web/.env.local` and
+`runner/.env`.
 
-`supabase link` may need `supabase login` first, which opens a browser.
+`--new-project <name>` forces a fresh project, `--region` defaults to
+`ap-northeast-2`, and `--project-ref` with `--anon-key` skips discovery when
+the user hands you the values.
 
 ### 3. Install dependencies
 

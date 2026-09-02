@@ -59,23 +59,31 @@ npm ci --prefix runner
 
 ### 4. Run the setup wizard
 
-Ask the user to have these values ready from Supabase **Settings → Data API**:
-
-- project ref
-- Project URL
-- anon/publishable key
-
-Then run the wizard with those values as flags:
+First make sure the user is signed in to Supabase. This opens a browser and only they can complete it:
 
 ```bash
-node scripts/setup.mjs --project-ref <REF> --anon-key <ANON_KEY>
+supabase login
 ```
 
-Passing both flags skips every prompt. This matters because most agent shells have no tty, and `npm run setup` on its own will sit waiting for input it can never receive. Add `--url` when the user's Project URL is not the default `https://<REF>.supabase.co`.
+Then run the wizard:
 
-The wizard links the Supabase project, applies migrations and row-level security, and creates `web/.env.local` and `runner/.env`. Existing env files are kept; pass `--yes` only if the user explicitly asked to overwrite them.
+```bash
+node scripts/setup.mjs --yes
+```
 
-`supabase link` may require `supabase login` first, which opens a browser for the user.
+`--yes` makes it fully non-interactive, which matters because most agent shells have no tty — without it the wizard can stop at a prompt nothing will ever answer.
+
+Do not ask the user for a project ref or an anon key. The wizard reads their project list itself, uses the existing project when there is one, creates `career-atelier` when there is not, waits for it to become healthy, and reads the anon key from `supabase projects api-keys`. It then applies migrations and row-level security and writes `web/.env.local` and `runner/.env`.
+
+Useful flags:
+
+- `--new-project <name>` — force creating a new project instead of reusing one
+- `--region <region>` — defaults to `ap-northeast-2`
+- `--project-ref <ref> --anon-key <key>` — skip discovery entirely when the user hands you the values
+
+Existing env files are kept unless `--yes` is passed, which overwrites them. If the user has an installation they care about, confirm before overwriting.
+
+The wizard never reads or stores the `service_role` key, and the database password it generates for a new project is random and kept nowhere.
 
 ### 5. Set up an AI subscription CLI
 

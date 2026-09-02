@@ -306,9 +306,9 @@ The runner is a Node process on your machine, signed in as you. It claims the jo
 
 <br>
 
-### Install
+### Install — three commands
 
-The same command on Windows, macOS, and Linux.
+The same on Windows, macOS, and Linux.
 
 ```bash
 git clone https://github.com/tkv00/Career-Atelier-AI-Context-Pack.git
@@ -316,21 +316,31 @@ cd Career-Atelier-AI-Context-Pack
 npm run setup
 ```
 
-`npm run setup` will:
+**You never open the Supabase dashboard or copy a key.** Sign in once in the browser and the wizard does the rest:
 
 1. Check Node, the Supabase CLI, and your AI CLIs
-2. Link your Supabase project
-3. Apply tables, row level security, and the default prompts
-4. Write `web/.env.local` and `runner/.env`
+2. Sign in to Supabase (opens a browser once)
+3. Pick a project, or **create one** and wait until it is ready
+4. **Read the anon key directly** from the CLI
+5. Apply tables, row level security, and the default prompts
+6. Write `web/.env.local` and `runner/.env`
+
+> The database password is generated at random and stored nowhere. The `service_role` key is never even read.
 
 <br>
 
 ### Install with an AI coding agent
 
-Paste this one-line install prompt into Codex, Claude Code, Gemini CLI, or another coding agent that can use a terminal on your computer:
+Paste this one line into Codex, Claude Code, Gemini CLI, Cursor, or any coding agent with terminal access:
 
 ```text
 Install Career Atelier by reading and following these instructions: https://raw.githubusercontent.com/tkv00/Career-Atelier-AI-Context-Pack/refs/heads/main/docs/AI-INSTALL.md
+```
+
+An agent can also do the whole thing in one command. `--yes` means it never stops to ask:
+
+```bash
+git clone https://github.com/tkv00/Career-Atelier-AI-Context-Pack.git && cd Career-Atelier-AI-Context-Pack && npm run setup -- --yes
 ```
 
 The agent will check prerequisites, clone the official repository, install locked dependencies, run the existing setup wizard, and verify the build. The runbook forbids API keys, destructive Git operations, silent environment-file overwrites, and automatic deployment. Login and account-ownership confirmations intentionally remain manual. You can inspect the complete instructions before using them: [docs/AI-INSTALL.md](docs/AI-INSTALL.md).
