@@ -7,6 +7,7 @@
   },
   "scripts": {
     "setup": "node scripts/setup.mjs",
+    "shoot-docs": "node scripts/shoot-docs.mjs",
     "dev": "node scripts/dev-local.mjs",
     "dev:web": "vinext dev",
     "companion": "node server/index.mjs",

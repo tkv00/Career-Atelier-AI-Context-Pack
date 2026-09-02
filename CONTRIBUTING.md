@@ -47,6 +47,24 @@ safety rail, not an obstacle to route around.
 cd web && npx tsc --noEmit && npm run lint && npm run build
 ```
 
+## Updating the README screenshots
+
+The images in `docs/images/screens/` are generated, not hand-captured. If your
+change alters a screen that appears in the README, regenerate them:
+
+```bash
+npm run shoot-docs
+```
+
+A Chrome window opens. Sign in there (the magic link has to be opened in that
+same window), and the script captures every documented screen at a consistent
+size once it detects your session. The profile is remembered, so later runs can
+use `npm run shoot-docs -- --headless`.
+
+Email addresses on screen are replaced with `you@example.com` before each
+capture. Check the result before committing — screenshots are the easiest place
+to leak personal data by accident.
+
 ## Style
 
 - Match the surrounding code. The codebase uses Korean comments that explain
