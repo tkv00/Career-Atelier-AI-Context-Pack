@@ -7,19 +7,21 @@
     {
       "id": "base",
       "kind": "base-pet",
-      "status": "pending",
+      "status": "complete",
       "prompt_file": "prompts/base-pet.md",
       "input_images": [],
       "output_path": "decoded/base.png",
       "depends_on": [],
       "generation_skill": "$imagegen",
       "requires_grounded_generation": false,
-      "allow_prompt_only_generation": true
+      "allow_prompt_only_generation": true,
+      "source_path": "~/.codex/generated_images/01a060ff-4b03-7f80-9a9c-3c0efd2aefcd/exec-a80a19ad-498f-4591-a581-c1641859c1d4.png",
+      "completed_at": "2026-09-02T07:25:41Z"
     },
     {
       "id": "idle",
       "kind": "row-strip",
-      "status": "pending",
+      "status": "complete",
       "prompt_file": "prompts/rows/idle.md",
       "retry_prompt_file": "prompts/row-retries/idle.md",
       "input_images": [
@@ -49,12 +51,14 @@
         "may_derive": false,
         "reason": "no deterministic derivation is configured for this state"
       },
-      "mirror_policy": {}
+      "mirror_policy": {},
+      "source_path": "~/.codex/generated_images/01a06102-d0cc-79a1-9a55-1ff13cf83055/exec-7b55e891-26ce-4644-aec9-927cf6577fc2.png",
+      "completed_at": "2026-09-02T07:27:34Z"
     },
     {
       "id": "running-right",
       "kind": "row-strip",
-      "status": "pending",
+      "status": "complete",
       "prompt_file": "prompts/rows/running-right.md",
       "retry_prompt_file": "prompts/row-retries/running-right.md",
       "input_images": [
@@ -84,12 +88,14 @@
         "may_derive": false,
         "reason": "no deterministic derivation is configured for this state"
       },
-      "mirror_policy": {}
+      "mirror_policy": {},
+      "source_path": "~/.codex/generated_images/01a06103-18f3-7431-9068-a10d37016b56/exec-d00fbce9-7f75-41be-b256-f2ffbf469fcf.png",
+      "completed_at": "2026-09-02T07:29:24Z"
     },
     {
       "id": "running-left",
       "kind": "row-strip",
-      "status": "pending",
+      "status": "complete",
       "prompt_file": "prompts/rows/running-left.md",
       "retry_prompt_file": "prompts/row-retries/running-left.md",
       "input_images": [
@@ -134,12 +140,14 @@
         "derivation": "framewise-horizontal-mirror-preserving-order",
         "requires_explicit_approval": true,
         "fallback_generation_skill": "$imagegen"
-      }
+      },
+      "source_path": "~/.codex/generated_images/01a06106-51f3-74a0-9f58-58aafabcc1d7/exec-53fdd690-d271-4974-99ff-d527b5594b6b.png",
+      "completed_at": "2026-09-02T07:32:06Z"
     },
     {
       "id": "waving",
       "kind": "row-strip",
-      "status": "pending",
+      "status": "complete",
       "prompt_file": "prompts/rows/waving.md",
       "retry_prompt_file": "prompts/row-retries/waving.md",
       "input_images": [
@@ -169,12 +177,14 @@
         "may_derive": false,
         "reason": "state requires its own generated animation semantics"
       },
-      "mirror_policy": {}
+      "mirror_policy": {},
+      "source_path": "design/subtitle-agent-comma/selected-output.png",
+      "completed_at": "2026-09-02T07:30:11Z"
     },
     {
       "id": "jumping",
       "kind": "row-strip",
-      "status": "pending",
+      "status": "complete",
       "prompt_file": "prompts/rows/jumping.md",
       "retry_prompt_file": "prompts/row-retries/jumping.md",
       "input_images": [
@@ -204,12 +214,14 @@
         "may_derive": false,
         "reason": "state requires its own generated animation semantics"
       },
-      "mirror_policy": {}
+      "mirror_policy": {},
+      "source_path": "~/.codex/generated_images/01a06106-c950-77a3-9f14-30be3417c90b/exec-70fb53e9-fc59-4e7f-98ce-e99d397ed090.png",
+      "completed_at": "2026-09-02T07:31:52Z"
     },
     {
       "id": "failed",
       "kind": "row-strip",
-      "status": "pending",
+      "status": "complete",
       "prompt_file": "prompts/rows/failed.md",
       "retry_prompt_file": "prompts/row-retries/failed.md",
       "input_images": [
@@ -239,12 +251,14 @@
         "may_derive": false,
         "reason": "state requires its own generated animation semantics"
       },
-      "mirror_policy": {}
+      "mirror_policy": {},
+      "source_path": "design/subtitle-agent-comma/generated/failed.png",
+      "completed_at": "2026-09-02T07:33:57Z"
     },
     {
       "id": "waiting",
       "kind": "row-strip",
-      "status": "pending",
+      "status": "complete",
       "prompt_file": "prompts/rows/waiting.md",
       "retry_prompt_file": "prompts/row-retries/waiting.md",
       "input_images": [
@@ -274,7 +288,9 @@
         "may_derive": false,
         "reason": "state requires its own generated animation semantics"
       },
-      "mirror_policy": {}
+      "mirror_policy": {},
+      "source_path": "/Users/kimdoyeon/.codex/generated_images/01a06108-e674-79a3-ad95-05b71382bb95/exec-e7ad328f-8142-43c3-b9b6-3ccc0d271132.png",
+      "completed_at": "2026-09-02T07:35:22Z"
     },
     {
       "id": "running",
