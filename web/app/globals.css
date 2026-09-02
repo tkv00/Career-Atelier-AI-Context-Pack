@@ -3277,10 +3277,14 @@ input.interview-question-title:focus {
   min-height: 100vh;
   overflow: hidden;
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 430px);
+  grid-template-columns: minmax(260px, 0.82fr) minmax(420px, 1.18fr) minmax(350px, 430px);
   align-items: center;
-  gap: var(--s10);
-  padding: var(--s12) var(--s10);
+  gap: clamp(16px, 2vw, 40px);
+  padding: var(--s12) clamp(24px, 3.5vw, 68px);
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 50% 48%, #142b4138 0%, transparent 35%),
+    linear-gradient(115deg, #050a10 0%, #08111a 46%, #070c13 100%);
 }
 
 .galaxy-star-canvas {
@@ -3312,128 +3316,333 @@ input.interview-question-title:focus {
   background: radial-gradient(circle, #5a2f1e44 0%, transparent 68%);
 }
 
-/* 은하 코어 + 궤도 — 깊이감의 중심. */
-.galaxy-journey {
-  position: absolute;
-  left: 27%;
-  top: 50%;
-  width: 620px;
-  height: 620px;
-  transform: translate(-50%, -50%);
+/* 흑요석 행성 히어로 — 참고 프로젝트의 깊이 있는 행성 연출을 로그인 중앙에
+   맞게 재구성했다. 이미지 위에 앞/뒤 궤도를 따로 두어 실제 공전처럼 읽힌다. */
+.galaxy-planet-stage {
+  position: relative;
+  grid-column: 2;
+  grid-row: 1;
+  justify-self: center;
+  width: min(100%, 720px);
+  aspect-ratio: 1;
   pointer-events: none;
+  z-index: 1;
+}
+.galaxy-planet-stage::before {
+  position: absolute;
+  inset: 13%;
+  content: '';
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 30% 28%, #f2bd7240 0%, transparent 31%),
+    radial-gradient(circle at 70% 70%, #4da7df38 0%, transparent 43%);
+  filter: blur(42px);
+  animation: galaxy-planet-aura 8s ease-in-out infinite;
+}
+.galaxy-planet-kicker,
+.galaxy-planet-telemetry {
+  position: absolute;
+  z-index: 8;
+  display: flex;
+  align-items: center;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  white-space: nowrap;
+}
+.galaxy-planet-kicker {
+  top: 11%;
+  left: 3%;
+  gap: 8px;
+  padding: 7px 10px;
+  border-left: 1px solid #62d6e6a8;
+  color: #6b8d9d;
+  background: linear-gradient(90deg, #07131dcc, transparent);
+}
+.galaxy-planet-kicker b {
+  color: #d8f6fa;
+  font-size: 10px;
+}
+.galaxy-planet-telemetry {
+  right: 2%;
+  bottom: 10%;
+  gap: 9px;
+  padding: 7px 10px;
+  border-right: 1px solid #dfb46f9e;
+  background: linear-gradient(270deg, #0a141dcc, transparent);
+  color: #6f8d9b;
+}
+.galaxy-planet-telemetry span { color: var(--amber-strong); }
+.galaxy-planet-telemetry b { color: #abdce3; font-size: 9px; }
+.galaxy-planet-telemetry em { color: #536f7c; font-style: normal; }
+.galaxy-planet-telemetry i {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--cyan);
+  box-shadow: 0 0 9px var(--cyan);
+}
+.galaxy-obsidian-system {
+  position: absolute;
+  inset: 5%;
+  transform-origin: 51% 52%;
+  animation: galaxy-planet-float 18s ease-in-out infinite;
+  will-change: transform;
+}
+.galaxy-planet-aura {
+  position: absolute;
+  inset: 15%;
   z-index: 0;
-}
-/* 은하 코어 — 완전한 구체로 그리면 "태양"이 되어 버린다. 납작한 원반 위에
-   밝은 중심핵을 얹어 위에서 비스듬히 내려다본 은하로 읽히게 한다. */
-.galaxy-core {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 118px;
-  height: 118px;
-  transform: translate(-50%, -50%);
-}
-.galaxy-core i {
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 96px;
-  height: 96px;
-  transform: translate(-50%, -50%) rotateX(66deg) rotate(-18deg);
   border-radius: 50%;
-  background: radial-gradient(circle at 50% 50%, #ffe3b4 0%, #f5b976 12%, #eb9a4e 26%, #b0562155 58%, transparent 76%);
-  filter: blur(1px);
+  box-shadow:
+    -28px -15px 62px #efb2642b,
+    26px 30px 76px #4d9bdc2e;
+  animation: galaxy-atmosphere-breathe 7s ease-in-out infinite;
 }
-/* 원반 바깥으로 퍼지는 성간 먼지 — 코어보다 훨씬 넓고 흐리게. */
-.galaxy-core b {
+.galaxy-obsidian-planet {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 330px;
-  height: 330px;
-  transform: translate(-50%, -50%) rotateX(66deg) rotate(-18deg);
+  inset: 0;
+  z-index: 3;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  filter:
+    drop-shadow(-18px -10px 30px #d6a45d24)
+    drop-shadow(20px 24px 42px #3e8fc72b);
+}
+.galaxy-planet-atmosphere,
+.galaxy-planet-surface,
+.galaxy-planet-aurora {
+  position: absolute;
+  left: 13.5%;
+  top: 11.5%;
+  width: 74%;
+  aspect-ratio: 1;
   border-radius: 50%;
-  background: radial-gradient(circle, #ffc27a2e 0%, #d9853f14 34%, transparent 66%);
+  pointer-events: none;
 }
-/* 궤도면을 기울여 원근을 만든다 — 정면 동심원은 도해처럼 보여 깊이가 없다. */
-.galaxy-orbit {
+.galaxy-planet-atmosphere {
+  z-index: 3;
+  background:
+    radial-gradient(circle at 33% 27%, transparent 60%, #f1c27a26 71%, transparent 74%),
+    radial-gradient(circle at 67% 70%, transparent 60%, #5eaff14a 72%, transparent 76%);
+  box-shadow:
+    -15px -9px 30px #e7b56d32,
+    17px 18px 34px #4d9fe238,
+    inset -8px -7px 20px #58a9e329;
+  mix-blend-mode: screen;
+  animation: galaxy-atmosphere-breathe 8s ease-in-out infinite;
+}
+.galaxy-planet-surface {
+  z-index: 4;
+  opacity: 0.24;
+  overflow: hidden;
+  background-image:
+    repeating-linear-gradient(103deg, transparent 0 8%, #70b9ec24 11%, transparent 15% 25%),
+    repeating-linear-gradient(81deg, transparent 0 13%, #e9c58c1f 17%, transparent 21% 33%);
+  background-size: 190% 100%, 230% 100%;
+  mix-blend-mode: screen;
+  filter: blur(5px);
+  animation: galaxy-surface-flow 54s linear infinite;
+}
+.galaxy-planet-aurora {
+  z-index: 5;
+  padding: 2px;
+  background: conic-gradient(
+    from 22deg,
+    transparent 0deg 45deg,
+    #72bff0a8 61deg,
+    transparent 86deg 177deg,
+    #e6c58c8c 203deg,
+    transparent 229deg 312deg,
+    #579fd06b 332deg,
+    transparent 352deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  filter: blur(0.7px) drop-shadow(0 0 9px #69afe766) drop-shadow(0 0 15px #dfb66a35);
+  opacity: 0.7;
+  animation: galaxy-aurora-turn 38s linear infinite;
+}
+.galaxy-horizon-glint {
   position: absolute;
-  left: 50%;
+  left: 0;
+  top: 0;
+  z-index: 7;
+  width: 34px;
+  height: 3px;
+  border-radius: 99px;
+  color: #efd39e;
+  background: linear-gradient(90deg, transparent, currentColor 70%, #fff);
+  box-shadow: 0 0 10px #efd39e, 0 0 22px #5baee66b;
+  offset-path: ellipse(37% 37% at 50.5% 48%);
+  offset-rotate: auto 180deg;
+  animation: galaxy-glint-orbit 32s linear -19s infinite, galaxy-glint-pulse 7s ease-in-out infinite;
+}
+.galaxy-horizon-glint::after,
+.galaxy-plasma-spark::after {
+  position: absolute;
+  right: -1px;
   top: 50%;
-  border: 1px solid #ffffff12;
-  border-radius: 50%;
-  transform: translate(-50%, -50%) rotateX(66deg);
-}
-.orbit-one { width: 300px; height: 300px; }
-.orbit-two { width: 440px; height: 440px; border-color: #ffffff0e; }
-.orbit-three { width: 590px; height: 590px; border-color: #ffffff0a; }
-.galaxy-orbit span {
-  position: absolute;
-  top: -3px;
-  left: 50%;
   width: 5px;
   height: 5px;
-  margin-left: -2.5px;
+  content: '';
   border-radius: 50%;
-  background: var(--cyan-strong);
+  background: #fff;
+  box-shadow: 0 0 8px currentColor, 0 0 16px currentColor;
+  transform: translateY(-50%);
 }
-.orbit-one span {
-  transform-origin: 2.5px 153px;
-  animation: orbit-run 18s linear infinite;
-}
-.orbit-two span {
-  transform-origin: 2.5px 223px;
-  animation: orbit-run 30s linear infinite reverse;
-}
-.orbit-three span {
-  transform-origin: 2.5px 298px;
-  animation: orbit-run 44s linear infinite;
-}
-@keyframes orbit-run {
-  to { transform: rotate(360deg); }
-}
-
-.galaxy-planet {
+.galaxy-rock-orbit,
+.galaxy-plasma-plane {
   position: absolute;
-  right: 4%;
-  top: 16%;
-  width: 96px;
-  height: 96px;
+  inset: -5%;
+  transform: rotate(-14deg);
+  transform-origin: 50% 51%;
+}
+.rock-orbit-back,
+.plasma-back { z-index: 2; }
+.rock-orbit-front,
+.plasma-front {
+  z-index: 6;
+  clip-path: polygon(0 50%, 100% 50%, 100% 100%, 0 100%);
+}
+.galaxy-orbit-ring {
+  position: absolute;
+  left: 3%;
+  top: 35%;
+  width: 94%;
+  height: 32%;
+  padding: 1.5px;
   border-radius: 50%;
-  background: radial-gradient(circle at 34% 28%, #4d86a6 0%, #245068 46%, #0f2433 78%);
-  box-shadow: inset -10px -6px 22px #0009;
+  background: repeating-conic-gradient(
+    from 0deg,
+    #f4dcb706 0deg,
+    #f4dcb79e 5deg,
+    #7fa9d02b 10deg,
+    #f4dcb70a 18deg,
+    transparent 25deg 34deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  filter: drop-shadow(0 0 8px #dfb86b4f);
+  animation: galaxy-ring-turn 46s linear infinite;
 }
-.galaxy-planet i {
+.galaxy-orbit-ring.orbit-ring-inner {
+  left: 9%;
+  top: 38%;
+  width: 82%;
+  height: 26%;
+  padding: 1px;
+  opacity: 0.62;
+  animation-duration: 71s;
+  animation-direction: reverse;
+}
+.galaxy-orbit-rock {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 168px;
-  height: 30px;
-  transform: translate(-50%, -50%) rotate(-18deg);
-  border: 1px solid #9fd4ff30;
+  left: 0;
+  top: 0;
+  width: var(--rock-size);
+  height: calc(var(--rock-size) * 0.7);
+  border-radius: 46% 54% 58% 42%;
+  background: linear-gradient(135deg, #ead2a8, #716557 42%, #151820);
+  box-shadow: 0 0 8px #dab16d4d;
+  offset-path: ellipse(47% 16% at 50% 51%);
+  offset-rotate: auto 22deg;
+  animation: galaxy-rock-travel var(--rock-time) linear var(--rock-delay) infinite;
+}
+.rock-one { --rock-size: 12px; --rock-time: 43s; --rock-delay: -29s; }
+.rock-two { --rock-size: 7px; --rock-time: 57s; --rock-delay: -15s; }
+.rock-three { --rock-size: 16px; --rock-time: 69s; --rock-delay: -49s; }
+.rock-four { --rock-size: 14px; --rock-time: 51s; --rock-delay: -8s; }
+.rock-five { --rock-size: 8px; --rock-time: 37s; --rock-delay: -25s; }
+.rock-six { --rock-size: 18px; --rock-time: 64s; --rock-delay: -41s; }
+.galaxy-plasma-plane { transform: rotate(52deg); }
+.plasma-front { transform: rotate(-52deg) scale(0.94); }
+.galaxy-plasma-track {
+  position: absolute;
+  left: 4%;
+  top: 40%;
+  width: 92%;
+  height: 22%;
+  padding: 1px;
   border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, #73b9e6a6 0deg 0.8deg, transparent 1.2deg 5deg, #e5c28b82 5.3deg 5.9deg, transparent 6.3deg 10deg);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.56;
+  filter: drop-shadow(0 0 5px #70b6e55c);
+  animation: galaxy-ring-turn 63s linear infinite reverse;
 }
-.galaxy-moon {
+.galaxy-plasma-spark {
   position: absolute;
-  left: 12%;
-  bottom: 18%;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
-  background: radial-gradient(circle at 36% 32%, #cfdce6, #6b7d8c 62%, #33414d);
+  left: 0;
+  top: 0;
+  width: var(--spark-length);
+  height: 3px;
+  border-radius: 99px;
+  color: var(--spark-color);
+  background: linear-gradient(90deg, transparent, currentColor 70%, #fff);
+  box-shadow: 0 0 7px currentColor, 0 0 14px currentColor;
+  offset-path: ellipse(46% 11% at 50% 51%);
+  offset-rotate: auto 180deg;
+  animation: galaxy-plasma-travel var(--spark-time) linear var(--spark-delay) infinite, galaxy-plasma-shimmer 5.6s ease-in-out var(--spark-delay) infinite;
 }
-.galaxy-flight-path {
+.galaxy-plasma-spark::after { width: 4px; height: 4px; }
+.spark-one { --spark-length: 23px; --spark-color: #82c9f2; --spark-time: 35s; --spark-delay: -18s; }
+.spark-two { --spark-length: 12px; --spark-color: #e1c28f; --spark-time: 47s; --spark-delay: -31s; }
+.spark-three { --spark-length: 8px; --spark-color: #6ba4d2; --spark-time: 59s; --spark-delay: -44s; }
+.spark-four { --spark-length: 20px; --spark-color: #efd19e; --spark-time: 51s; --spark-delay: -25s; }
+.spark-five { --spark-length: 10px; --spark-color: #77b9e8; --spark-time: 67s; --spark-delay: -52s; }
+.galaxy-planet-scan {
   position: absolute;
-  right: 12%;
-  bottom: 26%;
-  display: flex;
-  gap: var(--s2);
-  align-items: center;
-}
-.galaxy-flight-path i {
-  width: 26px;
+  left: 20%;
+  top: 18%;
+  z-index: 7;
+  width: 62%;
   height: 1px;
-  background: linear-gradient(90deg, transparent, var(--cyan-dim));
+  opacity: 0;
+  background: linear-gradient(90deg, transparent, #69dfed8f 22%, #f7ffff 50%, #69dfed8f 78%, transparent);
+  box-shadow: 0 0 12px #62dbe9;
+  animation: galaxy-planet-scan 9s ease-in-out 2s infinite;
+}
+@keyframes galaxy-planet-float {
+  0%, 100% { transform: translate3d(0, 0, 0) rotate(-1.4deg); }
+  50% { transform: translate3d(-7px, -13px, 0) rotate(0.5deg); }
+}
+@keyframes galaxy-planet-aura {
+  0%, 100% { opacity: 0.42; transform: scale(0.96); }
+  50% { opacity: 0.72; transform: scale(1.05); }
+}
+@keyframes galaxy-atmosphere-breathe {
+  0%, 100% { opacity: 0.64; transform: scale(0.995); }
+  50% { opacity: 0.96; transform: scale(1.012); }
+}
+@keyframes galaxy-surface-flow {
+  from { background-position: 0% 50%, 0% 50%; }
+  to { background-position: 200% 50%, -160% 50%; }
+}
+@keyframes galaxy-aurora-turn { to { transform: rotate(360deg); } }
+@keyframes galaxy-ring-turn { to { transform: rotate(360deg); } }
+@keyframes galaxy-rock-travel { to { offset-distance: 100%; } }
+@keyframes galaxy-plasma-travel { to { offset-distance: 100%; } }
+@keyframes galaxy-glint-orbit { to { offset-distance: 100%; } }
+@keyframes galaxy-glint-pulse {
+  0%, 100% { opacity: 0.18; }
+  32% { opacity: 0.95; }
+  66% { opacity: 0.42; }
+}
+@keyframes galaxy-plasma-shimmer {
+  0%, 100% { opacity: 0.28; filter: brightness(0.8); }
+  48% { opacity: 0.95; filter: brightness(1.3); }
+}
+@keyframes galaxy-planet-scan {
+  0%, 12% { top: 18%; opacity: 0; }
+  18% { opacity: 0.72; }
+  48% { top: 78%; opacity: 0.25; }
+  52%, 100% { top: 78%; opacity: 0; }
 }
 
 .galaxy-cockpit {
@@ -3469,7 +3678,9 @@ input.interview-question-title:focus {
 
 .galaxy-login-copy {
   position: relative;
-  z-index: 2;
+  grid-column: 1;
+  grid-row: 1;
+  z-index: 3;
   max-width: 520px;
 }
 .galaxy-login-copy > p {
@@ -3519,7 +3730,9 @@ input.interview-question-title:focus {
 
 .galaxy-login-card {
   position: relative;
-  z-index: 2;
+  grid-column: 3;
+  grid-row: 1;
+  z-index: 4;
   padding: var(--s6);
   border: 1px solid var(--line);
   border-radius: var(--r-panel);
@@ -3737,6 +3950,20 @@ input.interview-question-title:focus {
 /* ── 14. 반응형 ──────────────────────────────────────────────────────── */
 
 @media (max-width: 1180px) {
+  .galaxy-login {
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 400px);
+    gap: var(--s6);
+  }
+  .galaxy-planet-stage {
+    position: absolute;
+    left: 49%;
+    top: 50%;
+    width: min(62vw, 640px);
+    transform: translate(-50%, -50%);
+    opacity: 0.54;
+  }
+  .galaxy-login-copy { grid-column: 1; }
+  .galaxy-login-card { grid-column: 2; }
   .cloud-mission-deck,
   .calendar-workspace {
     grid-template-columns: minmax(0, 1fr);
@@ -3770,13 +3997,21 @@ input.interview-question-title:focus {
     padding: var(--s12) var(--s5) var(--s10);
     align-content: center;
   }
-  /* 모바일에서는 은하 연출을 줄인다 — 폼이 주인공이다. */
-  .galaxy-journey {
+  /* 모바일에서는 행성을 배경 깊이로 물려 폼과 제목의 가독성을 지킨다. */
+  .galaxy-planet-stage {
+    position: absolute;
     left: 50%;
     top: 24%;
-    width: 360px;
-    height: 360px;
-    opacity: 0.45;
+    width: min(96vw, 560px);
+    opacity: 0.34;
+    transform: translate(-50%, -50%);
+  }
+  .galaxy-planet-kicker,
+  .galaxy-planet-telemetry { display: none; }
+  .galaxy-login-copy,
+  .galaxy-login-card {
+    grid-column: 1;
+    grid-row: auto;
   }
   .galaxy-login-copy h1 {
     font-size: clamp(28px, 8vw, 38px);
@@ -3940,6 +4175,20 @@ input.interview-question-title:focus {
     background-position: 33.3333% 0;
   }
   .galaxy-orbit span {
+    animation: none;
+  }
+  .galaxy-obsidian-system,
+  .galaxy-planet-stage::before,
+  .galaxy-planet-aura,
+  .galaxy-planet-atmosphere,
+  .galaxy-planet-surface,
+  .galaxy-planet-aurora,
+  .galaxy-horizon-glint,
+  .galaxy-orbit-ring,
+  .galaxy-orbit-rock,
+  .galaxy-plasma-track,
+  .galaxy-plasma-spark,
+  .galaxy-planet-scan {
     animation: none;
   }
 }

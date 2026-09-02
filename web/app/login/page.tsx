@@ -1,6 +1,7 @@
 'use client';
 
 import { Suspense, useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { env } from '@/lib/env';
@@ -85,19 +86,60 @@ function GalaxyCanvas() {
   return <canvas ref={canvasRef} className="galaxy-star-canvas" aria-hidden="true"/>;
 }
 
+function ObsidianPlanetHero() {
+  return <div className="galaxy-planet-stage" aria-hidden="true">
+    <div className="galaxy-planet-kicker"><span>DESTINATION</span><b>CAREER ORBIT</b></div>
+    <div className="galaxy-obsidian-system">
+      <span className="galaxy-planet-aura"/>
+      <div className="galaxy-plasma-plane plasma-back">
+        <span className="galaxy-plasma-track"/>
+        <i className="galaxy-plasma-spark spark-one"/>
+        <i className="galaxy-plasma-spark spark-two"/>
+        <i className="galaxy-plasma-spark spark-three"/>
+      </div>
+      <div className="galaxy-rock-orbit rock-orbit-back">
+        <span className="galaxy-orbit-ring orbit-ring-wide"/>
+        <span className="galaxy-orbit-ring orbit-ring-inner"/>
+        <i className="galaxy-orbit-rock rock-one"/>
+        <i className="galaxy-orbit-rock rock-two"/>
+        <i className="galaxy-orbit-rock rock-three"/>
+      </div>
+      <Image
+        className="galaxy-obsidian-planet"
+        src="/assets/planet-obsidian.png"
+        alt=""
+        width={1254}
+        height={1254}
+        priority
+        sizes="(max-width: 900px) 94vw, 46vw"
+      />
+      <span className="galaxy-planet-atmosphere"/>
+      <span className="galaxy-planet-surface"/>
+      <span className="galaxy-planet-aurora"/>
+      <span className="galaxy-horizon-glint"/>
+      <div className="galaxy-rock-orbit rock-orbit-front">
+        <span className="galaxy-orbit-ring orbit-ring-wide"/>
+        <span className="galaxy-orbit-ring orbit-ring-inner"/>
+        <i className="galaxy-orbit-rock rock-four"/>
+        <i className="galaxy-orbit-rock rock-five"/>
+        <i className="galaxy-orbit-rock rock-six"/>
+      </div>
+      <div className="galaxy-plasma-plane plasma-front">
+        <span className="galaxy-plasma-track"/>
+        <i className="galaxy-plasma-spark spark-four"/>
+        <i className="galaxy-plasma-spark spark-five"/>
+      </div>
+      <span className="galaxy-planet-scan"/>
+    </div>
+    <div className="galaxy-planet-telemetry"><span>CA-04</span><i/><b>ORBIT LOCKED</b><em>31° 28′ 04″</em></div>
+  </div>;
+}
+
 export default function LoginPage() {
   return <main className="galaxy-login">
     <GalaxyCanvas/>
     <div className="galaxy-nebula nebula-one" aria-hidden="true"/><div className="galaxy-nebula nebula-two" aria-hidden="true"/>
-    <div className="galaxy-journey" aria-hidden="true">
-      <div className="galaxy-core"><i/><b/></div>
-      <div className="galaxy-orbit orbit-one"><span/></div>
-      <div className="galaxy-orbit orbit-two"><span/></div>
-      <div className="galaxy-orbit orbit-three"><span/></div>
-      <div className="galaxy-planet planet-primary"><i/></div>
-      <div className="galaxy-moon"/>
-      <div className="galaxy-flight-path"><i/><i/><i/></div>
-    </div>
+    <ObsidianPlanetHero/>
     <div className="galaxy-cockpit" aria-hidden="true"><span>CA-04</span><i/><b>ORBITAL ACCESS CHANNEL</b><em>AUTH SIGNAL · ENCRYPTED</em></div>
     <section className="galaxy-login-copy">
       <p>CAREER ATELIER · PERSONAL CAREER OS</p>
