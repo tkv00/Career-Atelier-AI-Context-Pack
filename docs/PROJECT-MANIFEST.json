@@ -1,0 +1,93 @@
+{
+  "schema_version": "1.0.0",
+  "generated_at": "2026-08-31T00:00:00+09:00",
+  "project": {
+    "name": "Career Atelier",
+    "type": "local-first personal career operating system",
+    "locale": "ko-KR",
+    "primary_goal": "Use existing ChatGPT/Codex and Claude Code subscriptions to research careers and engineer cover letters without metered API billing",
+    "deployment_mode": "local web application",
+    "public_saas": false
+  },
+  "runtime": {
+    "node_minimum": "22.13.0",
+    "web_url": "http://localhost:3000",
+    "companion_url": "http://127.0.0.1:48620",
+    "database": "SQLite via node:sqlite",
+    "database_path": "local-data/career-atelier.sqlite",
+    "frameworks": ["React 19", "Next.js 16 compatible app structure", "Vinext", "Vite 8"]
+  },
+  "commands": {
+    "install": "npm install",
+    "develop": "npm run dev",
+    "lint": "npm run lint",
+    "build": "npm run build",
+    "verify": "npm run verify"
+  },
+  "providers": {
+    "codex": {
+      "auth": "local ChatGPT/OAuth subscription login",
+      "billing": "subscription only",
+      "execution": "read-only sandbox and ephemeral session"
+    },
+    "claude_code": {
+      "auth": "local Claude/OAuth subscription login",
+      "billing": "subscription only with paid overage blocked",
+      "execution": "plan permission with limited read/search tools"
+    }
+  },
+  "agents": [
+    {"order": 1, "id": "news", "name": "Lumi", "korean_name": "루미", "provider": "codex", "role": "industry news research", "cat_color": "silver gray"},
+    {"order": 2, "id": "jobs", "name": "Moka", "korean_name": "모카", "provider": "codex", "role": "personalized job discovery", "cat_color": "orange"},
+    {"order": 3, "id": "company", "name": "Sol", "korean_name": "솔", "provider": "claude_code", "role": "company and role research", "cat_color": "cream"},
+    {"order": 4, "id": "writer", "name": "Muse", "korean_name": "뮤즈", "provider": "codex", "role": "evidence-grounded cover-letter writing", "cat_color": "white"},
+    {"order": 5, "id": "review", "name": "Lens", "korean_name": "렌즈", "provider": "claude_code", "role": "cross-review and risk detection", "cat_color": "tuxedo"}
+  ],
+  "pipeline": ["news", "jobs", "company", "optional_user_approval", "writer", "review"],
+  "run_statuses": ["queued", "running", "completed", "failed", "cancelled", "blocked_auth", "blocked_paid_overage", "waiting_for_reset"],
+  "screens": ["office", "pipeline", "experience vault", "job board", "calendar", "prompt lab", "document vault", "settings"],
+  "data_tables": ["settings", "profiles", "experience_cards", "job_posts", "calendar_events", "research_notes", "prompt_templates", "prompt_versions", "harness_configs", "essay_projects", "essay_versions", "agent_runs", "run_events", "artifacts"],
+  "api": {
+    "get": ["/api/health", "/api/bootstrap", "/api/export", "/api/export/download", "/api/runs/:id"],
+    "post": ["/api/import/merge", "/api/profile/save", "/api/experiences/save", "/api/jobs/save", "/api/calendar/save", "/api/research/save", "/api/essays/save", "/api/prompts/save", "/api/harnesses/save", "/api/agents/run", "/api/pipeline/start", "/api/pipeline/:id/approve", "/api/runs/:id/cancel"]
+  },
+  "entrypoints": {
+    "frontend": "app/page.tsx",
+    "styles": "app/globals.css",
+    "server": "server/index.mjs",
+    "database": "server/db.mjs",
+    "development_launcher": "scripts/dev-local.mjs",
+    "integration_verification": "scripts/verify-local.mjs"
+  },
+  "visual_assets": {
+    "web_sprite_atlas": "public/assets/atelier-cat-spritesheet.webp",
+    "pet_package": "pets/atelier-cat",
+    "atlas_grid": "8x9",
+    "total_frames": 57,
+    "states": ["idle", "walk", "greet", "jump", "fail", "wait approval", "work", "review"]
+  },
+  "non_negotiable_invariants": [
+    "No metered OpenAI or Anthropic API calls",
+    "No API key input or persistence",
+    "Strip API and cloud AI environment variables from child processes",
+    "Allow only local subscription/OAuth CLI authentication",
+    "Block Claude paid overage",
+    "Never bypass subscription usage limits",
+    "Bind the companion server to loopback only",
+    "Never export AI credentials",
+    "Keep imports non-destructive and transactional",
+    "Keep local-data private and outside Git/context packages",
+    "Use mock CLIs for automated verification"
+  ],
+  "sensitive_exclusions": ["local-data/", ".env", ".env.*", "login tokens", "API keys", "node_modules/", ".git/", ".next/", ".vinext/", ".wrangler/", "dist/"],
+  "known_boundaries": [
+    "No Supabase or live multi-device synchronization",
+    "Each computer needs local CLI installation and subscription login",
+    "Jasoseol.com final paste and save remain manual",
+    "Research quality and availability depend on CLI capabilities and subscription quotas",
+    "No paid API fallback when subscription usage is exhausted",
+    "Frontend and global stylesheet are currently monolithic"
+  ],
+  "required_validation": ["npm run lint", "npm run verify", "desktop visual QA for UI changes", "mobile visual QA for UI changes"],
+  "documentation": ["README.md", "docs/AI-HANDOFF.md", "docs/AI-START-PROMPT.md", "docs/ARCHITECTURE.md", "docs/PRIVACY-AND-COST.md", "docs/PROMPT-HARNESS.md", "docs/REQUIREMENTS.md", "docs/VERIFICATION.md"]
+}

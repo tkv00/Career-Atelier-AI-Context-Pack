@@ -1,0 +1,769 @@
+import { randomUUID } from 'node:crypto';
+import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+import { resolve } from 'node:path';
+import { env } from './lib/env.mjs';
+import { connectAsRunner, loginInteractive, logout as clearLogin } from './lib/supabase-client.mjs';
+import { syncCalendarEvent } from './nova.mjs';
+import { markDailySearchRan, shouldRunDailySearch } from './scheduler.mjs';
+import {
+  COMPANY_RESEARCH_SCHEMA,
+  REVIEW_JSON_SCHEMA,
+  SUBTITLE_OUTPUT_SCHEMA,
+  createCompanyContextPack,
+  createInterviewContextPack,
+  createJobsContextPack,
+  createNewsContextPack,
+  createReviewContextPack,
+  createSubtitleContextPack,
+  createWorkspace,
+  createWriterContextPack,
+} from './context-pack.mjs';
+import { runProvider } from './execute.mjs';
+import { CONCURRENT_RUN_LIMIT, DAILY_RUN_LIMIT, HEARTBEAT_INTERVAL_MS, assertSubscriptionProvider } from './safety.mjs';
+
+const POLL_INTERVAL_MS = 5_000;
+const stateDir = resolve(homedir(), '.career-atelier');
+const fingerprintPath = resolve(stateDir, 'runner-id.json');
+
+function getOrCreateFingerprint() {
+  mkdirSync(stateDir, { recursive: true });
+  try {
+    const parsed = JSON.parse(readFileSync(fingerprintPath, 'utf8'));
+    if (parsed.fingerprint) return parsed.fingerprint;
+  } catch {
+    // 없으면 새로 만든다.
+  }
+  const fingerprint = randomUUID();
+  writeFileSync(fingerprintPath, JSON.stringify({ fingerprint }, null, 2));
+  return fingerprint;
+}
+
+async function ensureRunnerRow(supabase, userId) {
+  const fingerprint = getOrCreateFingerprint();
+  const { data: existing, error: selectError } = await supabase
+    .from('runners')
+    .select('*')
+    .eq('fingerprint', fingerprint)
+    .maybeSingle();
+  if (selectError) throw selectError;
+  if (existing) return existing;
+
+  const { data: inserted, error: insertError } = await supabase
+    .from('runners')
+    .insert({ owner_id: userId, device_name: env.deviceName, fingerprint, approved: false })
+    .select()
+    .single();
+  if (insertError) throw insertError;
+  console.log(`신규 러너로 등록했습니다 (${env.deviceName}). 웹 대시보드에서 승인해야 잡을 실행합니다.`);
+  return inserted;
+}
+
+async function countRunsToday(supabase, ownerId) {
+  const startOfDay = new Date();
+  startOfDay.setHours(0, 0, 0, 0);
+  const { count, error } = await supabase
+    .from('agent_runs')
+    .select('id', { count: 'exact', head: true })
+    .eq('owner_id', ownerId)
+    .gte('created_at', startOfDay.toISOString());
+  if (error) throw error;
+  return count ?? 0;
+}
+
+// 잡 하나를 agent_runs에 기록하면서 실행하고, 완료되면 jobs/agent_runs 상태를
+// 갱신한다. 두 경로(범용 payload.prompt / kind별 전용 로직) 모두 이걸 쓴다.
+async function recordAndRun(supabase, ownerId, job, { provider, prompt, workspace, contextDir, model, effort, timeoutMinutes, outputSchema, jsonSchema, onComplete }) {
+  try {
+    await assertSubscriptionProvider(provider);
+  } catch (error) {
+    await supabase.from('jobs').update({ status: 'blocked_auth' }).eq('id', job.id);
+    console.log(`잡 ${job.id}: ${error.message}`);
+    return;
+  }
+
+  const { data: run, error: runError } = await supabase
+    .from('agent_runs')
+    .insert({
+      owner_id: ownerId,
+      pipeline_id: job.pipeline_id,
+      agent_id: job.kind,
+      provider,
+      status: 'running',
+      prompt,
+      started_at: new Date().toISOString(),
+    })
+    .select()
+    .single();
+  if (runError) throw runError;
+
+  await supabase.from('jobs').update({ status: 'running' }).eq('id', job.id);
+  console.log(`잡 ${job.id} 실행 시작 (provider=${provider}, run=${run.id})`);
+
+  const result = await runProvider({
+    supabase,
+    provider,
+    ownerId,
+    runId: run.id,
+    workspace,
+    contextDir,
+    prompt,
+    model,
+    effort,
+    timeoutMinutes,
+    outputSchema,
+    jsonSchema,
+  });
+
+  await supabase
+    .from('agent_runs')
+    .update({ status: result.status, output: result.output, error: result.error, finished_at: new Date().toISOString() })
+    .eq('id', run.id);
+  await supabase.from('jobs').update({ status: result.status }).eq('id', job.id);
+  console.log(`잡 ${job.id} 종료: ${result.status}`);
+
+  if (result.status === 'completed' && onComplete) {
+    await onComplete(result, run);
+  }
+}
+
+// 렌즈(검수) — 4단계 첫 수직 슬라이스. payload: { essayId }.
+async function processReviewJob(supabase, ownerId, job) {
+  const essayId = job.payload?.essayId;
+  if (!essayId) {
+    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    console.log(`잡 ${job.id}: payload.essayId가 없어 건너뜁니다.`);
+    return;
+  }
+
+  const [{ data: essay }, { data: experiences }, { data: template }] = await Promise.all([
+    supabase.from('essay_projects').select('*').eq('id', essayId).maybeSingle(),
+    supabase.from('experience_cards').select('*').order('updated_at', { ascending: false }),
+    supabase.from('prompt_templates').select('*').eq('agent_id', 'review').eq('is_active', true).maybeSingle(),
+  ]);
+
+  if (!essay || !template) {
+    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    console.log(`잡 ${job.id}: 자소서 또는 review 프롬프트를 찾지 못했습니다.`);
+    return;
+  }
+
+  let jobPost = null;
+  if (essay.job_id) {
+    const { data } = await supabase.from('job_posts').select('*').eq('id', essay.job_id).maybeSingle();
+    jobPost = data;
+  }
+
+  const runIdForWorkspace = randomUUID();
+  const { workspace, contextDir } = createReviewContextPack(runIdForWorkspace, {
+    essay,
+    experiences: experiences ?? [],
+    jobPost,
+  });
+
+  const prompt = `${template.body}\n\n[검수 대상]\ncontext/01-essay-draft.md, context/02-experiences.md, context/03-job-description.md를 읽고 스키마에 맞는 JSON으로만 답하라.`;
+
+  await recordAndRun(supabase, ownerId, job, {
+    provider: 'claude',
+    prompt,
+    workspace,
+    contextDir,
+    // claude CLI의 --json-schema는 파일 경로가 아니라 JSON 문자열 자체를
+    // 요구한다(`claude -p --help`로 실측 확인) — §8 문서 예시(파일 경로)와
+    // 실제 동작이 달랐다.
+    jsonSchema: JSON.stringify(REVIEW_JSON_SCHEMA),
+    onComplete: async (result, run) => {
+      let parsed = null;
+      try {
+        parsed = JSON.parse(result.output);
+      } catch {
+        console.log(`잡 ${job.id}: 검수 결과가 JSON이 아니어서 원문으로 저장합니다.`);
+      }
+      await supabase.from('artifacts').insert({
+        owner_id: ownerId,
+        pipeline_id: job.pipeline_id,
+        run_id: run.id,
+        kind: 'review',
+        title: `${essay.title} 검수`,
+        content: result.output,
+        metadata: { essayId, parsed, provider: run.provider },
+      });
+    },
+  });
+}
+
+// 뮤즈(작성) — 4단계 두 번째 수직 슬라이스. payload: { essayId }.
+// §14 경험 근거 강제 1겹(실행 전 차단)·3겹(사후 대조)을 여기서 구현한다.
+// 2겹(출력 스키마 강제)은 context-pack.mjs의 WRITER_OUTPUT_SCHEMA.
+async function processWriterJob(supabase, ownerId, job) {
+  const essayId = job.payload?.essayId;
+  if (!essayId) {
+    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    console.log(`잡 ${job.id}: payload.essayId가 없어 건너뜁니다.`);
+    return;
+  }
+
+  const [{ data: essay }, { data: experiences }, { data: template }] = await Promise.all([
+    supabase.from('essay_projects').select('*').eq('id', essayId).maybeSingle(),
+    supabase.from('experience_cards').select('*').order('updated_at', { ascending: false }),
+    supabase.from('prompt_templates').select('*').eq('agent_id', 'writer').eq('is_active', true).maybeSingle(),
+  ]);
+
+  if (!essay || !template) {
+    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    console.log(`잡 ${job.id}: 자소서 또는 writer 프롬프트를 찾지 못했습니다.`);
+    return;
+  }
+
+  // §14 1겹 — 경험 카드가 하나도 없으면 실행 자체를 거부한다. UI에서 끌 수 없다.
+  if (!experiences || experiences.length === 0) {
+    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    console.log(`잡 ${job.id}: 경험 카드가 없어 뮤즈 실행을 거부합니다 (§14).`);
+    return;
+  }
+
+  let jobPost = null;
+  if (essay.job_id) {
+    const { data } = await supabase.from('job_posts').select('*').eq('id', essay.job_id).maybeSingle();
+    jobPost = data;
+  }
+
+  const knownExperienceIds = new Set(experiences.map((item) => item.id));
+  const runIdForWorkspace = randomUUID();
+  const { workspace, contextDir } = createWriterContextPack(runIdForWorkspace, { essay, experiences, jobPost });
+
+  const prompt = `${template.body}\n\n[작성 대상]\ncontext/01-questions.md, context/02-job-description.md, context/04-experiences.md, context/06-style-guide.md를 읽고 스키마에 맞는 JSON으로만 답하라.`;
+
+  await recordAndRun(supabase, ownerId, job, {
+    provider: 'codex',
+    prompt,
+    workspace,
+    contextDir,
+    outputSchema: resolve(workspace, 'schema', 'writer.json'),
+    onComplete: async (result, run) => {
+      let parsed = null;
+      try {
+        parsed = JSON.parse(result.output);
+      } catch {
+        console.log(`잡 ${job.id}: 작성 결과가 JSON이 아니어서 원문으로 저장합니다.`);
+      }
+
+      // §14 3겹 — evidence의 experience_id가 실제로 존재하는 카드인지 코드로
+      // 대조한다. LLM은 안 쓴다. 위반해도 자동 폐기하지 않고 표시만 한다.
+      let evidenceViolations = [];
+      if (parsed?.evidence) {
+        evidenceViolations = parsed.evidence
+          .filter((item) => !knownExperienceIds.has(item.experience_id))
+          .map((item) => ({ paragraph_index: item.paragraph_index, experience_id: item.experience_id, quoted_fact: item.quoted_fact }));
+      }
+
+      await supabase.from('artifacts').insert({
+        owner_id: ownerId,
+        pipeline_id: job.pipeline_id,
+        run_id: run.id,
+        kind: 'draft',
+        title: `${essay.title} 초안`,
+        content: result.output,
+        metadata: { essayId, parsed, provider: run.provider, evidenceViolations },
+      });
+    },
+  });
+}
+
+// 루미(뉴스) — 4단계 세 번째 수직 슬라이스. payload 없음(프로필 기반).
+async function processNewsJob(supabase, ownerId, job) {
+  const [{ data: profile }, { data: template }] = await Promise.all([
+    supabase.from('profiles').select('interests').maybeSingle(),
+    supabase.from('prompt_templates').select('*').eq('agent_id', 'news').eq('is_active', true).maybeSingle(),
+  ]);
+
+  if (!template) {
+    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    console.log(`잡 ${job.id}: news 프롬프트를 찾지 못했습니다.`);
+    return;
+  }
+
+  const interests = (profile?.interests ?? []);
+  const runIdForWorkspace = randomUUID();
+  const { workspace } = createNewsContextPack(runIdForWorkspace, { interests });
+  const prompt = `${template.body}\n\n[대상]\ncontext/01-interests.md를 읽고 스키마에 맞는 JSON으로만 답하라.`;
+
+  await recordAndRun(supabase, ownerId, job, {
+    provider: 'codex',
+    prompt,
+    workspace,
+    outputSchema: resolve(workspace, 'schema', 'news.json'),
+    onComplete: async (result, run) => {
+      let parsed = null;
+      try {
+        parsed = JSON.parse(result.output);
+      } catch {
+        console.log(`잡 ${job.id}: 뉴스 결과가 JSON이 아니어서 원문으로 저장합니다.`);
+      }
+      await supabase.from('research_notes').insert({
+        owner_id: ownerId,
+        job_id: null,
+        kind: 'news',
+        title: parsed?.summary?.slice(0, 80) || '뉴스 조사',
+        body: result.output,
+        sources: parsed?.items ?? [],
+        provider: run.provider,
+      });
+    },
+  });
+}
+
+// 솔(기업조사) — 4단계 네 번째 수직 슬라이스. payload: { jobPostId }.
+async function processCompanyJob(supabase, ownerId, job) {
+  const jobPostId = job.payload?.jobPostId;
+  if (!jobPostId) {
+    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    console.log(`잡 ${job.id}: payload.jobPostId가 없어 건너뜁니다.`);
+    return;
+  }
+
+  const [{ data: jobPost }, { data: template }] = await Promise.all([
+    supabase.from('job_posts').select('*').eq('id', jobPostId).maybeSingle(),
+    supabase.from('prompt_templates').select('*').eq('agent_id', 'company').eq('is_active', true).maybeSingle(),
+  ]);
+
+  if (!jobPost || !template) {
+    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    console.log(`잡 ${job.id}: 채용공고 또는 company 프롬프트를 찾지 못했습니다.`);
+    return;
+  }
+
+  const runIdForWorkspace = randomUUID();
+  const { workspace, contextDir } = createCompanyContextPack(runIdForWorkspace, {
+    company: jobPost.company,
+    role: jobPost.role,
+    jobDescription: jobPost.description,
+  });
+  const prompt = `${template.body}\n\n[조사 대상]\ncontext/01-company.md, context/02-job-description.md를 읽고 스키마에 맞는 JSON으로만 답하라.`;
+
+  await recordAndRun(supabase, ownerId, job, {
+    provider: 'claude',
+    prompt,
+    workspace,
+    contextDir,
+    jsonSchema: JSON.stringify(COMPANY_RESEARCH_SCHEMA),
+    onComplete: async (result, run) => {
+      let parsed = null;
+      try {
+        parsed = JSON.parse(result.output);
+      } catch {
+        console.log(`잡 ${job.id}: 기업조사 결과가 JSON이 아니어서 원문으로 저장합니다.`);
+      }
+      await supabase.from('research_notes').insert({
+        owner_id: ownerId,
+        job_id: jobPostId,
+        kind: 'company',
+        title: `${jobPost.company} · ${jobPost.role} 조사`,
+        body: result.output,
+        sources: parsed?.facts ?? [],
+        provider: run.provider,
+      });
+    },
+  });
+}
+
+// 모카(채용탐색) — 4단계 마지막 수직 슬라이스. payload 없음(프로필 기반).
+// v1과 같은 방식으로 URL 검증 후 owner_id+url 기준 upsert한다(동일 URL 중복
+// 생성 금지, 갱신만) — supabase/migrations/0001의 idx_job_posts_owner_url.
+async function processJobSearchJob(supabase, ownerId, job) {
+  const [{ data: profile }, { data: experiences }, { data: template }] = await Promise.all([
+    supabase.from('profiles').select('target_roles, interests').maybeSingle(),
+    supabase.from('experience_cards').select('*').order('updated_at', { ascending: false }),
+    supabase.from('prompt_templates').select('*').eq('agent_id', 'jobs').eq('is_active', true).maybeSingle(),
+  ]);
+
+  if (!template) {
+    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    console.log(`잡 ${job.id}: jobs 프롬프트를 찾지 못했습니다.`);
+    return;
+  }
+
+  const targetRoles = profile?.target_roles ?? [];
+  const interests = profile?.interests ?? [];
+  const runIdForWorkspace = randomUUID();
+  const { workspace } = createJobsContextPack(runIdForWorkspace, { targetRoles, interests, experiences: experiences ?? [] });
+  const prompt = `${template.body}\n\n[대상]\ncontext/01-profile.md, context/02-experiences.md를 읽고 스키마에 맞는 JSON으로만 답하라.`;
+
+  await recordAndRun(supabase, ownerId, job, {
+    provider: 'codex',
+    prompt,
+    workspace,
+    outputSchema: resolve(workspace, 'schema', 'jobs.json'),
+    onComplete: async (result) => {
+      let parsed = null;
+      try {
+        parsed = JSON.parse(result.output);
+      } catch {
+        console.log(`잡 ${job.id}: 채용탐색 결과가 JSON이 아니어서 저장을 건너뜁니다.`);
+        return;
+      }
+
+      const candidates = Array.isArray(parsed?.jobs) ? parsed.jobs.slice(0, 30) : [];
+      let saved = 0;
+      for (const row of candidates) {
+        if (!row?.company || !row?.role || !row?.url) continue;
+        let normalizedUrl;
+        try {
+          const candidate = new URL(String(row.url));
+          if (!['http:', 'https:'].includes(candidate.protocol)) continue;
+          normalizedUrl = candidate.toString();
+        } catch {
+          continue;
+        }
+        // job_posts.deadline은 date 컬럼 — "채용 시 마감"·"상시채용" 같은 비-날짜
+        // 문자열을 그대로 넣으면 insert 자체가 깨진다(실측). YYYY-MM-DD 형식만
+        // 통과시키고, 그 외("상시채용" 등)는 null로 둔다 — 원문 보존은 §11(5단계
+        // calendar_events.raw_deadline_text) 몫이라 job_posts엔 없다.
+        const deadline = /^\d{4}-\d{2}-\d{2}$/.test(String(row.deadline ?? '')) ? row.deadline : null;
+        const payload = {
+          owner_id: ownerId,
+          company: String(row.company),
+          role: String(row.role),
+          url: normalizedUrl,
+          deadline,
+          status: 'saved',
+          fit_score: Math.max(0, Math.min(100, Number(row.fit_score) || 0)),
+          description: String(row.description || ''),
+          requirements: Array.isArray(row.requirements) ? row.requirements.map(String) : [],
+          source: String(row.source || '모카 채용 탐색'),
+          updated_at: new Date().toISOString(),
+        };
+        // job_posts의 유니크 인덱스가 partial(where url <> '')이라 supabase-js
+        // upsert()의 onConflict로는 못 잡는다(실측: "no unique or exclusion
+        // constraint matching" 오류) — v1(server/index.mjs)과 같은 select 후
+        // update-or-insert 방식으로 대체한다.
+        const { data: existing } = await supabase
+          .from('job_posts')
+          .select('id')
+          .eq('owner_id', ownerId)
+          .eq('url', normalizedUrl)
+          .maybeSingle();
+        const { data: savedRow, error } = existing
+          ? await supabase.from('job_posts').update(payload).eq('id', existing.id).select().single()
+          : await supabase.from('job_posts').insert(payload).select().single();
+        if (error) {
+          console.error(`잡 ${job.id}: job_posts 저장 실패 (${normalizedUrl}):`, error.message);
+          continue;
+        }
+        saved++;
+        // 노바(§11) — 모카 완료 시 자동 연쇄. row.deadline은 위에서 date 형식만
+        // 통과시켰으므로, 정규식 커버리지가 더 넓은 노바 쪽엔 원문(raw)을 넘긴다.
+        try {
+          await syncCalendarEvent(supabase, ownerId, savedRow, String(row.deadline ?? ''));
+        } catch (calendarError) {
+          console.error(`잡 ${job.id}: calendar_events 동기화 실패 (${normalizedUrl}):`, calendarError.message);
+        }
+      }
+      console.log(`잡 ${job.id}: 채용공고 ${saved}건 저장/갱신`);
+    },
+  });
+}
+
+// 에코(면접 코치) — 사용자가 기업별 면접 준비실에서 요청할 때만 실행한다.
+// payload: { jobPostId }. 생성 결과는 해당 공고의 기업별 질문함에 자동 저장한다.
+async function processInterviewJob(supabase, ownerId, job) {
+  const jobPostId = job.payload?.jobPostId;
+  if (!jobPostId) {
+    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    console.log(`잡 ${job.id}: payload.jobPostId가 없어 건너뜁니다.`);
+    return;
+  }
+
+  const [
+    { data: jobPost },
+    { data: experiences },
+    { data: researchNotes },
+    { data: existingQuestions },
+    { data: template },
+  ] = await Promise.all([
+    supabase.from('job_posts').select('*').eq('id', jobPostId).maybeSingle(),
+    supabase.from('experience_cards').select('*').order('updated_at', { ascending: false }),
+    supabase.from('research_notes').select('*').eq('job_id', jobPostId).order('created_at', { ascending: false }),
+    supabase.from('interview_questions').select('*').eq('job_post_id', jobPostId).order('order_no'),
+    supabase.from('prompt_templates').select('*').eq('agent_id', 'interview').eq('is_active', true).maybeSingle(),
+  ]);
+
+  if (!jobPost || !template) {
+    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    console.log(`잡 ${job.id}: 채용공고 또는 interview 프롬프트를 찾지 못했습니다.`);
+    return;
+  }
+
+  const runIdForWorkspace = randomUUID();
+  const { workspace, contextDir } = createInterviewContextPack(runIdForWorkspace, {
+    jobPost,
+    researchNotes: researchNotes ?? [],
+    experiences: experiences ?? [],
+    existingQuestions: existingQuestions ?? [],
+  });
+  const prompt = `${template.body}\n\n[작성 대상]\ncontext/01-job-description.md, context/02-company-research.md, context/03-experiences.md, context/04-existing-questions.md를 읽고 스키마에 맞는 JSON으로만 답하라. 답안은 Markdown이며 경험 카드에 없는 사실은 만들지 않는다.`;
+
+  await recordAndRun(supabase, ownerId, job, {
+    provider: 'codex',
+    prompt,
+    workspace,
+    contextDir,
+    outputSchema: resolve(workspace, 'schema', 'interview.json'),
+    onComplete: async (result, run) => {
+      let parsed = null;
+      try {
+        parsed = JSON.parse(result.output);
+      } catch {
+        console.log(`잡 ${job.id}: 면접 결과가 JSON이 아니어서 질문 자동 저장을 건너뜁니다.`);
+      }
+
+      const known = new Set((existingQuestions ?? []).map((item) => item.question.trim().toLowerCase()));
+      let orderNo = (existingQuestions ?? []).reduce((max, item) => Math.max(max, Number(item.order_no) || 0), 0);
+      const rows = [];
+      for (const item of Array.isArray(parsed?.questions) ? parsed.questions.slice(0, 12) : []) {
+        const question = String(item?.question || '').trim();
+        if (!question || known.has(question.toLowerCase())) continue;
+        orderNo += 10;
+        rows.push({
+          owner_id: ownerId,
+          job_post_id: jobPostId,
+          category: 'company',
+          question,
+          answer_markdown: String(item?.answer_markdown || ''),
+          source: 'agent',
+          order_no: orderNo,
+          updated_at: new Date().toISOString(),
+        });
+        known.add(question.toLowerCase());
+      }
+      if (rows.length) {
+        const { error } = await supabase.from('interview_questions').insert(rows);
+        if (error) throw error;
+      }
+      await supabase.from('artifacts').insert({
+        owner_id: ownerId,
+        pipeline_id: job.pipeline_id,
+        run_id: run.id,
+        kind: 'interview',
+        title: `${jobPost.company} · ${jobPost.role} 예상 면접 질문`,
+        content: result.output,
+        metadata: { jobPostId, savedQuestions: rows.length, provider: run.provider },
+      });
+    },
+  });
+}
+
+// 6번째 비서(소제목) — Gemini(Antigravity CLI, provider='gemini')로 실행.
+// payload: { essayId }. 완성된 본문에서 뽑아내는 요약이라 §14 evidence
+// 배열은 강제하지 않지만, 본문이 아예 없으면 실행 자체를 거부한다(같은
+// 정신 — 없는 걸 근거로 지어내지 않는다).
+async function processSubtitleJob(supabase, ownerId, job) {
+  const essayId = job.payload?.essayId;
+  if (!essayId) {
+    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    console.log(`잡 ${job.id}: payload.essayId가 없어 건너뜁니다.`);
+    return;
+  }
+
+  const [{ data: essay }, { data: template }] = await Promise.all([
+    supabase.from('essay_projects').select('*').eq('id', essayId).maybeSingle(),
+    supabase.from('prompt_templates').select('*').eq('agent_id', 'subtitle').eq('is_active', true).maybeSingle(),
+  ]);
+
+  if (!essay || !template) {
+    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    console.log(`잡 ${job.id}: 자소서 또는 subtitle 프롬프트를 찾지 못했습니다.`);
+    return;
+  }
+
+  if (!essay.draft || !essay.draft.trim()) {
+    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    console.log(`잡 ${job.id}: 본문이 비어 있어 소제목 실행을 거부합니다.`);
+    return;
+  }
+
+  const runIdForWorkspace = randomUUID();
+  const { workspace, contextDir } = createSubtitleContextPack(runIdForWorkspace, { essay, existingSubtitle: essay.subtitle });
+  const prompt = `${template.body}\n\n[대상]\ncontext/01-essay-draft.md, context/02-question.md, context/03-existing-subtitle.md를 읽고 스키마에 맞는 JSON으로만 답하라. 파일을 새로 만들거나 수정하지 말고 답변만 하라.`;
+
+  await recordAndRun(supabase, ownerId, job, {
+    provider: 'gemini',
+    // §13 effort 계층화 — 소제목은 짧은 카피라이팅이라 flash-medium이면
+    // 충분하다. 명시하지 않으면 agy가 멀티 모델(Claude/GPT 포함)이라
+    // 기본값이 무엇이든 Gemini로 고정한다(사용자 요청).
+    model: 'gemini-3.7-flash-medium',
+    prompt,
+    workspace,
+    contextDir,
+    jsonSchema: JSON.stringify(SUBTITLE_OUTPUT_SCHEMA),
+    onComplete: async (result, run) => {
+      let parsed = null;
+      try {
+        parsed = JSON.parse(result.output);
+      } catch {
+        console.log(`잡 ${job.id}: 소제목 결과가 JSON이 아니어서 원문으로 저장합니다.`);
+      }
+      await supabase.from('artifacts').insert({
+        owner_id: ownerId,
+        pipeline_id: job.pipeline_id,
+        run_id: run.id,
+        kind: 'subtitle',
+        title: `${essay.title} 소제목`,
+        content: result.output,
+        metadata: { essayId, parsed, provider: run.provider },
+      });
+    },
+  });
+}
+
+async function processJob(supabase, ownerId, job) {
+  if (job.kind === 'review') {
+    await processReviewJob(supabase, ownerId, job);
+    return;
+  }
+  if (job.kind === 'writer') {
+    await processWriterJob(supabase, ownerId, job);
+    return;
+  }
+  if (job.kind === 'news') {
+    await processNewsJob(supabase, ownerId, job);
+    return;
+  }
+  if (job.kind === 'company') {
+    await processCompanyJob(supabase, ownerId, job);
+    return;
+  }
+  if (job.kind === 'jobs') {
+    await processJobSearchJob(supabase, ownerId, job);
+    return;
+  }
+  if (job.kind === 'subtitle') {
+    await processSubtitleJob(supabase, ownerId, job);
+    return;
+  }
+  if (job.kind === 'interview') {
+    await processInterviewJob(supabase, ownerId, job);
+    return;
+  }
+
+  // 그 외 kind는 아직 4단계에서 구체화하지 않았다 — payload.provider/prompt를
+  // 그대로 받는 범용 경로(3단계 검증용)로 실행한다.
+  const payload = job.payload || {};
+  const provider = payload.provider === 'claude' ? 'claude' : 'codex';
+  const prompt = String(payload.prompt || '');
+
+  if (!prompt) {
+    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    console.log(`잡 ${job.id}: payload.prompt가 없어 건너뜁니다.`);
+    return;
+  }
+
+  const { workspace, contextDir } = createWorkspace(randomUUID(), job);
+  await recordAndRun(supabase, ownerId, job, {
+    provider,
+    prompt,
+    workspace,
+    contextDir,
+    model: payload.model,
+    effort: payload.effort,
+    timeoutMinutes: payload.timeoutMinutes,
+  });
+}
+
+async function startLoop() {
+  const { supabase, authenticated, user } = await connectAsRunner();
+  if (!authenticated) {
+    console.error('로그인이 안 되어 있습니다. 먼저 실행하세요: npm run login');
+    process.exitCode = 1;
+    return;
+  }
+
+  const runner = await ensureRunnerRow(supabase, user.id);
+  console.log(`러너 시작 — 기기: ${env.deviceName}, 승인 상태: ${runner.approved ? '승인됨' : '승인 대기 중'}`);
+
+  let running = false;
+  let stopped = false;
+
+  const heartbeat = setInterval(() => {
+    void supabase.from('runners').update({ last_seen_at: new Date().toISOString() }).eq('id', runner.id);
+
+    // §12 매일 15시 자동 채용 탐색. 승인된 러너에서만, 하루 한 번만.
+    if (runner.approved && shouldRunDailySearch()) {
+      markDailySearchRan();
+      console.log('15시 자동 채용 탐색 트리거 (모카 → 노바 연쇄)');
+      void supabase.from('jobs').insert({ owner_id: user.id, kind: 'jobs', payload: {}, harness_snapshot: {} });
+    }
+  }, HEARTBEAT_INTERVAL_MS);
+
+  const poll = setInterval(async () => {
+    if (stopped || running) return;
+
+    void supabase.rpc('reap_stale_jobs');
+    void supabase.rpc('expire_old_jobs');
+
+    const { data: fresh } = await supabase.from('runners').select('approved').eq('id', runner.id).maybeSingle();
+    if (!fresh?.approved) return;
+
+    const runsToday = await countRunsToday(supabase, user.id);
+    if (runsToday >= DAILY_RUN_LIMIT) return;
+
+    const { data: job, error } = await supabase.rpc('claim_next_job', { p_runner_id: runner.id });
+    // claim_next_job이 "없음"을 반환할 때 PostgREST가 bare null이 아니라 전
+    // 필드가 null인 row로 내려주는 경우가 있어 id까지 함께 확인한다.
+    if (error || !job || !job.id) return;
+
+    running = true;
+    try {
+      await processJob(supabase, user.id, job);
+    } catch (error) {
+      console.error(`잡 ${job.id} 처리 중 오류:`, error.message);
+    } finally {
+      running = false;
+    }
+  }, POLL_INTERVAL_MS);
+
+  for (const signal of ['SIGINT', 'SIGTERM']) {
+    process.on(signal, () => {
+      stopped = true;
+      clearInterval(heartbeat);
+      clearInterval(poll);
+      console.log('\n러너를 종료합니다.');
+      process.exit(0);
+    });
+  }
+
+  console.log(`동시 실행 상한: ${CONCURRENT_RUN_LIMIT} · 일일 실행 상한: ${DAILY_RUN_LIMIT} · ${POLL_INTERVAL_MS / 1000}초마다 큐 확인`);
+}
+
+async function main() {
+  const command = process.argv[2];
+
+  if (command === 'login') {
+    const rl = await import('node:readline/promises');
+    const iface = rl.createInterface({ input: process.stdin, output: process.stdout });
+    const email = (await iface.question('로그인할 이메일: ')).trim();
+    iface.close();
+    const user = await loginInteractive(email);
+    console.log(`로그인 완료: ${user.email}`);
+    return;
+  }
+
+  if (command === 'logout') {
+    await clearLogin();
+    console.log('로그아웃했습니다.');
+    return;
+  }
+
+  if (command === 'start') {
+    await startLoop();
+    return;
+  }
+
+  console.log('사용법: node index.mjs <login|logout|start>');
+  process.exitCode = 1;
+}
+
+main().catch((error) => {
+  console.error(error);
+  process.exitCode = 1;
+});

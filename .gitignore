@@ -1,0 +1,20 @@
+node_modules/
+dist/
+.next/
+.vinext/
+.wrangler/
+.vercel/
+.openai/
+local-data/
+*.log
+
+# 워크트리 자기 참조 방지 — 이 폴더 안에 다른 세션들의 git worktree가 들어있다
+.claude/
+
+# 실제 키/시크릿. .env.example만 예외로 커밋한다
+.env
+.env.*
+!.env.example
+
+# Supabase CLI가 생성하는 로컬 연결 정보·시크릿
+supabase/.temp/

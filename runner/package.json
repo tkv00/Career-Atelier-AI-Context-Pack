@@ -1,0 +1,18 @@
+{
+  "name": "career-atelier-runner",
+  "version": "0.1.0",
+  "private": true,
+  "description": "로컬 상시 러너 — Vercel에 배포하지 않는다 (docs/DESIGN-V2-CLOUD.md §19.3).",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "login": "node index.mjs login",
+    "logout": "node index.mjs logout",
+    "start": "node index.mjs start"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.58.0"
+  }
+}
