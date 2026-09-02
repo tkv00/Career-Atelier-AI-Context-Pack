@@ -1642,6 +1642,93 @@ option {
   text-align: center;
 }
 
+/* 러너별 로컬 백업 설정. 스위치 모양 토글 + 경로 입력 + 저장 버튼을 한 줄에 둔다.
+   브라우저는 임의 폴더에 못 쓰기 때문에 폴더 선택 다이얼로그 대신 경로 입력이다. */
+.runner-backup {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--s2) var(--s3);
+  margin-top: var(--s3);
+  padding-top: var(--s3);
+  border-top: 1px dashed var(--line-soft);
+}
+.runner-backup-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s2);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.runner-backup-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+/* 실제 스위치는 이 span이 그린다 — 체크박스는 접근성을 위해 남기고 화면에서만 숨긴다. */
+.runner-backup-toggle span {
+  width: 34px;
+  height: 19px;
+  flex: none;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--surface-3);
+  position: relative;
+  transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.runner-backup-toggle span::after {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  background: var(--text-3);
+  transition: transform var(--dur-fast) var(--ease), background var(--dur-fast) var(--ease);
+}
+.runner-backup-toggle input:checked + span {
+  background: var(--ok-bg);
+  border-color: var(--ok-line);
+}
+.runner-backup-toggle input:checked + span::after {
+  transform: translateX(15px);
+  background: var(--ok);
+}
+.runner-backup-toggle input:focus-visible + span {
+  outline: 2px solid var(--cyan);
+  outline-offset: 2px;
+}
+.runner-backup-toggle b {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--text-2);
+}
+.runner-backup input[type='text'] {
+  min-width: 0;
+  padding: 7px var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: var(--surface-2);
+  color: var(--text-1);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+}
+.runner-backup input[type='text']:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.runner-backup > p {
+  grid-column: 1 / -1;
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--fs-xs);
+}
+.runner-backup-error {
+  color: var(--danger);
+}
+
 /* ── 9. 경험 아카이브 ────────────────────────────────────────────────── */
 
 .experience-muse-agent {

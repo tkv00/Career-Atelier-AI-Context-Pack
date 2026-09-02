@@ -20,6 +20,7 @@ import {
   createWriterContextPack,
 } from './context-pack.mjs';
 import { runProvider } from './execute.mjs';
+import { runBackup, shouldBackupNow } from './backup.mjs';
 import { CONCURRENT_RUN_LIMIT, DAILY_RUN_LIMIT, HEARTBEAT_INTERVAL_MS, assertSubscriptionProvider } from './safety.mjs';
 
 const POLL_INTERVAL_MS = 5_000;
@@ -683,6 +684,7 @@ async function startLoop() {
 
   let running = false;
   let stopped = false;
+  let backingUp = false;
 
   const heartbeat = setInterval(() => {
     void supabase.from('runners').update({ last_seen_at: new Date().toISOString() }).eq('id', runner.id);
@@ -693,7 +695,39 @@ async function startLoop() {
       console.log('15시 자동 채용 탐색 트리거 (모카 → 노바 연쇄)');
       void supabase.from('jobs').insert({ owner_id: user.id, kind: 'jobs', payload: {}, harness_snapshot: {} });
     }
+
+    if (!backingUp) void maybeBackup(supabase, runner.id);
   }, HEARTBEAT_INTERVAL_MS);
+
+  // 백업 설정은 웹에서 언제든 바뀌므로 매번 러너 행을 다시 읽는다. 시작 시점 값을
+  // 캐시해 두면 토글을 켜도 러너를 재시작하기 전까지 반영되지 않는다.
+  async function maybeBackup(client, runnerId) {
+    backingUp = true;
+    try {
+      const { data: row } = await client
+        .from('runners')
+        .select('backup_enabled, backup_dir, last_backup_at')
+        .eq('id', runnerId)
+        .maybeSingle();
+      if (!row?.backup_enabled || !row.backup_dir) return;
+      if (!shouldBackupNow(row.last_backup_at)) return;
+
+      try {
+        const { filePath, rowCount } = await runBackup(client, row.backup_dir);
+        console.log(`로컬 백업 완료: ${filePath} (${rowCount}행)`);
+        await client
+          .from('runners')
+          .update({ last_backup_at: new Date().toISOString(), last_backup_error: null })
+          .eq('id', runnerId);
+      } catch (error) {
+        // 백업 실패로 러너가 죽으면 안 된다 — 화면에서 원인을 볼 수 있게 남기고 계속 돈다.
+        console.error('로컬 백업 실패:', error.message);
+        await client.from('runners').update({ last_backup_error: error.message }).eq('id', runnerId);
+      }
+    } finally {
+      backingUp = false;
+    }
+  }
 
   const poll = setInterval(async () => {
     if (stopped || running) return;

@@ -155,11 +155,13 @@ max_indexes = 5
 enabled = true
 # The base URL of your website. Used as an allow-list for redirects and for constructing URLs used
 # in emails.
-site_url = "https://career-atelier-web.vercel.app"
+# 자기 배포 주소를 넣는다. 이 리포를 clone해서 쓰는 사람마다 값이 다르므로
+# supabase/.env의 SITE_URL로 뺐다(supabase/.env.example 참고).
+site_url = "env(SITE_URL)"
 # The public URL that Auth serves on. Defaults to the API external URL with `/auth/v1` appended.
 # external_url = ""
 # A list of *exact* URLs that auth providers are permitted to redirect to post authentication.
-additional_redirect_urls = ["https://career-atelier-web.vercel.app/**", "http://127.0.0.1:3000/**"]
+additional_redirect_urls = ["env(SITE_URL)/**", "http://127.0.0.1:3000/**", "http://localhost:3000/**"]
 # How long tokens are valid for, in seconds. Defaults to 3600 (1 hour), maximum 604,800 (1 week).
 jwt_expiry = 3600
 # JWT issuer URL. If not set, defaults to auth.external_url.

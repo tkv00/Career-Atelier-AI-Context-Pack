@@ -6,6 +6,7 @@
     "node": ">=22.13.0"
   },
   "scripts": {
+    "setup": "node scripts/setup.mjs",
     "dev": "node scripts/dev-local.mjs",
     "dev:web": "vinext dev",
     "companion": "node server/index.mjs",

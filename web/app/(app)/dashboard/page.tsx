@@ -4,6 +4,7 @@ import { isRunnerOnline } from '@/lib/runner-status';
 import { formatDateTime } from '@/lib/datetime';
 import { createEssay, startEssayForJobPost } from '../essays/actions';
 import { approveRunner } from '../runners/actions';
+import { RunnerBackupForm } from './runner-backup-form';
 import { NewsSection } from './news-section';
 import { NewsRunButton } from './news-run-button';
 import { JobSearchButton } from './job-search-button';
@@ -180,7 +181,8 @@ export default async function DashboardPage() {
             {runners.map((runner) => {
               const online = isRunnerOnline(runner.last_seen_at);
               return (
-                <li key={runner.id} style={{ padding: '13px 4px', fontSize: 14, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+                <li key={runner.id} style={{ padding: '13px 4px', fontSize: 14 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
                   <span>
                     {runner.device_name}
                     {' · '}
@@ -205,6 +207,14 @@ export default async function DashboardPage() {
                       </button>
                     </form>
                   )}
+                  </div>
+                  <RunnerBackupForm
+                    runnerId={runner.id}
+                    enabled={runner.backup_enabled}
+                    dir={runner.backup_dir}
+                    lastBackupAt={runner.last_backup_at}
+                    lastBackupError={runner.last_backup_error}
+                  />
                 </li>
               );
             })}

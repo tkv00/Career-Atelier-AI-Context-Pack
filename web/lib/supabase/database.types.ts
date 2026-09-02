@@ -819,28 +819,40 @@ export type Database = {
       runners: {
         Row: {
           approved: boolean
+          backup_dir: string | null
+          backup_enabled: boolean
           created_at: string
           device_name: string
           fingerprint: string
           id: string
+          last_backup_at: string | null
+          last_backup_error: string | null
           last_seen_at: string | null
           owner_id: string
         }
         Insert: {
           approved?: boolean
+          backup_dir?: string | null
+          backup_enabled?: boolean
           created_at?: string
           device_name: string
           fingerprint: string
           id?: string
+          last_backup_at?: string | null
+          last_backup_error?: string | null
           last_seen_at?: string | null
           owner_id: string
         }
         Update: {
           approved?: boolean
+          backup_dir?: string | null
+          backup_enabled?: boolean
           created_at?: string
           device_name?: string
           fingerprint?: string
           id?: string
+          last_backup_at?: string | null
+          last_backup_error?: string | null
           last_seen_at?: string | null
           owner_id?: string
         }
