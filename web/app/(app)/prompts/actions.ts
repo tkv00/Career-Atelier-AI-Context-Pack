@@ -3,10 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-
-// DB의 check 제약(0021)과 러너의 화이트리스트(safety.mjs)와 같은 목록이다.
-export const PROVIDERS = ['codex', 'claude', 'gemini'] as const;
-export type Provider = (typeof PROVIDERS)[number];
+import { isProvider } from '@/lib/agent-providers';
 
 async function requireUser() {
   const supabase = await createClient();
@@ -74,7 +71,7 @@ export async function restorePromptVersion(templateId: string, versionId: string
 // "지금 어느 구독을 쓸지"에 가까운 설정이라, 이력을 쌓으면 버전 목록이
 // 프롬프트 변경과 섞여 읽기 어려워진다.
 export async function setAgentProvider(templateId: string, provider: string) {
-  if (!PROVIDERS.includes(provider as Provider)) {
+  if (!isProvider(provider)) {
     throw new Error('지원하지 않는 LLM입니다.');
   }
 

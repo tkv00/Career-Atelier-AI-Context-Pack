@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { SECTIONS, sectionById, type SectionSpec } from './schema';
+import { sectionById, type SectionSpec } from './schema';
 
 const BUCKET = 'records';
 const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
@@ -226,4 +226,3 @@ export async function deleteCourse(courseId: string) {
   revalidatePath('/records');
 }
 
-export const RECORD_SECTIONS = SECTIONS;

@@ -3,6 +3,8 @@ import { createClient } from '@/lib/supabase/server';
 import { isRunnerOnline } from '@/lib/runner-status';
 import { formatDateTime } from '@/lib/datetime';
 import { formatResetsAt, parseClaudeWindows, sumCodexTokens } from '@/lib/llm-usage';
+// 라벨을 여기 또 적어 두면 프롬프트 생성실과 어긋난다. 한 곳에서 가져온다.
+import { PROVIDER_META, isProvider } from '@/lib/agent-providers';
 import { createEssay, startEssayForJobPost } from '../essays/actions';
 import { approveRunner } from '../runners/actions';
 import { RunnerBackupForm } from './runner-backup-form';
@@ -22,13 +24,6 @@ const ORBIT_AGENTS = [
   { id: 'subtitle', name: '콤마', role: '15자 소제목', frame: 7 },
 ];
 
-// 어떤 LLM으로 도는지는 프롬프트 생성실에서 바꿀 수 있다(0021). 여기 박아 두면
-// 사용자가 바꿔도 카드에는 옛 값이 남아 서로 다른 말을 하게 된다.
-const PROVIDER_LABEL: Record<string, string> = {
-  codex: 'Codex',
-  claude: 'Claude',
-  gemini: 'Antigravity',
-};
 
 function agentSpeech(agentId: string, status: string | null | undefined, runnerOnline: boolean) {
   if (!runnerOnline) return '로컬 러너의 연결을 기다리고 있어요.';
@@ -136,7 +131,7 @@ export default async function DashboardPage() {
               return <article className={active ? 'cloud-agent active' : 'cloud-agent'} key={agent.id}>
                 <div className={active ? 'cloud-agent-speech live' : 'cloud-agent-speech'}><b>{agent.name}</b><span>{agentSpeech(agent.id, latest?.status, runnerOnline)}</span></div>
                 <div className={`cloud-space-agent frame-${agent.frame}`} aria-label={`${agent.name} 픽셀 채용 에이전트`}/>
-                <div><b>{agent.name}</b><span>{agent.role}</span><small>{PROVIDER_LABEL[providerByAgent.get(agent.id) ?? ''] ?? '미설정'} · {active ? 'RUNNING' : latest?.status?.toUpperCase() || 'STANDBY'}</small></div>
+                <div><b>{agent.name}</b><span>{agent.role}</span><small>{(() => { const p = providerByAgent.get(agent.id); return p && isProvider(p) ? PROVIDER_META[p].label : '미설정'; })()} · {active ? 'RUNNING' : latest?.status?.toUpperCase() || 'STANDBY'}</small></div>
                 {agent.id === 'news' && <NewsRunButton pending={newsPending} runnerOnline={runnerOnline} />}
                 {agent.id === 'jobs' && <JobSearchButton pending={jobsPending} runnerOnline={runnerOnline} />}
               </article>;

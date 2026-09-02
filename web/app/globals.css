@@ -748,6 +748,33 @@ option {
   flex-shrink: 0;
 }
 
+/* 스프라이트는 960x300, 즉 240px짜리 4프레임이다. background-position이 0에
+   고정돼 있어서 첫 프레임만 보이고 있었다 — 애니메이션이 있는 줄 알았는데
+   정적이라는 지적을 받고 확인한 것(2026-09-02).
+
+   4프레임을 0%·33%·66%·100%에 정확히 맞추려면 steps(4)가 아니라
+   steps(4, jump-none)이어야 한다. 그냥 steps(4)는 0%를 건너뛰고 25%부터
+   시작해 첫 프레임이 안 보인다. */
+@keyframes agent-sprite-cycle {
+  from { background-position: 0% 0; }
+  to { background-position: 100% 0; }
+}
+
+.cloud-space-agent,
+.interview-agent-sprite {
+  animation: agent-sprite-cycle 1.2s steps(4, jump-none) infinite;
+}
+
+/* 실행 중인 비서는 눈에 띄게 빨라진다 — 카드만 봐도 지금 누가 일하는지 안다. */
+.cloud-agent.active .cloud-space-agent {
+  animation-duration: 0.6s;
+}
+
+/* 네비게이션의 22px 아이콘까지 계속 움직이면 시선을 뺏는다. 여기는 정지. */
+.nav-muse-agent {
+  animation: none;
+}
+
 .cloud-space-agent.frame-1 { --agent-sheet: url('/assets/agent-news.png'); }
 .cloud-space-agent.frame-2 { --agent-sheet: url('/assets/agent-jobs.png'); }
 .cloud-space-agent.frame-3 { --agent-sheet: url('/assets/agent-company.png'); }
