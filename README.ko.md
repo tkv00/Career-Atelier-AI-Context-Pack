@@ -28,6 +28,7 @@
 - [주요 화면](#주요-화면)
 - [구조](#구조)
 - [시작하기](#시작하기)
+- [AI에게 설치 맡기기](#ai에게-설치-맡기기)
 - [데이터 백업](#데이터-백업)
 - [비용이 늘지 않는 이유](#비용이-늘지-않는-이유)
 - [기여하기](#기여하기)
@@ -324,6 +325,22 @@ npm run setup
 
 <br>
 
+### AI에게 설치 맡기기
+
+내 컴퓨터의 터미널을 사용할 수 있는 Codex·Claude Code·Gemini CLI 같은 코딩 에이전트에 아래 한 줄을 그대로 붙여 넣으세요.
+
+```text
+다음 설치 지침을 읽고 그대로 따라 Career Atelier를 설치해 줘: https://raw.githubusercontent.com/tkv00/Career-Atelier-AI-Context-Pack/refs/heads/main/docs/AI-INSTALL.md
+```
+
+AI는 준비물을 확인하고 공식 저장소 복제, 잠긴 버전의 의존성 설치, 기존 설치 마법사 실행, 빌드 검증까지 진행합니다. 설치 지침에는 API 키 사용, 파괴적인 Git 명령, 환경변수 파일의 무단 덮어쓰기, 자동 배포를 금지하는 안전 규칙도 들어 있습니다. 로그인과 인스턴스 소유권 확인은 직접 해야 합니다. 전체 절차는 실행 전에 [docs/AI-INSTALL.md](docs/AI-INSTALL.md)에서 확인할 수 있습니다.
+
+> 일반 웹 채팅이 아니라 **내 컴퓨터의 터미널 권한이 있는 코딩 에이전트**에서 사용하세요. 웹 채팅만으로는 로컬 프로그램을 설치할 수 없습니다.
+
+리포를 이미 받아 둔 뒤라면 따로 붙여 넣을 것도 없습니다. 루트의 [AGENTS.md](AGENTS.md)를 Codex·Gemini CLI·Cursor·Copilot 등이 **알아서 읽습니다**([AGENTS.md 규약](https://agents.md), 6만 개 이상 저장소가 씁니다). Claude Code는 [CLAUDE.md](CLAUDE.md)를 읽고, 그 파일은 같은 내용을 가리킵니다.
+
+<br>
+
 ### 실행
 
 터미널 두 개가 필요합니다.
@@ -418,6 +435,7 @@ Supabase 무료 플랜은 한동안 안 쓰면 프로젝트를 정지시킵니�
 | 문서 | 내용 |
 |---|---|
 | [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | OS별 설치·사용 안내 |
+| [docs/AI-INSTALL.md](docs/AI-INSTALL.md) | 코딩 에이전트용 안전 설치 절차 |
 | [docs/V2-SETUP.md](docs/V2-SETUP.md) | Supabase · Vercel 설정 |
 | [docs/DESIGN-V2-CLOUD.md](docs/DESIGN-V2-CLOUD.md) | 설계 결정과 근거 |
 | [docs/PRIVACY-AND-COST.md](docs/PRIVACY-AND-COST.md) | 개인정보·비용 보장 |

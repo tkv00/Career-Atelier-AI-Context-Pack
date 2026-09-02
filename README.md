@@ -28,6 +28,7 @@ No metered API keys. Seven AI agents handle everything from industry research to
 - [Screens](#screens)
 - [Architecture](#architecture)
 - [Getting started](#getting-started)
+- [Install with an AI coding agent](#install-with-an-ai-coding-agent)
 - [Backups](#backups)
 - [Why your bill does not grow](#why-your-bill-does-not-grow)
 - [Contributing](#contributing)
@@ -324,6 +325,22 @@ npm run setup
 
 <br>
 
+### Install with an AI coding agent
+
+Paste this one-line install prompt into Codex, Claude Code, Gemini CLI, or another coding agent that can use a terminal on your computer:
+
+```text
+Install Career Atelier by reading and following these instructions: https://raw.githubusercontent.com/tkv00/Career-Atelier-AI-Context-Pack/refs/heads/main/docs/AI-INSTALL.md
+```
+
+The agent will check prerequisites, clone the official repository, install locked dependencies, run the existing setup wizard, and verify the build. The runbook forbids API keys, destructive Git operations, silent environment-file overwrites, and automatic deployment. Login and account-ownership confirmations intentionally remain manual. You can inspect the complete instructions before using them: [docs/AI-INSTALL.md](docs/AI-INSTALL.md).
+
+> Run this only in a coding agent that has local terminal access. A normal web chat cannot install software on your computer.
+
+Once the repo is cloned there is nothing to paste. [AGENTS.md](AGENTS.md) at the root is picked up automatically by Codex, Gemini CLI, Cursor, Copilot's coding agent, Zed, and Aider — it is the [AGENTS.md convention](https://agents.md), used by over 60,000 repositories. Claude Code reads [CLAUDE.md](CLAUDE.md), which points at the same file so the two cannot drift.
+
+<br>
+
 ### Run
 
 You need two terminals.
@@ -420,6 +437,7 @@ Good places to start:
 | Document | Covers |
 |---|---|
 | [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | Per-OS install and usage |
+| [docs/AI-INSTALL.md](docs/AI-INSTALL.md) | Safe installation runbook for coding agents |
 | [docs/V2-SETUP.md](docs/V2-SETUP.md) | Supabase and Vercel setup |
 | [docs/DESIGN-V2-CLOUD.md](docs/DESIGN-V2-CLOUD.md) | Design decisions and rationale |
 | [docs/PRIVACY-AND-COST.md](docs/PRIVACY-AND-COST.md) | Privacy and cost guarantees |

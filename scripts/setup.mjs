@@ -6,6 +6,12 @@
 // 하는 일: 필수 도구 확인 → Supabase 프로젝트 연결 → 마이그레이션 적용 →
 // web/.env.local과 runner/.env 생성. 실제 계정 생성처럼 사람만 할 수 있는 일은
 // 대신 하지 않고, 어디서 무엇을 해야 하는지 안내만 한다.
+//
+// 모든 값을 인자로 넘기면 아무것도 묻지 않고 끝까지 돈다 — AGENTS.md를 읽은
+// AI 코딩 에이전트가 대신 설치할 수 있어야 해서다(요청 2026-09-02). 그런
+// 환경에는 tty가 없어서, 값이 빠졌을 때 프롬프트를 띄우면 그대로 멈춰 버린다.
+//
+//   node scripts/setup.mjs --project-ref abc --anon-key eyJ... [--url https://...] [--yes]
 
 import { execFileSync, spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -14,7 +20,25 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-const rl = createInterface({ input: process.stdin, output: process.stdout });
+
+function parseArgs(argv) {
+  const out = { yes: false };
+  for (let i = 0; i < argv.length; i += 1) {
+    const flag = argv[i];
+    const value = argv[i + 1];
+    if (flag === '--project-ref') { out.projectRef = value; i += 1; }
+    else if (flag === '--anon-key') { out.anonKey = value; i += 1; }
+    else if (flag === '--url') { out.url = value; i += 1; }
+    else if (flag === '--yes' || flag === '-y') { out.yes = true; }
+  }
+  return out;
+}
+const args = parseArgs(process.argv.slice(2));
+
+// 필요한 값이 전부 인자로 왔으면 stdin을 아예 건드리지 않는다.
+const interactive = !(args.projectRef && args.anonKey);
+const rl = interactive ? createInterface({ input: process.stdin, output: process.stdout }) : null;
+const ask = async (question) => (rl ? (await rl.question(question)).trim() : '');
 
 const c = {
   bold: (s) => `[1m${s}[0m`,
@@ -86,17 +110,18 @@ async function main() {
   console.log('아직 없다면 https://supabase.com 에서 새 프로젝트를 만드세요 (무료).');
   console.log(c.dim('프로젝트 설정 → Data API 에서 Project URL과 anon key를 복사할 수 있습니다.\n'));
 
-  const projectRef = (await rl.question('프로젝트 ref (예: abcdefghijklmnop): ')).trim();
+  const projectRef = args.projectRef || (await ask('프로젝트 ref (예: abcdefghijklmnop): '));
   if (!projectRef) {
-    fail('프로젝트 ref가 필요합니다.');
+    fail('프로젝트 ref가 필요합니다. 비대화형이라면 --project-ref로 넘기세요.');
     process.exit(1);
   }
 
-  const supabaseUrl = (await rl.question(`Project URL [https://${projectRef}.supabase.co]: `)).trim()
-    || `https://${projectRef}.supabase.co`;
-  const anonKey = (await rl.question('anon public key: ')).trim();
+  const supabaseUrl =
+    args.url || (await ask(`Project URL [https://${projectRef}.supabase.co]: `)) || `https://${projectRef}.supabase.co`;
+
+  const anonKey = args.anonKey || (await ask('anon public key: '));
   if (!anonKey) {
-    fail('anon key가 필요합니다.');
+    fail('anon key가 필요합니다. 비대화형이라면 --anon-key로 넘기세요.');
     process.exit(1);
   }
 
@@ -134,7 +159,9 @@ async function main() {
     [runnerEnv, { SUPABASE_URL: supabaseUrl, SUPABASE_ANON_KEY: anonKey, RUNNER_DEVICE_NAME: '' }],
   ]) {
     if (existsSync(path)) {
-      const keep = (await rl.question(`${path} 이 이미 있습니다. 덮어쓸까요? [y/N] `)).trim().toLowerCase();
+      // --yes면 묻지 않고 덮어쓴다. 비대화형인데 --yes도 없으면 기존 파일을
+      // 남기는 쪽이 안전하다 — 남의 설정을 말없이 지우지 않는다.
+      const keep = args.yes ? 'y' : (await ask(`${path} 이 이미 있습니다. 덮어쓸까요? [y/N] `)).toLowerCase();
       if (keep !== 'y') {
         warn(`${path} 유지`);
         continue;
@@ -154,11 +181,11 @@ async function main() {
   console.log(`     ${c.dim('웹 관제실 화면 아래 "러너" 목록에서 이 기기를 승인해야 작업을 받습니다.')}`);
   console.log(`\n자세한 내용: ${c.dim('docs/USER-GUIDE.md')}\n`);
 
-  rl.close();
+  rl?.close();
 }
 
 main().catch((error) => {
   fail(error.message);
-  rl.close();
+  rl?.close();
   process.exit(1);
 });
