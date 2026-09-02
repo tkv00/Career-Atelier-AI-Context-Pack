@@ -131,7 +131,12 @@ export async function uploadAttachment(sectionId: string, recordId: string, form
 
   // 경로 첫 칸이 소유자 uid여야 Storage 정책을 통과한다(0020). 파일명은
   // 사용자가 준 이름을 그대로 쓰지 않고 새로 만든다 — 경로 조작을 막는다.
-  const extension = file.name.includes('.') ? file.name.split('.').pop()!.slice(0, 10) : 'bin';
+  // 확장자는 영숫자만 남긴다. 그냥 마지막 점 뒤를 쓰면 "a.pdf/../../x"가
+  // 확장자 "/x"로 통과해 경로에 구분자가 끼어든다. 첫 칸을 소유자 uid로
+  // 고정한 Storage 정책(0020) 덕에 남의 폴더로는 못 나가지만, 값 자체를
+  // 정리해 두는 편이 낫다. 확장자가 없거나 이상하면 bin으로 떨어뜨린다.
+  const rawExtension = file.name.includes('.') ? file.name.split('.').pop()! : '';
+  const extension = rawExtension.replace(/[^A-Za-z0-9]/g, '').slice(0, 10) || 'bin';
   const storagePath = `${user.id}/${sectionId}/${recordId}/${crypto.randomUUID()}.${extension}`;
 
   const { error: uploadError } = await supabase.storage
