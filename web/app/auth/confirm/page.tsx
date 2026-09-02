@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation';
 import { confirmLogin } from './actions';
+import { BrandIcon } from '../../brand-icon';
 
 // 메일 링크가 도착하는 곳. 여기서 바로 검증하지 않고 사용자의 명시적 클릭을
 // 받은 뒤 actions.ts의 confirmLogin이 실제 검증을 수행한다.
@@ -25,8 +26,8 @@ export default async function ConfirmPage({
       }}
     >
       <div className="card card-pad" style={{ width: '100%', maxWidth: 360, textAlign: 'center' }}>
-        <div className="brand-mark" style={{ margin: '0 auto 22px' }}>
-          C<span>A</span>
+        <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 22 }}>
+          <BrandIcon priority />
         </div>
         <h1 style={{ fontFamily: 'Georgia, serif', fontSize: 22, margin: '0 0 8px' }}>Career Atelier</h1>
         <p style={{ color: 'var(--text-3)', fontSize: 13, margin: '0 0 20px' }}>버튼을 눌러 로그인을 완료하세요.</p>

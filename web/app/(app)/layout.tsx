@@ -4,6 +4,7 @@ import { SignOutButton } from './sign-out-button';
 import { FocusTimer } from './focus-timer';
 import { NavRail } from './nav-rail';
 import { RouteAmbience } from './route-ambience';
+import { BrandIcon } from '../brand-icon';
 
 export default async function AppLayout({ children }: { children: ReactNode }) {
   const supabase = await createClient();
@@ -16,10 +17,7 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
       <RouteAmbience />
       <main className="app-shell">
         <aside className="side-rail" aria-label="주요 메뉴">
-          <div className="brand-mark" aria-label="Career Atelier">
-            C<span>A</span>
-            <i>04</i>
-          </div>
+          <BrandIcon priority />
           <NavRail />
         </aside>
         <section className="workspace">

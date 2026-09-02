@@ -1,18 +1,27 @@
 'use client';
 
 import { Suspense, useEffect, useRef, useState } from 'react';
-import Image from 'next/image';
 import { useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { env } from '@/lib/env';
+import { BrandIcon } from '../brand-icon';
 
 const linkErrorMessages: Record<string, string> = {
   invalid_link: '로그인 링크가 만료됐거나 이미 사용됐습니다. 다시 요청해 주세요.',
 };
 
-type Star = { x: number; y: number; z: number; size: number; tint: number };
+type Star = { x: number; y: number; depth: number; size: number; tint: number; phase: number };
 
-function GalaxyCanvas() {
+type GalaxyParticle = {
+  radius: number;
+  angle: number;
+  thickness: number;
+  size: number;
+  color: string;
+  alpha: number;
+};
+
+function StarfieldCanvas() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   useEffect(() => {
@@ -26,6 +35,8 @@ function GalaxyCanvas() {
     let height = 0;
     let pointerX = 0;
     let pointerY = 0;
+    let smoothX = 0;
+    let smoothY = 0;
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
     const reset = () => {
@@ -37,37 +48,30 @@ function GalaxyCanvas() {
       canvas.style.width = `${width}px`;
       canvas.style.height = `${height}px`;
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
-      stars = Array.from({ length: Math.min(330, Math.floor((width * height) / 5200)) }, () => ({
-        x: (Math.random() - .5) * width * 1.8,
-        y: (Math.random() - .5) * height * 1.8,
-        z: Math.random() * .94 + .06,
-        size: Math.random() * 1.7 + .35,
+      stars = Array.from({ length: Math.min(380, Math.floor((width * height) / 4500)) }, () => ({
+        x: Math.random() * width,
+        y: Math.random() * height,
+        depth: Math.random() * .8 + .2,
+        size: Math.random() * 1.45 + .35,
         tint: Math.random(),
+        phase: Math.random() * Math.PI * 2,
       }));
     };
     const onPointer = (event: PointerEvent) => {
-      pointerX = (event.clientX / Math.max(width, 1) - .5) * 18;
+      pointerX = (event.clientX / Math.max(width, 1) - .5) * 16;
       pointerY = (event.clientY / Math.max(height, 1) - .5) * 12;
     };
-    const draw = () => {
+    const draw = (time = 0) => {
       context.clearRect(0, 0, width, height);
+      smoothX += (pointerX - smoothX) * .025;
+      smoothY += (pointerY - smoothY) * .025;
       for (const star of stars) {
-        if (!reducedMotion) star.z -= .00125;
-        if (star.z <= .018) star.z = 1;
-        const scale = 1 / star.z;
-        const x = width / 2 + (star.x + pointerX) * scale;
-        const y = height / 2 + (star.y + pointerY) * scale;
-        if (x < -20 || x > width + 20 || y < -20 || y > height + 20) {
-          star.z = 1;
-          star.x = (Math.random() - .5) * width * 1.6;
-          star.y = (Math.random() - .5) * height * 1.6;
-          continue;
-        }
-        const alpha = Math.min(1, (1 - star.z) * 1.35 + .18);
-        const radius = Math.min(2.8, star.size * scale * .36);
+        const x = star.x + smoothX * star.depth;
+        const y = star.y + smoothY * star.depth;
+        const alpha = reducedMotion ? .56 : .36 + Math.sin(time * .0007 + star.phase) * .18;
         context.beginPath();
-        context.fillStyle = star.tint > .84 ? `rgba(255,207,126,${alpha})` : star.tint < .18 ? `rgba(101,225,255,${alpha})` : `rgba(232,247,255,${alpha})`;
-        context.arc(x, y, radius, 0, Math.PI * 2);
+        context.fillStyle = star.tint > .86 ? `rgba(255,199,124,${alpha})` : star.tint < .17 ? `rgba(104,217,255,${alpha})` : `rgba(224,239,255,${alpha})`;
+        context.arc(x, y, star.size * star.depth, 0, Math.PI * 2);
         context.fill();
       }
       if (!reducedMotion) animationFrame = requestAnimationFrame(draw);
@@ -86,60 +90,156 @@ function GalaxyCanvas() {
   return <canvas ref={canvasRef} className="galaxy-star-canvas" aria-hidden="true"/>;
 }
 
-function ObsidianPlanetHero() {
-  return <div className="galaxy-planet-stage" aria-hidden="true">
-    <div className="galaxy-planet-kicker"><span>DESTINATION</span><b>CAREER ORBIT</b></div>
-    <div className="galaxy-obsidian-system">
-      <span className="galaxy-planet-aura"/>
-      <div className="galaxy-plasma-plane plasma-back">
-        <span className="galaxy-plasma-track"/>
-        <i className="galaxy-plasma-spark spark-one"/>
-        <i className="galaxy-plasma-spark spark-two"/>
-        <i className="galaxy-plasma-spark spark-three"/>
-      </div>
-      <div className="galaxy-rock-orbit rock-orbit-back">
-        <span className="galaxy-orbit-ring orbit-ring-wide"/>
-        <span className="galaxy-orbit-ring orbit-ring-inner"/>
-        <i className="galaxy-orbit-rock rock-one"/>
-        <i className="galaxy-orbit-rock rock-two"/>
-        <i className="galaxy-orbit-rock rock-three"/>
-      </div>
-      <Image
-        className="galaxy-obsidian-planet"
-        src="/assets/planet-obsidian.png"
-        alt=""
-        width={1254}
-        height={1254}
-        priority
-        sizes="(max-width: 900px) 94vw, 46vw"
-      />
-      <span className="galaxy-planet-atmosphere"/>
-      <span className="galaxy-planet-surface"/>
-      <span className="galaxy-planet-aurora"/>
-      <span className="galaxy-horizon-glint"/>
-      <div className="galaxy-rock-orbit rock-orbit-front">
-        <span className="galaxy-orbit-ring orbit-ring-wide"/>
-        <span className="galaxy-orbit-ring orbit-ring-inner"/>
-        <i className="galaxy-orbit-rock rock-four"/>
-        <i className="galaxy-orbit-rock rock-five"/>
-        <i className="galaxy-orbit-rock rock-six"/>
-      </div>
-      <div className="galaxy-plasma-plane plasma-front">
-        <span className="galaxy-plasma-track"/>
-        <i className="galaxy-plasma-spark spark-four"/>
-        <i className="galaxy-plasma-spark spark-five"/>
-      </div>
-      <span className="galaxy-planet-scan"/>
+function SpiralGalaxyHero() {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const context = canvas.getContext('2d');
+    if (!context) return;
+
+    let width = 0;
+    let height = 0;
+    let animationFrame = 0;
+    let particles: GalaxyParticle[] = [];
+    let pointerX = Number.POSITIVE_INFINITY;
+    let pointerY = Number.POSITIVE_INFINITY;
+    let smoothPointerX = pointerX;
+    let smoothPointerY = pointerY;
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const reset = () => {
+      const ratio = Math.min(window.devicePixelRatio || 1, 1.5);
+      const bounds = canvas.getBoundingClientRect();
+      width = Math.max(1, bounds.width);
+      height = Math.max(1, bounds.height);
+      canvas.width = Math.floor(width * ratio);
+      canvas.height = Math.floor(height * ratio);
+      context.setTransform(ratio, 0, 0, ratio, 0, 0);
+
+      const count = width < 520 ? 1800 : 3200;
+      particles = Array.from({ length: count }, (_, index) => {
+        const radius = Math.pow(Math.random(), .72);
+        const branch = (index % 5) / 5 * Math.PI * 2;
+        const scatter = (Math.random() - .5) * (.18 + radius * .74);
+        const angle = branch + radius * 5.4 + scatter;
+        const color = radius < .24
+          ? '255,145,67'
+          : radius < .62
+            ? '151,102,255'
+            : Math.random() > .52 ? '72,146,255' : '87,217,238';
+        return {
+          radius,
+          angle,
+          thickness: (Math.random() - .5) * (1 - radius * .68),
+          size: Math.random() * 1.45 + .42,
+          color,
+          alpha: Math.random() * .58 + .24,
+        };
+      });
+    };
+
+    const onPointerMove = (event: PointerEvent) => {
+      const bounds = canvas.getBoundingClientRect();
+      pointerX = event.clientX - bounds.left;
+      pointerY = event.clientY - bounds.top;
+    };
+    const onPointerLeave = () => {
+      pointerX = Number.POSITIVE_INFINITY;
+      pointerY = Number.POSITIVE_INFINITY;
+      smoothPointerX = pointerX;
+      smoothPointerY = pointerY;
+    };
+
+    const draw = (time = 0) => {
+      context.clearRect(0, 0, width, height);
+      const centerX = width * .5;
+      const centerY = height * .5;
+      const scale = Math.min(width, height) * .45;
+      const rotation = reducedMotion ? -.18 : time * .000032 - .18;
+      const cosRotation = Math.cos(rotation);
+      const sinRotation = Math.sin(rotation);
+
+      if (Number.isFinite(pointerX)) {
+        if (!Number.isFinite(smoothPointerX)) {
+          smoothPointerX = pointerX;
+          smoothPointerY = pointerY;
+        } else {
+          smoothPointerX += (pointerX - smoothPointerX) * .09;
+          smoothPointerY += (pointerY - smoothPointerY) * .09;
+        }
+      }
+
+      const halo = context.createRadialGradient(centerX, centerY, 0, centerX, centerY, scale * 1.08);
+      halo.addColorStop(0, 'rgba(255,151,71,.22)');
+      halo.addColorStop(.24, 'rgba(143,83,255,.12)');
+      halo.addColorStop(.66, 'rgba(39,111,213,.045)');
+      halo.addColorStop(1, 'rgba(0,0,0,0)');
+      context.fillStyle = halo;
+      context.fillRect(0, 0, width, height);
+
+      context.globalCompositeOperation = 'lighter';
+      for (const particle of particles) {
+        const localX = Math.cos(particle.angle) * particle.radius;
+        const localY = Math.sin(particle.angle) * particle.radius;
+        let x = centerX + (localX * cosRotation - localY * sinRotation) * scale;
+        let y = centerY + ((localX * sinRotation + localY * cosRotation) * .42 + particle.thickness * .13) * scale;
+
+        const dx = x - smoothPointerX;
+        const dy = y - smoothPointerY;
+        const distance = Math.hypot(dx, dy);
+        if (distance < 92 && distance > 0) {
+          const force = Math.pow(1 - distance / 92, 2) * 23;
+          x += dx / distance * force - dy / distance * force * .34;
+          y += dy / distance * force + dx / distance * force * .34;
+        }
+
+        const pulse = reducedMotion ? 1 : .88 + Math.sin(time * .0011 + particle.angle * 3) * .12;
+        context.fillStyle = `rgba(${particle.color},${particle.alpha * pulse})`;
+        const size = particle.size * (.72 + (1 - particle.radius) * .5);
+        context.fillRect(x, y, size, size);
+      }
+
+      const core = context.createRadialGradient(centerX, centerY, 0, centerX, centerY, scale * .19);
+      core.addColorStop(0, 'rgba(255,244,220,.98)');
+      core.addColorStop(.12, 'rgba(255,178,91,.78)');
+      core.addColorStop(.46, 'rgba(255,105,48,.22)');
+      core.addColorStop(1, 'rgba(255,92,35,0)');
+      context.fillStyle = core;
+      context.fillRect(centerX - scale * .22, centerY - scale * .22, scale * .44, scale * .44);
+      context.globalCompositeOperation = 'source-over';
+
+      if (!reducedMotion) animationFrame = requestAnimationFrame(draw);
+    };
+
+    reset();
+    draw();
+    window.addEventListener('resize', reset);
+    window.addEventListener('pointermove', onPointerMove, { passive: true });
+    document.documentElement.addEventListener('mouseleave', onPointerLeave);
+    return () => {
+      cancelAnimationFrame(animationFrame);
+      window.removeEventListener('resize', reset);
+      window.removeEventListener('pointermove', onPointerMove);
+      document.documentElement.removeEventListener('mouseleave', onPointerLeave);
+    };
+  }, []);
+
+  return (
+    <div className="galaxy-spiral-stage" aria-hidden="true">
+      <div className="galaxy-spiral-kicker"><span>LOCAL GROUP</span><b>CAREER ATELIER</b></div>
+      <canvas ref={canvasRef} className="galaxy-spiral-canvas" />
+      <div className="galaxy-spiral-telemetry"><span>CA-GX</span><i/><b>5 SPIRAL ARMS</b><em>INTERACTIVE FIELD</em></div>
     </div>
-    <div className="galaxy-planet-telemetry"><span>CA-04</span><i/><b>ORBIT LOCKED</b><em>31° 28′ 04″</em></div>
-  </div>;
+  );
 }
 
 export default function LoginPage() {
   return <main className="galaxy-login">
-    <GalaxyCanvas/>
+    <StarfieldCanvas/>
     <div className="galaxy-nebula nebula-one" aria-hidden="true"/><div className="galaxy-nebula nebula-two" aria-hidden="true"/>
-    <ObsidianPlanetHero/>
+    <SpiralGalaxyHero/>
     <div className="galaxy-cockpit" aria-hidden="true"><span>CA-04</span><i/><b>ORBITAL ACCESS CHANNEL</b><em>AUTH SIGNAL · ENCRYPTED</em></div>
     <section className="galaxy-login-copy">
       <p>CAREER ATELIER · PERSONAL CAREER OS</p>
@@ -177,7 +277,7 @@ function LoginForm() {
 
   return <section className="galaxy-login-card" aria-label="Career Atelier 로그인">
     <div className="galaxy-card-scan" aria-hidden="true"/>
-    <header><div className="brand-mark">C<span>A</span><i>04</i></div><div><p>SECURE DOCKING</p><span>개인 작전선 로그인</span></div><em>ONLINE</em></header>
+    <header><BrandIcon priority/><div><p>SECURE DOCKING</p><span>개인 작전선 로그인</span></div><em>ONLINE</em></header>
     <div className="galaxy-card-heading"><span>WELCOME, COMMANDER</span><h2>Career Atelier</h2><p>{env.allowedEmail ? `${env.allowedEmail} 계정으로만 도킹할 수 있습니다.` : '등록된 이메일로 일회용 매직링크를 전송합니다.'}</p></div>
     {linkError && <div className="galaxy-auth-message error">{linkErrorMessages[linkError] ?? '로그인에 실패했습니다. 다시 시도해 주세요.'}</div>}
     <form onSubmit={handleSubmit}>
