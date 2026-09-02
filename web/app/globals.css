@@ -2699,6 +2699,327 @@ input.interview-question-title:focus {
   border-top: 0;
 }
 
+/* ── 11.5 나의 정보(이력 기록) ────────────────────────────────────────
+   왼쪽 항목 탭 + 오른쪽 목록/폼. 훈련실·프롬프트 생성실과 같은 2단 골격을
+   쓴다 — 항목이 7개라 세로로 늘어놓으면 스크롤이 끝없이 길어진다. */
+
+.records-layout {
+  display: grid;
+  grid-template-columns: 190px minmax(0, 1fr);
+  gap: var(--s5);
+  align-items: start;
+  margin-top: var(--s5);
+}
+
+.records-tabs {
+  position: sticky;
+  top: var(--s5);
+  display: grid;
+  gap: var(--s1);
+  padding: var(--s3);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-panel);
+  background: var(--surface-1);
+}
+.records-tabs button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  padding: var(--s2) var(--s3);
+  border: 1px solid transparent;
+  border-radius: var(--r-control);
+  background: transparent;
+  color: var(--text-2);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
+}
+.records-tabs button:hover {
+  background: var(--surface-2);
+}
+.records-tabs button.active {
+  background: var(--surface-3);
+  border-color: var(--line);
+  color: var(--text-1);
+}
+.records-tabs button b {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+}
+.records-tabs button span {
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  color: var(--text-dim);
+}
+.records-tabs button.active span {
+  color: var(--amber);
+}
+.records-total {
+  margin: var(--s2) 0 0;
+  padding-top: var(--s2);
+  border-top: 1px solid var(--line-soft);
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  text-align: center;
+}
+
+.records-main {
+  min-width: 0;
+  padding: var(--s5);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-panel);
+  background: var(--surface-1);
+}
+.records-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s4);
+  margin-bottom: var(--s4);
+}
+.records-head h3 {
+  margin: 0 0 var(--s1);
+  font-size: var(--fs-lg);
+}
+.records-head p {
+  margin: 0;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+}
+.records-message {
+  margin: 0 0 var(--s3);
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: var(--surface-2);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+}
+.records-empty {
+  margin: var(--s6) 0;
+  color: var(--text-dim);
+  font-size: var(--fs-sm);
+  text-align: center;
+}
+
+.records-form {
+  margin-bottom: var(--s5);
+  padding: var(--s4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface-2);
+}
+.records-form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--s3);
+}
+.records-form-grid label {
+  display: grid;
+  gap: 5px;
+  min-width: 0;
+}
+.records-form-grid label.wide {
+  grid-column: 1 / -1;
+}
+.records-form-grid span {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+.records-form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s2);
+  margin-top: var(--s4);
+}
+.records-form-actions button:not(.run-button) {
+  padding: 0 var(--s4);
+  min-height: 34px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: var(--surface-3);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
+.records-list {
+  display: grid;
+  gap: var(--s3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.records-item {
+  padding: var(--s4);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-card);
+  background: var(--surface-2);
+}
+.records-item-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+.records-item-head b {
+  font-size: var(--fs-base);
+  font-weight: 600;
+}
+.records-item-head time {
+  display: block;
+  margin-top: 2px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+}
+.records-item-actions {
+  display: flex;
+  gap: var(--s2);
+  flex: none;
+}
+.records-item-actions button,
+.records-courses button,
+.records-files button:not(.records-file-open) {
+  padding: 4px var(--s2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-chip);
+  background: transparent;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+.records-item-actions button:hover:not(:disabled),
+.records-courses button:hover:not(:disabled),
+.records-files button:not(.records-file-open):hover:not(:disabled) {
+  background: var(--surface-3);
+  color: var(--text-1);
+}
+.records-item-actions button.danger:hover:not(:disabled) {
+  border-color: var(--danger-line);
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+
+.records-item-fields {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: var(--s2) var(--s4);
+  margin: var(--s3) 0 0;
+}
+.records-item-fields div {
+  min-width: 0;
+}
+.records-item-fields dt {
+  color: var(--text-dim);
+  font-size: var(--fs-xs);
+}
+.records-item-fields dd {
+  margin: 2px 0 0;
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  overflow-wrap: anywhere;
+}
+.records-item-fields a {
+  color: var(--cyan);
+}
+
+.records-sub-label {
+  margin: 0 0 var(--s2);
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+  font-size: var(--fs-hud);
+  letter-spacing: var(--tracking-hud);
+  text-transform: uppercase;
+}
+.records-courses,
+.records-files {
+  margin-top: var(--s4);
+  padding-top: var(--s3);
+  border-top: 1px dashed var(--line-soft);
+}
+.records-courses ul,
+.records-files ul {
+  display: grid;
+  gap: var(--s2);
+  margin: 0 0 var(--s3);
+  padding: 0;
+  list-style: none;
+}
+.records-courses li,
+.records-files li {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex-wrap: wrap;
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-control);
+  background: var(--surface-1);
+  font-size: var(--fs-sm);
+}
+.records-courses li b {
+  font-weight: 600;
+}
+.records-courses li span,
+.records-files li small {
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+.records-courses li small {
+  color: var(--text-dim);
+  font-size: var(--fs-xs);
+  width: 100%;
+}
+.records-courses li button,
+.records-files li button:not(.records-file-open) {
+  margin-left: auto;
+}
+.records-file-open {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: var(--cyan);
+  font-size: var(--fs-sm);
+  text-align: left;
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+.records-file-open:hover {
+  text-decoration: underline;
+}
+
+.records-course-form,
+.records-file-form {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s2);
+}
+.records-course-form input {
+  flex: 1 1 110px;
+  min-width: 0;
+}
+.records-file-form input[type='file'] {
+  flex: 1 1 200px;
+  min-width: 0;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+.records-course-form button,
+.records-file-form button {
+  flex: none;
+  padding: 0 var(--s4);
+  min-height: 32px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: var(--surface-3);
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  cursor: pointer;
+}
+
 /* ── 12. 집중 항해 타이머 ────────────────────────────────────────────── */
 
 .focus-launcher {

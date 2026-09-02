@@ -12,6 +12,31 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
       agent_runs: {
@@ -103,6 +128,42 @@ export type Database = {
           },
         ]
       }
+      awards: {
+        Row: {
+          awarded_on: string | null
+          created_at: string
+          detail: string | null
+          grade: string | null
+          id: string
+          issuer: string | null
+          name: string
+          owner_id: string
+          updated_at: string
+        }
+        Insert: {
+          awarded_on?: string | null
+          created_at?: string
+          detail?: string | null
+          grade?: string | null
+          id?: string
+          issuer?: string | null
+          name: string
+          owner_id: string
+          updated_at?: string
+        }
+        Update: {
+          awarded_on?: string | null
+          created_at?: string
+          detail?: string | null
+          grade?: string | null
+          id?: string
+          issuer?: string | null
+          name?: string
+          owner_id?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       calendar_events: {
         Row: {
           all_day: boolean
@@ -158,6 +219,146 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      certifications: {
+        Row: {
+          acquired_on: string | null
+          created_at: string
+          grade: string | null
+          id: string
+          issuer: string | null
+          memo: string | null
+          name: string
+          owner_id: string
+          registration_number: string | null
+          updated_at: string
+        }
+        Insert: {
+          acquired_on?: string | null
+          created_at?: string
+          grade?: string | null
+          id?: string
+          issuer?: string | null
+          memo?: string | null
+          name: string
+          owner_id: string
+          registration_number?: string | null
+          updated_at?: string
+        }
+        Update: {
+          acquired_on?: string | null
+          created_at?: string
+          grade?: string | null
+          id?: string
+          issuer?: string | null
+          memo?: string | null
+          name?: string
+          owner_id?: string
+          registration_number?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      education_courses: {
+        Row: {
+          course_name: string
+          created_at: string
+          credits: number | null
+          detail: string | null
+          education_id: string
+          grade: string | null
+          id: string
+          owner_id: string
+          term: string | null
+        }
+        Insert: {
+          course_name: string
+          created_at?: string
+          credits?: number | null
+          detail?: string | null
+          education_id: string
+          grade?: string | null
+          id?: string
+          owner_id: string
+          term?: string | null
+        }
+        Update: {
+          course_name?: string
+          created_at?: string
+          credits?: number | null
+          detail?: string | null
+          education_id?: string
+          grade?: string | null
+          id?: string
+          owner_id?: string
+          term?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "education_courses_education_id_fkey"
+            columns: ["education_id"]
+            isOneToOne: false
+            referencedRelation: "education_records"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      education_records: {
+        Row: {
+          created_at: string
+          ended_on: string | null
+          gpa: number | null
+          gpa_scale: number | null
+          hanja_name: string | null
+          id: string
+          major: string | null
+          memo: string | null
+          owner_id: string
+          school_name: string
+          school_type: string
+          secondary_major: string | null
+          secondary_major_type: string | null
+          started_on: string | null
+          status: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          ended_on?: string | null
+          gpa?: number | null
+          gpa_scale?: number | null
+          hanja_name?: string | null
+          id?: string
+          major?: string | null
+          memo?: string | null
+          owner_id: string
+          school_name: string
+          school_type?: string
+          secondary_major?: string | null
+          secondary_major_type?: string | null
+          started_on?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          ended_on?: string | null
+          gpa?: number | null
+          gpa_scale?: number | null
+          hanja_name?: string | null
+          id?: string
+          major?: string | null
+          memo?: string | null
+          owner_id?: string
+          school_name?: string
+          school_type?: string
+          secondary_major?: string | null
+          secondary_major_type?: string | null
+          started_on?: string | null
+          status?: string | null
+          updated_at?: string
+        }
+        Relationships: []
       }
       essay_autosaves: {
         Row: {
@@ -454,6 +655,45 @@ export type Database = {
         }
         Relationships: []
       }
+      external_activities: {
+        Row: {
+          created_at: string
+          detail: string | null
+          ended_on: string | null
+          id: string
+          name: string
+          organizer: string | null
+          owner_id: string
+          role: string | null
+          started_on: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          detail?: string | null
+          ended_on?: string | null
+          id?: string
+          name: string
+          organizer?: string | null
+          owner_id: string
+          role?: string | null
+          started_on?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          detail?: string | null
+          ended_on?: string | null
+          id?: string
+          name?: string
+          organizer?: string | null
+          owner_id?: string
+          role?: string | null
+          started_on?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       harness_configs: {
         Row: {
           config: Json
@@ -663,6 +903,48 @@ export type Database = {
         }
         Relationships: []
       }
+      project_records: {
+        Row: {
+          created_at: string
+          detail: string | null
+          ended_on: string | null
+          id: string
+          name: string
+          organizer: string | null
+          owner_id: string
+          repo_url: string | null
+          role: string | null
+          started_on: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          detail?: string | null
+          ended_on?: string | null
+          id?: string
+          name: string
+          organizer?: string | null
+          owner_id: string
+          repo_url?: string | null
+          role?: string | null
+          started_on?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          detail?: string | null
+          ended_on?: string | null
+          id?: string
+          name?: string
+          organizer?: string | null
+          owner_id?: string
+          repo_url?: string | null
+          role?: string | null
+          started_on?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       prompt_templates: {
         Row: {
           agent_id: string
@@ -733,6 +1015,42 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      record_attachments: {
+        Row: {
+          created_at: string
+          file_name: string
+          id: string
+          kind: string | null
+          owner_id: string
+          record_id: string
+          record_type: string
+          size_bytes: number | null
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          file_name: string
+          id?: string
+          kind?: string | null
+          owner_id: string
+          record_id: string
+          record_type: string
+          size_bytes?: number | null
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          file_name?: string
+          id?: string
+          kind?: string | null
+          owner_id?: string
+          record_id?: string
+          record_type?: string
+          size_bytes?: number | null
+          storage_path?: string
+        }
+        Relationships: []
       }
       research_notes: {
         Row: {
@@ -855,6 +1173,81 @@ export type Database = {
           last_backup_error?: string | null
           last_seen_at?: string | null
           owner_id?: string
+        }
+        Relationships: []
+      }
+      training_programs: {
+        Row: {
+          created_at: string
+          detail: string | null
+          ended_on: string | null
+          id: string
+          name: string
+          organizer: string | null
+          owner_id: string
+          started_on: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          detail?: string | null
+          ended_on?: string | null
+          id?: string
+          name: string
+          organizer?: string | null
+          owner_id: string
+          started_on?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          detail?: string | null
+          ended_on?: string | null
+          id?: string
+          name?: string
+          organizer?: string | null
+          owner_id?: string
+          started_on?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      work_experiences: {
+        Row: {
+          company: string
+          created_at: string
+          detail: string | null
+          employment_type: string | null
+          ended_on: string | null
+          id: string
+          leave_reason: string | null
+          owner_id: string
+          started_on: string | null
+          updated_at: string
+        }
+        Insert: {
+          company: string
+          created_at?: string
+          detail?: string | null
+          employment_type?: string | null
+          ended_on?: string | null
+          id?: string
+          leave_reason?: string | null
+          owner_id: string
+          started_on?: string | null
+          updated_at?: string
+        }
+        Update: {
+          company?: string
+          created_at?: string
+          detail?: string | null
+          employment_type?: string | null
+          ended_on?: string | null
+          id?: string
+          leave_reason?: string | null
+          owner_id?: string
+          started_on?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -1016,6 +1409,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {},
   },

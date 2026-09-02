@@ -233,6 +233,14 @@ Every save keeps the previous body as a version you can restore at any time. Res
 
 <br>
 
+### Personal dossier
+
+Education, certifications, activities, training, projects, work history, and awards, each with its own fields.
+
+You stop re-finding your GPA or a certificate registration number for every application. Supporting documents such as transcripts live here too — files go to a private bucket, and opening one mints a 60-second signed link rather than exposing a public URL.
+
+<br>
+
 ### Experience archive
 
 Record project experience broken into context, problem, your role, judgement, actions, results, missteps, and reflection.

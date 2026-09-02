@@ -9,6 +9,7 @@ const AMBIENCE_BY_ROUTE: { prefix: string; variant: string }[] = [
   { prefix: '/dashboard', variant: 'deck' }, // 우주선 중앙 관제실
   { prefix: '/calendar', variant: 'chart' }, // 항해·지원 일정 지도
   { prefix: '/experiences', variant: 'archive' }, // 개인 기억 아카이브
+  { prefix: '/records', variant: 'vault' }, // 개인 이력 기록 — 보관 성격
   { prefix: '/interviews', variant: 'sim' }, // 시뮬레이션 훈련실
   { prefix: '/essays', variant: 'archive' }, // 문서 작성실
   { prefix: '/prompts', variant: 'sim' }, // 프롬프트 생성실 — 훈련실과 같은 계열(실험적 성격)
