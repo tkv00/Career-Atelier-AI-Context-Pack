@@ -122,7 +122,7 @@ especially where something non-obvious was learned by hitting it. Match that.
 Do not narrate what the next line obviously does.
 
 **Commit messages are in English**, imperative mood, with the reasoning in the
-body. See [CONTRIBUTING.md](CONTRIBUTING.md).
+body. See [CONTRIBUTING.md](CONTRIBUTING.md) and [CONTRIBUTING.ko.md](CONTRIBUTING.ko.md).
 
 **`README.md` and `README.ko.md` change together.** They are two languages of
 the same document, not two documents. A change to one — a new section, an
@@ -165,7 +165,6 @@ Measured, not assumed. Each cost real debugging time.
 | `runner/safety.mjs` | Fixed limits and the subscription checks. Not configurable. |
 | `supabase/migrations/` | Append-only SQL |
 | `scripts/setup.mjs` | The installer described above |
-| `docs/` | Design rationale, per-OS setup, verification log |
+| `docs/` | User guides, harness engineering, setup, and policies |
 
-`runner/README.md` is the living record of what works, what broke, and what is
-still unverified. Read it before changing runner behaviour.
+See `docs/HARNESS-ENGINEERING.md` and `runner/README.md` before changing runner or agent behaviour.

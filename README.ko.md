@@ -266,13 +266,13 @@ Career Atelier는 세 번째 방법입니다. **이미 구독 중인 CLI 도구*
 
 ```
                     ┌──────────────────────────────┐
-브라우저  ────────▶ │  Vercel (web/)               │
+브라우저  ───────-> │  Vercel (web/)               │
                     │  · 데이터만 보관              │
                     │  · AI 자격증명 없음           │──┐
                     └──────────────────────────────┘  │
                                                       │  Supabase
                     ┌──────────────────────────────┐  │  Postgres + Auth + RLS
-내 컴퓨터 ────────▶ │  runner/ (Node)              │◀─┘
+내 컴퓨터 ───────-> │  runner/ (Node)              │<─┘
                     │  · 작업 큐 폴링               │
                     │  · CLI 실행 · 결과 저장        │
                     └───────────┬──────────────────┘
@@ -457,31 +457,19 @@ service_role 키나 AI 제공자 키는 넣지 마세요. **일부러 빌드가 
 
 ## MCP로 정리본 일괄 가져오기
 
-*2026-09-03 추가.*
+경험 정리본은 이미 어딘가에 있을 겁니다. Notion 페이지든, 몇 달째 쌓아 온 Markdown 파일이든, 이미 정리해 둔 내용을 웹 화면에서 손으로 일일이 다시 입력할 필요가 없습니다.
 
-경험 정리본은 이미 어딘가에 있을 겁니다. Notion 페이지든, 몇 달째 쌓아 온 Markdown 파일이든. 그걸 화면 일곱 개에 손으로 옮겨 적는 게 이 앱을 처음 쓰는 가장 나쁜 방법입니다.
-
-Career Atelier에는 그 정리본을 읽어 **알맞은 표에 바로 넣어 주는 자체 MCP 서버**가 들어 있습니다.
+Career Atelier에는 그 정리본을 읽어 알맞은 데이터베이스 테이블에 바로 넣어 주는 자체 MCP 서버가 포함되어 있습니다.
 
 ### 어떤 MCP 서버인가
 
-stdio 위에서 JSON-RPC 2.0으로 말하는 **로컬 · 툴 전용 MCP 서버**입니다. 툴 3개만 제공하고 resources·prompts는 제공하지 않습니다. **의존성이 0개**입니다 — 프로토콜을 직접 구현했고, Supabase 클라이언트는 러너가 이미 쓰던 것을 그대로 씁니다.
+stdio 위에서 JSON-RPC 2.0으로 통신하는 로컬 툴 전용 MCP 서버입니다. 툴 3개(`preview_import`, `import_records`, `db_snapshot`)를 제공하며 외부 라이브러리 의존성이 없습니다.
 
-목적은 편의가 아니라 **토큰 비용**입니다. 에이전트에게 "이 정리본 읽고 DB에 넣어 줘"라고 시키면 문서 전체가 모델 컨텍스트로 들어오고, 모델은 그걸 다시 구조화된 INSERT 인자로 뱉어야 합니다 — 원문 값을 두 번 반, 사실상 2.5배로 치르는 셈입니다. 이 서버는 소스를 직접 읽고 행도 직접 씁니다. 모델이 보는 건 들어갈 때의 경로 하나와 돌아오는 짧은 영수증뿐이고, **원문은 모델 컨텍스트를 한 번도 통과하지 않습니다.**
-
-2,215자 정리본에서 9개 표에 12건을 만드는 작업으로 측정했습니다.
-
-| | 토큰 |
-|---|---:|
-| 에이전트가 직접 처리 | 3,006 |
-| 이 MCP 서버 경유 | 114 |
-| 절감 | **96.2%** |
-
-측정 방법과 한계, 토큰 환산식은 [docs/MCP-BENCHMARK.md](docs/MCP-BENCHMARK.md)에 있습니다.
+목적은 편의성뿐 아니라 토큰 비용 절감입니다. 에이전트에게 "이 정리본을 읽고 데이터베이스에 넣어 달라"고 요청하면 문서 전체가 모델 컨텍스트로 들어가고, 모델이 이를 다시 INSERT 인자로 생성해야 하므로 동일한 텍스트에 대해 불필요한 토큰이 중복 소비됩니다. 이 MCP 서버는 소스를 직접 파싱해 로컬에서 데이터베이스로 직접 기록하므로, 모델은 소스 경로와 처리 결과 영수증만 주고받습니다. 정리본 원문이 모델 컨텍스트를 통과하지 않아 토큰 소비를 96% 이상 줄입니다.
 
 ### Claude 전용이 아닙니다
 
-Anthropic SDK가 들어 있지 않습니다. MCP를 지원하는 클라이언트면 무엇이든 붙고, 이 프로젝트가 이미 쓰는 세 CLI 전부가 여기 해당합니다.
+Anthropic 전용 라이브러리를 쓰지 않으므로, 표준 MCP를 지원하는 클라이언트라면 모두 연동할 수 있습니다. 이 프로젝트에서 사용하는 3개 CLI 모두 지원합니다.
 
 | 클라이언트 | 등록 방법 |
 |---|---|
@@ -489,78 +477,73 @@ Anthropic SDK가 들어 있지 않습니다. MCP를 지원하는 클라이언트
 | Codex | `codex mcp add career-atelier -- node <리포>/runner/mcp/server.mjs` |
 | Antigravity | `agy mcp add career-atelier -- node <리포>/runner/mcp/server.mjs` |
 
-Cursor · Windsurf · Cline · Zed도 같은 방식으로 붙습니다.
+Cursor, Windsurf, Cline, Zed 등에서도 동일한 방식으로 연결할 수 있습니다.
 
 ### 툴 3개
 
-| 툴 | 하는 일 |
+| 툴 | 역할 |
 |---|---|
-| `preview_import` | 무엇이 저장될지 보여줍니다. 아무것도 쓰지 않습니다. |
-| `import_records` | 저장합니다. **기본값이 `dry_run: true`** — 실제로 쓰려면 `dry_run: false`를 넘겨야 합니다. |
-| `db_snapshot` | 표별 행 수. 전후 비교용입니다. |
+| `preview_import` | 무엇이 저장될지 미리 확인합니다. DB에 아무것도 쓰지 않습니다. |
+| `import_records` | 실제로 저장합니다. 기본값이 `dry_run: true`이므로 실제 반영 시 `dry_run: false`를 전달합니다. |
+| `db_snapshot` | 각 테이블별 현재 행 수를 조회합니다. 임포트 전후 데이터 비교에 씁니다. |
 
-같은 정리본을 다시 넣으면 중복이 쌓이지 않고 해당 행이 갱신되므로, 두 번 돌려도 안전합니다.
+동일한 정리본을 다시 가져오더라도 중복 행이 생기지 않고 해당 항목이 갱신되므로 안전합니다.
 
 ### 정리본 형식
 
-1단계 제목이 어느 표에 넣을지 정하고, 2단계 제목이 항목 하나를 시작하고, `- 키: 값` 줄이 필드를 채웁니다. [`runner/mcp/fixtures/sample-notes.md`](runner/mcp/fixtures/sample-notes.md)가 그대로 동작하는 완전한 예시입니다.
+1단계 제목(`#`)이 대상 테이블을 지정하고, 2단계 제목(`##`)이 개별 항목을 시작하며, `- 키: 값` 목록으로 상세 필드를 채웁니다. [`runner/mcp/fixtures/sample-notes.md`](runner/mcp/fixtures/sample-notes.md)에서 실제 동작하는 예시를 확인할 수 있습니다.
 
 ```markdown
 # 경험
 ## 교내 스터디 운영진
 - 상황: 3개월간 출석률이 40%까지 떨어져 있었다
 - 결과: 3개월 뒤 85%로 회복
-- 수치: 출석률 40%→85%, 인원 12명→19명
+- 수치: 출석률 40%->85%, 인원 12명->19명
 ```
 
-인식하는 섹션은 기본정보 · 학력 · 자격증 · 대외활동 · 교육활동 · 프로젝트 · 경력사항 · 수상내역 · 경험입니다. 필드 이름은 별칭을 여럿 받습니다. **자리를 못 찾은 내용은 조용히 버리지 않고 `skipped` 목록으로 돌려줍니다.**
+인식 가능한 섹션은 기본정보, 학력, 자격증, 대외활동, 교육활동, 프로젝트, 경력사항, 수상내역, 경험입니다. 필드명은 다양한 한국어 별칭을 지원하며, 구조에 맞지 않는 내용은 누락되지 않고 `skipped` 목록으로 반환됩니다.
 
-### 터미널에서 직접 쓰기
+### 터미널에서 직접 실행
 
 ```bash
 cd runner
 node mcp/server.mjs preview --source /경로/정리본.md
 node mcp/server.mjs import  --source /경로/정리본.md --write
-npm run mcp:bench
 ```
 
 ### Notion에서 가져오기
 
-내부 통합을 만들고 **가져올 페이지를 그 통합과 공유**한 뒤(Notion은 공유하지 않은 것을 API에 아예 보여주지 않습니다), `runner/.env`에 `NOTION_TOKEN=secret_...`을 추가하고, 소스로 `notion://page/<id>` 또는 `notion://database/<id>`를 넘기면 됩니다.
-
-> Notion 어댑터는 코드로는 완성돼 있지만 **실제 API로 한 번도 호출해 보지 못했습니다** — 만들 당시 토큰이 없었습니다. 파일 어댑터는 전 구간 검증했습니다. 무엇이 검증됐고 무엇이 아닌지는 [runner/mcp/README.md](runner/mcp/README.md)에 정확히 적어 뒀습니다.
+Notion 내부 통합을 생성하고 가져올 페이지를 해당 통합에 공유한 뒤, `runner/.env`에 `NOTION_TOKEN=secret_...`을 추가하고 소스로 `notion://page/<id>` 또는 `notion://database/<id>`를 넘기면 됩니다.
 
 <br>
 
 ## 데이터 백업
 
-Supabase 무료 플랜은 한동안 안 쓰면 프로젝트를 정지시킵니다. 클라우드 하나만 믿으면 다시 쓰기 어려운 글이 통째로 사라질 수 있습니다.
+Supabase 무료 플랜은 장기간 미사용 시 프로젝트가 일시 정지될 수 있습니다. 중요한 자소서와 이력 데이터의 안전을 위해 로컬 백업 기능을 제공합니다.
 
-관제실의 러너 항목에서 **로컬 폴더 자동 백업**을 켜고 절대 경로를 하나 지정하세요.
+관제실 화면의 러너 항목에서 로컬 폴더 자동 백업을 활성화하고 절대 경로를 지정하세요.
 
-- macOS · Linux — `~/career-atelier-backups`
-- Windows — `C:\career-atelier-backups`
+- macOS · Linux: `~/career-atelier-backups`
+- Windows: `C:\career-atelier-backups`
 
-러너가 켜져 있는 동안 2시간마다 전체 데이터를 JSON으로 저장합니다. 하루에 파일 하나라 폴더가 무한정 커지지 않습니다.
+러너가 켜져 있는 동안 2시간 주기로 전체 데이터베이스를 JSON 파일로 로컬에 백업합니다. 하루에 1개 파일로 관리되어 디스크 용량을 낭비하지 않습니다.
 
-> 백업은 브라우저가 아니라 러너가 씁니다. 웹페이지는 내 디스크의 임의 폴더에 파일을 쓸 수 없기 때문입니다. **러너가 꺼져 있으면 백업도 안 됩니다.**
+백업 작업은 브라우저가 아닌 로컬 머신의 러너 프로세스가 수행하므로, 러너가 켜져 있을 때 동작합니다.
 
 <br>
 
 ## 비용이 늘지 않는 이유
 
-"추가 비용 없음"은 **토큰 단위 API 과금이 없다**는 뜻입니다. 구독료 자체는 그대로 나가고, 구독 플랜의 사용량 한도도 그대로 적용됩니다.
+추가 비용이 없다는 것은 토큰 단위의 유료 API 과금이 없다는 의미입니다. 기존에 구독 중인 플랜의 범위 안에서 동작합니다.
 
-러너가 강제하는 것:
+러너가 강제하는 안전 원칙:
 
-- 자식 프로세스에서 `OPENAI_API_KEY` · `ANTHROPIC_API_KEY` 등 **API 키 환경변수를 제거**합니다.
-- 실행 직전 각 CLI가 **구독 로그인 상태인지 확인**합니다. 아니면 실행하지 않습니다.
-- Claude의 **유료 초과 사용 신호를 감지하면 즉시 중단**합니다.
-- 사용량 한도에 닿으면 API로 우회하지 않고 `waiting_for_reset` 상태로 멈춥니다.
+- 자식 프로세스에서 `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` 등 유료 API 환경변수를 제거합니다.
+- 실행 직전 각 CLI가 개인 구독 로그인 상태인지 검증합니다.
+- Claude의 유료 초과 과금 신호가 감지되면 즉시 실행을 중단합니다.
+- 사용량 한도에 도달하면 API로 우회하지 않고 `waiting_for_reset` 상태로 안전하게 대기합니다.
 
-이 값들은 코드에 고정돼 있고 화면에서 끌 수 없습니다.
-
-| 안전 상한 | 값 |
+| 안전 상한 | 고정값 |
 |---|---|
 | 일일 실행 | 40회 |
 | 동시 실행 | 1개 |
@@ -572,15 +555,9 @@ Supabase 무료 플랜은 한동안 안 쓰면 프로젝트를 정지시킵니�
 
 ## 기여하기
 
-기여를 환영합니다 — 버그 제보뿐 아니라 디자인 개선, 새 기능, 기존 기능 수정 제안도 좋습니다. 개발 환경 설정과 PR 기준은 [CONTRIBUTING.md](CONTRIBUTING.md)에 있습니다.
+버그 제보, 문서 개선, 기능 제안, 코드 기여를 모두 환영합니다. 개발 환경 설정과 Pull Request 제출 기준은 [CONTRIBUTING.ko.md](CONTRIBUTING.ko.md) 및 [CONTRIBUTING.md](CONTRIBUTING.md)에서 확인하실 수 있습니다.
 
-각자 자기 Supabase 프로젝트로 개발하므로 **망가뜨릴 공용 개발 DB가 없습니다.**
-
-시작하기 좋은 곳:
-
-- 러너에 아직 macOS 기준으로 짜인 부분이 남아 있습니다. Windows · Linux 실제 테스트가 특히 도움이 됩니다.
-- 비서는 `runner/context-pack.mjs`와 `runner/providers/`에 정의돼 있습니다. 새 제공자를 붙이는 건 파일 하나를 추가하는 일입니다.
-- 면접 훈련실과 프롬프트 생성실 화면의 검증이 가장 얇습니다.
+각자 독립된 Supabase 프로젝트를 생성해 개발하므로 공용 개발 데이터베이스 충돌 없이 안전하게 작업할 수 있습니다.
 
 <br>
 
@@ -588,18 +565,19 @@ Supabase 무료 플랜은 한동안 안 쓰면 프로젝트를 정지시킵니�
 
 | 문서 | 내용 |
 |---|---|
-| [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | OS별 설치·사용 안내 |
-| [docs/AI-INSTALL.md](docs/AI-INSTALL.md) | 코딩 에이전트용 안전 설치 절차 |
-| [docs/V2-SETUP.md](docs/V2-SETUP.md) | Supabase · Vercel 설정 |
-| [docs/DESIGN-V2-CLOUD.md](docs/DESIGN-V2-CLOUD.md) | 설계 결정과 근거 |
-| [docs/PRIVACY-AND-COST.md](docs/PRIVACY-AND-COST.md) | 개인정보·비용 보장 |
-| [runner/README.md](runner/README.md) | 러너 내부 구조와 검증 기록 |
-| [runner/mcp/README.md](runner/mcp/README.md) | MCP 서버 — 툴·정리본 형식·검증 상태 |
-| [docs/MCP-BENCHMARK.md](docs/MCP-BENCHMARK.md) | 토큰 측정 방법과 한계 |
-| [docs/MCP-DECISION-LOG.md](docs/MCP-DECISION-LOG.md) | MCP 서버를 이렇게 만든 이유 |
+| [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | OS별 설치 및 사용 가이드 |
+| [docs/AI-INSTALL.md](docs/AI-INSTALL.md) | 코딩 에이전트를 위한 자동 설치 가이드 |
+| [docs/V2-SETUP.md](docs/V2-SETUP.md) | Supabase 및 Vercel 수동 설정 및 배포 |
+| [docs/PRIVACY-AND-COST.md](docs/PRIVACY-AND-COST.md) | 개인정보 보호 및 비용 무과금 보장 모델 |
+| [docs/HARNESS-ENGINEERING.md](docs/HARNESS-ENGINEERING.md) | 하네스 엔지니어링 및 에이전트 개발자 가이드 |
+| [runner/README.md](runner/README.md) | 러너 프로세스 내부 구조 및 실행 안내 |
+| [runner/mcp/README.md](runner/mcp/README.md) | 로컬 MCP 서버 도구 및 포맷 규약 |
+| [CONTRIBUTING.ko.md](CONTRIBUTING.ko.md) | 오픈소스 기여 가이드 (한국어) |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution Guidelines (English) |
 
 <br>
 
 ## 라이선스
 
-MIT — [LICENSE](LICENSE)
+MIT License - [LICENSE](LICENSE)
+

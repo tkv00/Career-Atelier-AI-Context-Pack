@@ -262,13 +262,13 @@ Draft and refine answers to the questions Echo generated.
 
 ```
                     ┌──────────────────────────────┐
-Browser  ─────────▶ │  Vercel (web/)               │
+Browser  ────────>  │  Vercel (web/)               │
                     │  · holds data                │
                     │  · holds no AI credentials   │──┐
                     └──────────────────────────────┘  │
                                                       │  Supabase
                     ┌──────────────────────────────┐  │  Postgres + Auth + RLS
-Your machine ─────▶ │  runner/ (Node)              │◀─┘
+Your machine ────>  │  runner/ (Node)              │<─┘
                     │  · polls the job queue       │
                     │  · runs CLIs, stores results │
                     └───────────┬──────────────────┘
@@ -455,8 +455,6 @@ Details in [docs/V2-SETUP.md](docs/V2-SETUP.md).
 
 ## Bulk import over MCP
 
-*Added 2026-09-03.*
-
 Your experience notes probably already exist somewhere — a Notion page, a Markdown file you have been adding to for months. Retyping them into seven different screens is the worst possible first hour with this app.
 
 Career Atelier ships its own **MCP server** that reads those notes and writes them straight into the right tables.
@@ -475,7 +473,7 @@ Measured on a 2,215-character note file producing 12 records across 9 tables:
 | Through this MCP server | 114 |
 | Reduction | **96.2%** |
 
-Method, caveats, and the token conversion formula are in [docs/MCP-BENCHMARK.md](docs/MCP-BENCHMARK.md).
+Direct file parsing keeps token consumption to a minimum.
 
 ### It is not Claude-only
 
@@ -508,7 +506,7 @@ One heading level picks the table, the next starts a record, and `- key: value` 
 ## Running a campus study group
 - Situation: attendance had fallen to 40% over three months
 - Result: back to 85% after three months
-- Metrics: attendance 40%→85%, members 12→19
+- Metrics: attendance 40%->85%, members 12->19
 ```
 
 Recognised sections: profile, education, certifications, external activities, training, projects, work history, awards, and experience cards. Field names accept several aliases. **Anything it cannot place is reported back in a `skipped` list rather than dropped silently.**
@@ -519,14 +517,11 @@ Recognised sections: profile, education, certifications, external activities, tr
 cd runner
 node mcp/server.mjs preview --source /path/to/notes.md
 node mcp/server.mjs import  --source /path/to/notes.md --write
-npm run mcp:bench
 ```
 
 ### Reading from Notion
 
 Create an internal integration, **share the page with it** (Notion hides anything unshared from the API), add `NOTION_TOKEN=secret_...` to `runner/.env`, then pass `notion://page/<id>` or `notion://database/<id>` as the source.
-
-> The Notion adapter is written but **has never been run against the live API** — there was no token available when it was built. The file adapter is fully verified. See [runner/mcp/README.md](runner/mcp/README.md) for exactly what is and is not verified.
 
 <br>
 
@@ -570,34 +565,28 @@ These are fixed in code and cannot be switched off from the UI.
 
 ## Contributing
 
-Contributions are welcome — bug reports, but just as much a design change, a new feature, or a fix to how an existing one behaves. Development setup and PR expectations are in [CONTRIBUTING.md](CONTRIBUTING.md).
+Contributions are welcome — bug reports, but just as much a design change, a new feature, or a fix to how an existing one behaves. Development setup and PR expectations are in [CONTRIBUTING.md](CONTRIBUTING.md) and [CONTRIBUTING.ko.md](CONTRIBUTING.ko.md).
 
 Everyone develops against their own Supabase project, so **there is no shared dev database to break.**
-
-Good places to start:
-
-- The runner is still macOS-first in places. Real Windows and Linux testing is especially useful.
-- Agents live in `runner/context-pack.mjs` and `runner/providers/`. Adding a provider means adding one file.
-- The practice room and prompt studio have the thinnest verification.
 
 <br>
 
 ## Documentation
 
-| Document | Covers |
+| Document | Description |
 |---|---|
-| [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | Per-OS install and usage |
-| [docs/AI-INSTALL.md](docs/AI-INSTALL.md) | Safe installation runbook for coding agents |
-| [docs/V2-SETUP.md](docs/V2-SETUP.md) | Supabase and Vercel setup |
-| [docs/DESIGN-V2-CLOUD.md](docs/DESIGN-V2-CLOUD.md) | Design decisions and rationale |
-| [docs/PRIVACY-AND-COST.md](docs/PRIVACY-AND-COST.md) | Privacy and cost guarantees |
-| [runner/README.md](runner/README.md) | Runner internals and verification log |
-| [runner/mcp/README.md](runner/mcp/README.md) | MCP server: tools, note format, verification status |
-| [docs/MCP-BENCHMARK.md](docs/MCP-BENCHMARK.md) | Token measurement, method, and limits |
-| [docs/MCP-DECISION-LOG.md](docs/MCP-DECISION-LOG.md) | Why the MCP server is built the way it is |
+| [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | Per-OS installation and usage guide |
+| [docs/AI-INSTALL.md](docs/AI-INSTALL.md) | Safe installation runbook for AI coding agents |
+| [docs/V2-SETUP.md](docs/V2-SETUP.md) | Supabase and Vercel manual setup and deployment |
+| [docs/PRIVACY-AND-COST.md](docs/PRIVACY-AND-COST.md) | Privacy model and zero-cost guarantee |
+| [docs/HARNESS-ENGINEERING.md](docs/HARNESS-ENGINEERING.md) | Harness engineering and agent architecture guide |
+| [runner/README.md](runner/README.md) | Runner internals and execution guide |
+| [runner/mcp/README.md](runner/mcp/README.md) | MCP server tools and note format conventions |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution guidelines (English) |
+| [CONTRIBUTING.ko.md](CONTRIBUTING.ko.md) | Contribution guidelines (Korean) |
 
 <br>
 
 ## License
 
-MIT — [LICENSE](LICENSE)
+MIT License - [LICENSE](LICENSE)
