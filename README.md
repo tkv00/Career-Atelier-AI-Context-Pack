@@ -457,7 +457,7 @@ npm run deploy
 
 This installs the Vercel CLI's project link into `web/` directly — no GitHub import required, which is the step that tends to get stuck if Vercel's GitHub App does not have access to your fork. It reads the same `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` that `npm run setup` already wrote to `web/.env.local`, sets them on the Vercel project, and deploys. Sign in to Vercel once when prompted; re-run the same command any time you want to push a new deploy.
 
-The project name defaults to `career-atelier-<your-supabase-ref>`, which is unique to your own Supabase project, so it will not collide with anyone else deploying the same repository. If Vercel still rejects it (an unrelated project of yours already has that name), pick your own:
+Once it has deployed, it asks what you want your address to be — try your own name first. If someone else already has `<that-name>.vercel.app`, it says so and asks again; after three misses in a row it offers a name with a random suffix that is guaranteed free instead of making you keep guessing. (Running with `--yes` skips straight to that random name on the first miss, since there's no one to ask.) You can also pass the name up front:
 
 ```bash
 npm run deploy -- --project-name my-own-name
