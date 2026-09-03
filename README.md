@@ -400,10 +400,12 @@ Paste this one line into Codex, Claude Code, Gemini CLI, Cursor, or any coding a
 Install Career Atelier by reading and following these instructions: https://raw.githubusercontent.com/tkv00/Career-Atelier-AI-Context-Pack/refs/heads/main/docs/AI-INSTALL.md
 ```
 
-An agent can also do the whole thing in one command. `--yes` means it never stops to ask:
+An agent can also do the whole thing without stopping to ask, by running these in order. `--yes` means the wizard never waits on a prompt:
 
 ```bash
-git clone https://github.com/tkv00/Career-Atelier-AI-Context-Pack.git && cd Career-Atelier-AI-Context-Pack && npm run setup -- --yes
+git clone https://github.com/tkv00/Career-Atelier-AI-Context-Pack.git
+cd Career-Atelier-AI-Context-Pack
+npm run setup -- --yes
 ```
 
 The agent will check prerequisites, clone the official repository, install locked dependencies, run the existing setup wizard, and verify the build. The runbook forbids API keys, destructive Git operations, silent environment-file overwrites, and automatic deployment. Login and account-ownership confirmations intentionally remain manual. You can inspect the complete instructions before using them: [docs/AI-INSTALL.md](docs/AI-INSTALL.md).
@@ -427,7 +429,10 @@ npm run dev
 
 ```bash
 # terminal 2 — runner
-cd runner && npm install && npm run login && npm run start
+cd runner
+npm install
+npm run login
+npm run start
 ```
 
 Open http://localhost:3000 and sign in with your own email.

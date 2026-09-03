@@ -142,15 +142,20 @@ async function main() {
   ok(`Supabase CLI ${version('supabase') ?? ''}`);
 
   // AI 비서용 CLI는 없어도 설치는 진행된다 — 나중에 붙여도 되기 때문이다.
+  // 안내 명령은 한 줄씩 배열로 둔다 — &&로 이어 붙이면 Windows의 기본
+  // PowerShell(5.1)이 파싱조차 못 해서 그대로 붙여넣기 못 한다.
   const clis = [
-    ['codex', 'Codex(GPT) — 루미·모카·뮤즈', 'npm install -g @openai/codex && codex login'],
-    ['claude', 'Claude Code — 솔·렌즈·에코', 'npm install -g @anthropic-ai/claude-code && claude auth login'],
-    ['agy', 'Antigravity(Gemini) — 소제목', 'https://antigravity.google 설치 안내 참고'],
+    ['codex', 'Codex(GPT) — 루미·모카·뮤즈', ['npm install -g @openai/codex', 'codex login']],
+    ['claude', 'Claude Code — 솔·렌즈·에코', ['npm install -g @anthropic-ai/claude-code', 'claude auth login']],
+    ['agy', 'Antigravity(Gemini) — 소제목', ['https://antigravity.google 설치 안내 참고']],
   ];
   console.log('');
-  for (const [bin, label, howto] of clis) {
+  for (const [bin, label, steps] of clis) {
     if (has(bin)) ok(`${label}`);
-    else warn(`${label} — 없음. 이 비서를 쓰려면: ${c.dim(howto)}`);
+    else {
+      warn(`${label} — 없음. 이 비서를 쓰려면:`);
+      for (const step of steps) console.log(`    ${c.dim(step)}`);
+    }
   }
 
   // 2. Supabase 프로젝트 -----------------------------------------------------
@@ -322,12 +327,22 @@ async function main() {
   }
 
   // 5. 다음 단계 -------------------------------------------------------------
+  // 명령을 한 줄씩 따로 찍는다 — &&로 이으면 Windows 기본 PowerShell(5.1)에서
+  // 그대로 붙여넣었을 때 파싱 에러가 난다.
   console.log(c.bold('\n\n설치 완료. 다음 순서로 실행하세요.\n'));
-  console.log(`  ${c.bold('1)')} 웹 앱 실행       ${c.dim('cd web && npm install && npm run dev')}`);
+  console.log(`  ${c.bold('1)')} 웹 앱 실행`);
+  console.log(`     ${c.dim('cd web')}`);
+  console.log(`     ${c.dim('npm install')}`);
+  console.log(`     ${c.dim('npm run dev')}`);
   console.log(`     ${c.dim('http://localhost:3000 에서 본인 이메일로 로그인하세요.')}`);
   console.log(`     ${c.dim('가장 먼저 가입한 계정이 이 인스턴스의 소유자가 되고, 이후 가입은 막힙니다.')}`);
-  console.log(`\n  ${c.bold('2)')} 러너 로그인      ${c.dim('cd runner && npm install && npm run login')}`);
-  console.log(`  ${c.bold('3)')} 러너 실행        ${c.dim('cd runner && npm run start')}`);
+  console.log(`\n  ${c.bold('2)')} 러너 로그인`);
+  console.log(`     ${c.dim('cd runner')}`);
+  console.log(`     ${c.dim('npm install')}`);
+  console.log(`     ${c.dim('npm run login')}`);
+  console.log(`\n  ${c.bold('3)')} 러너 실행`);
+  console.log(`     ${c.dim('cd runner')}`);
+  console.log(`     ${c.dim('npm run start')}`);
   console.log(`     ${c.dim('웹 관제실 화면 아래 "러너" 목록에서 이 기기를 승인해야 작업을 받습니다.')}`);
   console.log(`\n자세한 내용: ${c.dim('docs/USER-GUIDE.md')}\n`);
 

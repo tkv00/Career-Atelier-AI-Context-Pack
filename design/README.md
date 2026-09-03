@@ -52,7 +52,8 @@ Career Atelier의 UI는 `web/app/globals.css` 한 파일에 토큰 → 프리미
 이를 배포용으로 굽는다.
 
 ```bash
-cd web && node scripts/normalize-agent-sprites.mjs
+cd web
+node scripts/normalize-agent-sprites.mjs
 ```
 
 **왜 정규화가 필요했나**: 원본은 프레임 크기(429~536px), 캐릭터가 프레임에서

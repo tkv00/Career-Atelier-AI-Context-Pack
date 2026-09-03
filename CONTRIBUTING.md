@@ -114,7 +114,10 @@ changes how the issue gets scheduled.
 4. Describe **what you verified**, not just what you wrote.
 
 ```bash
-cd web && npx tsc --noEmit && npm run lint && npm run build
+cd web
+npx tsc --noEmit
+npm run lint
+npm run build
 ```
 
 On verification: "typechecks" is not verification. "Created a job post, clicked
