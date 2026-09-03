@@ -459,6 +459,11 @@ export function EssayEditor({
           ? '변경됨 (곧 자동저장)'
           : '저장됨';
 
+  // 솔→뮤즈→렌즈→콤마 파이프라인 중 어느 단계든 돌고 있으면 "기업 조사
+  // 다시 요청"을 막는다 — 안 막으면 뒷단이 도는 도중에 사용자가 새 체인을
+  // 또 시작해 같은 자소서에 두 파이프라인이 동시에 도는 사고가 난다.
+  const pipelinePending = companyPending || writerPending || reviewPending || subtitlePending;
+
   return (
     <div style={{ maxWidth: 760 }}>
       <div className="page-title">
@@ -572,9 +577,12 @@ export function EssayEditor({
                 style={{ marginTop: 4, resize: 'vertical' }}
               />
             </label>
+            <p style={{ fontSize: 11, color: 'var(--text-dim)', margin: 0 }}>
+              조사가 끝나면 자동으로 초안 작성(뮤즈) → 검수(렌즈) → 소제목 제안(콤마)까지 이어서 실행됩니다. 경험 카드가 하나도 없으면 뮤즈 단계에서 멈춥니다.
+            </p>
             <div style={{ display: 'flex', gap: 8 }}>
               <button type="submit" className="run-button" disabled={savingCompany}>
-                {savingCompany ? '요청 중…' : '기업 조사 요청 (솔)'}
+                {savingCompany ? '요청 중…' : '기업 조사부터 소제목까지 실행 (솔)'}
               </button>
               <button type="button" className="secondary-button" onClick={() => setShowCompanyForm(false)}>
                 취소
@@ -591,9 +599,21 @@ export function EssayEditor({
               type="button"
               className="secondary-button"
               onClick={() => setShowCompanyForm(true)}
-              disabled={companyPending}
+              disabled={pipelinePending}
             >
-              {companyPending ? (runnerOnline ? '조사 중…' : '대기 중 — 러너 꺼짐') : jobPost ? '기업 조사 다시 요청' : '기업 조사 요청 (솔)'}
+              {pipelinePending
+                ? runnerOnline
+                  ? companyPending
+                    ? '조사 중…'
+                    : writerPending
+                      ? '초안 작성 중…'
+                      : reviewPending
+                        ? '검수 중…'
+                        : '소제목 작성 중…'
+                  : '대기 중 — 러너 꺼짐'
+                : jobPost
+                  ? '기업 조사 다시 요청'
+                  : '기업 조사 요청 (솔)'}
             </button>
           </div>
         )}

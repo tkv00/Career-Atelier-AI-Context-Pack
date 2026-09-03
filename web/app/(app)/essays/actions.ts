@@ -1,5 +1,6 @@
 'use server';
 
+import { randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
@@ -204,9 +205,14 @@ export async function requestCompanyResearch(essayId: string, company: string, r
     if (essayError) throw new Error(essayError.message);
   }
 
+  // pipeline_id를 채우면 러너가 이 잡을 "체인의 시작"으로 인식해, 조사가
+  // 끝나는 대로 뮤즈(작성)→렌즈(검수)→콤마(소제목)까지 자동으로 이어서
+  // 실행한다(runner/index.mjs). 개별 재실행 버튼(requestWriterDraft 등)은
+  // pipeline_id를 채우지 않으므로 그쪽은 여전히 단독 실행으로 끝난다.
   const { error: jobError } = await supabase.from('jobs').insert({
     owner_id: user.id,
     kind: 'company',
+    pipeline_id: randomUUID(),
     payload: { essayId, jobPostId, instruction: instruction.trim() },
     harness_snapshot: {},
   });

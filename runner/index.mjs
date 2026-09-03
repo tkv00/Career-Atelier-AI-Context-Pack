@@ -149,6 +149,23 @@ async function recordAndRun(supabase, ownerId, job, { provider, prompt, workspac
   }
 }
 
+// job.pipeline_id가 있으면 체인의 다음 단계를 큐에 넣는다 — 사용자가 "기업
+// 조사 요청" 버튼으로 시작한 잡에만 pipeline_id가 채워지므로(actions.ts),
+// 개별 재실행 버튼(AI 초안 생성 등)으로 만든 잡은 여기 안 걸리고 단독으로
+// 끝난다. 앞 단계가 실패/차단되면 recordAndRun이 onComplete 자체를 안
+// 부르므로 체인은 그 자리에서 자연히 멈춘다 — 별도 처리가 필요 없다.
+async function continuePipeline(supabase, ownerId, job, nextKind, payload) {
+  if (!job.pipeline_id) return;
+  const { error } = await supabase.from('jobs').insert({
+    owner_id: ownerId,
+    kind: nextKind,
+    pipeline_id: job.pipeline_id,
+    payload,
+    harness_snapshot: {},
+  });
+  if (error) console.log(`파이프라인 ${job.pipeline_id}: ${nextKind} 잡 생성 실패 — ${error.message}`);
+}
+
 // 렌즈(검수) — 4단계 첫 수직 슬라이스. payload: { essayId }.
 async function processReviewJob(supabase, ownerId, job) {
   const essayId = job.payload?.essayId;
@@ -178,9 +195,14 @@ async function processReviewJob(supabase, ownerId, job) {
     jobPost = data;
   }
 
+  // 파이프라인으로 왔으면 essay_projects.draft(사용자가 아직 [반영] 안 눌렀을
+  // 수 있는 저장값)가 아니라 뮤즈가 방금 쓴 초안을 검수 대상으로 삼는다.
+  const draftOverride = job.payload?.draftOverride;
+  const effectiveEssay = draftOverride ? { ...essay, draft: draftOverride } : essay;
+
   const runIdForWorkspace = randomUUID();
   const { workspace, contextDir, schemaPath } = createReviewContextPack(runIdForWorkspace, {
-    essay,
+    essay: effectiveEssay,
     experiences: experiences ?? [],
     jobPost,
   });
@@ -209,6 +231,11 @@ async function processReviewJob(supabase, ownerId, job) {
         content: result.output,
         metadata: { essayId, parsed, provider: run.provider },
       });
+
+      // 렌즈는 본문을 고치지 않으므로, 콤마에도 같은 초안을 그대로 넘긴다.
+      if (draftOverride) {
+        await continuePipeline(supabase, ownerId, job, 'subtitle', { essayId, draftOverride });
+      }
     },
   });
 }
@@ -313,6 +340,16 @@ async function processWriterJob(supabase, ownerId, job) {
         content: result.output,
         metadata: { essayId, parsed, provider: run.provider, evidenceViolations },
       });
+
+      // 렌즈에는 essay_projects.draft(저장된 값, 아직 비어 있을 수 있다)가
+      // 아니라 방금 뮤즈가 쓴 초안을 직접 넘긴다 — 사용자가 [반영]을 누르기
+      // 전에도 검수가 그 초안을 대상으로 돌게 하려는 것이다. 파싱이 실패해
+      // draft를 못 뽑으면 다음에 넘길 게 없으므로 체인을 여기서 멈춘다.
+      if (parsed?.draft) {
+        await continuePipeline(supabase, ownerId, job, 'review', { essayId, draftOverride: parsed.draft });
+      } else if (job.pipeline_id) {
+        console.log(`파이프라인 ${job.pipeline_id}: 뮤즈 출력에서 draft를 못 읽어 렌즈로 넘기지 않습니다.`);
+      }
     },
   });
 }
@@ -415,6 +452,7 @@ async function processCompanyJob(supabase, ownerId, job) {
         sources: parsed?.facts ?? [],
         provider: run.provider,
       });
+      await continuePipeline(supabase, ownerId, job, 'writer', { essayId: job.payload?.essayId });
     },
   });
 }
@@ -634,14 +672,20 @@ async function processSubtitleJob(supabase, ownerId, job) {
 
   const provider = providerFor(template);
 
-  if (!essay.draft || !essay.draft.trim()) {
+  // 파이프라인으로 왔으면 뮤즈가 쓴 초안을 그대로 받는다 — 사용자가 아직
+  // [반영]을 안 눌러 essay_projects.draft가 비어 있어도 소제목을 지을 수
+  // 있어야 체인이 끊기지 않는다.
+  const draftOverride = job.payload?.draftOverride;
+  const effectiveEssay = draftOverride ? { ...essay, draft: draftOverride } : essay;
+
+  if (!effectiveEssay.draft || !effectiveEssay.draft.trim()) {
     await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
     console.log(`잡 ${job.id}: 본문이 비어 있어 소제목 실행을 거부합니다.`);
     return;
   }
 
   const runIdForWorkspace = randomUUID();
-  const { workspace, contextDir, schemaPath } = createSubtitleContextPack(runIdForWorkspace, { essay, existingSubtitle: essay.subtitle });
+  const { workspace, contextDir, schemaPath } = createSubtitleContextPack(runIdForWorkspace, { essay: effectiveEssay, existingSubtitle: essay.subtitle });
   const prompt = `${template.body}\n\n[대상]\ncontext/01-essay-draft.md, context/02-question.md, context/03-existing-subtitle.md를 읽고 스키마에 맞는 JSON으로만 답하라. 파일을 새로 만들거나 수정하지 말고 답변만 하라.`;
 
   await recordAndRun(supabase, ownerId, job, {
