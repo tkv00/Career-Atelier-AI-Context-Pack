@@ -301,7 +301,21 @@ async function main() {
     }
 
     const projects = supabaseJson(['projects', 'list']) ?? [];
-    const usable = projects.filter((p) => p.ref);
+    let usable = projects.filter((p) => p.ref);
+
+    // 계정에 프로젝트가 1개뿐이면 예전에는 묻지도 않고 그대로 재사용했다 —
+    // 이 컴퓨터에서 예전에 로그인해 둔 계정에 프로덕션 프로젝트 하나만 있으면,
+    // 완전히 새로 테스트하려던 사람이 그 프로덕션에 조용히 연결돼 버린다
+    // (실제로 겪음, 2026-09-04 — 개발한 적 없는 새 컴퓨터인데 예전 로그인
+    // 세션 때문에 유일한 기존 프로젝트로 자동 연결됨). 1개뿐이어도 대화형
+    // 이면 확인을 받는다.
+    if (usable.length === 1 && interactive && !args.newProject) {
+      const { name, ref } = usable[0];
+      const proceed = (
+        await ask(`Supabase 계정에 이미 "${name}" (${ref}) 프로젝트가 있습니다. 이 프로젝트를 쓸까요? 새로 만들려면 n을 입력하세요. [Y/n] `)
+      ).toLowerCase();
+      if (proceed === 'n') usable = [];
+    }
 
     if (usable.length && !args.newProject) {
       // 이미 프로젝트가 있으면 새로 만들지 않는다 — 무료 플랜은 개수 제한이 있고,
