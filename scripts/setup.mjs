@@ -28,6 +28,12 @@ import { fileURLToPath } from 'node:url';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
+// db push/db query가 Postgres에 직접 접속하는 단계. 정상 네트워크에서는
+// 1~3초면 끝나는데, 막힌 네트워크에서는 CLI가 내부적으로 최대 8번 재시도하며
+// 몇 분씩 걸린다(SSAFY 실습실에서 실제로 겪음, 2026-09-03) — 그 시간을 다
+// 기다리게 두지 않고, 이 시간 안에 안 끝나면 끊고 바로 다음 폴백으로 넘어간다.
+const DB_CONNECT_TIMEOUT_MS = 20_000;
+
 function parseArgs(argv) {
   // 서울에서 가장 가까운 리전을 기본값으로 둔다.
   const out = { yes: false, region: 'ap-northeast-2' };
@@ -158,7 +164,7 @@ function applyMigrationsOverHttps(root) {
   const historyFile = resolve(root, '.setup-migration-history-init.sql');
   writeFileSync(historyFile, MIGRATION_HISTORY_TABLE_SQL, 'utf8');
   const initHistory = spawnSync('supabase', ['db', 'query', '--linked', '--file', historyFile], {
-    cwd: root, stdio: 'inherit', shell: process.platform === 'win32',
+    cwd: root, stdio: 'inherit', shell: process.platform === 'win32', timeout: DB_CONNECT_TIMEOUT_MS,
   });
   try { unlinkSync(historyFile); } catch {}
   if (initHistory.status !== 0) return false;
@@ -166,7 +172,7 @@ function applyMigrationsOverHttps(root) {
   for (const { file, path, version, name } of migrationFiles(root)) {
     if (!version) continue;
     const apply = spawnSync('supabase', ['db', 'query', '--linked', '--file', path], {
-      cwd: root, stdio: 'inherit', shell: process.platform === 'win32',
+      cwd: root, stdio: 'inherit', shell: process.platform === 'win32', timeout: DB_CONNECT_TIMEOUT_MS,
     });
     if (apply.status !== 0) return false;
 
@@ -180,7 +186,7 @@ function applyMigrationsOverHttps(root) {
       'utf8',
     );
     const record = spawnSync('supabase', ['db', 'query', '--linked', '--file', recordFile], {
-      cwd: root, stdio: 'inherit', shell: process.platform === 'win32',
+      cwd: root, stdio: 'inherit', shell: process.platform === 'win32', timeout: DB_CONNECT_TIMEOUT_MS,
     });
     try { unlinkSync(recordFile); } catch {}
     if (record.status !== 0) return false;
@@ -390,11 +396,13 @@ async function main() {
     process.exit(1);
   }
 
+  console.log(c.dim(`  (최대 ${DB_CONNECT_TIMEOUT_MS / 1000}초 기다립니다 — 막힌 네트워크면 CLI가 내부적으로 훨씬 오래 재시도하는데, 그건 기다리지 않습니다.)`));
   const push = spawnSync('supabase', ['db', 'push', '--linked'], {
     cwd: root,
     stdio: 'inherit',
     shell: process.platform === 'win32',
     env: supabaseEnv,
+    timeout: DB_CONNECT_TIMEOUT_MS,
   });
 
   if (push.status === 0) {
