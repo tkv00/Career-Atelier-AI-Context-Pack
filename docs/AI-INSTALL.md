@@ -80,6 +80,7 @@ Useful flags:
 - `--new-project <name>` — force creating a new project instead of reusing one
 - `--region <region>` — defaults to `ap-northeast-2`
 - `--project-ref <ref> --anon-key <key>` — skip discovery entirely when the user hands you the values
+- `--db-password <password>` — required alongside `--project-ref` for an existing project; applying migrations needs a real Postgres connection, which the anon key alone cannot authenticate. Reusing an existing project without this flag stops and asks the user for it (find or reset it under the project's Settings → Database in the Supabase dashboard) — never guess or fabricate a password.
 
 Existing env files are kept unless `--yes` is passed, which overwrites them. If the user has an installation they care about, confirm before overwriting.
 
