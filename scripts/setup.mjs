@@ -432,9 +432,21 @@ async function main() {
         fail('두 경로 모두 실패했습니다 — 이 네트워크에서는 CLI로 적용할 수 없습니다.');
         console.log(c.dim(`  ${manualPath}의 전체 내용을 복사해 아래 주소의 SQL Editor에 붙여넣고 실행하세요:`));
         console.log(c.dim(`    https://supabase.com/dashboard/project/${projectRef}/sql/new`));
-        console.log(c.dim('  실행한 뒤 이 명령에 --skip-migrations를 붙여 다시 실행하면 나머지 단계(Auth 설정·환경변수 파일)를 이어서 끝냅니다:'));
-        console.log(c.dim(`    node scripts/setup.mjs --project-ref ${projectRef} --db-password <위에서 입력한 값> --skip-migrations`));
-        process.exit(1);
+
+        if (interactive) {
+          // 사람이 지금 화면 앞에 있으니, 여기서 새 명령을 따로 찾아 다시
+          // 치게 하지 않는다 — 브라우저에서 SQL만 붙여넣고 돌아와 Enter를
+          // 누르면 같은 실행 안에서 이어서 끝낸다(실제로 "그러면 새 명령을
+          // 또 찾아야 하냐"는 지적을 받고 고침, 2026-09-04).
+          await ask(c.dim('  다 붙여넣고 실행했으면 Enter를 눌러 계속하세요... '));
+          ok('알겠습니다 — 마이그레이션이 적용됐다고 보고 계속 진행합니다.');
+        } else {
+          // --yes로 무인 실행 중이면 아무도 SQL Editor를 대신 열어 줄 수
+          // 없다. 사람이 나중에 그대로 붙여넣기만 하면 되는 명령을 남긴다.
+          console.log(c.dim('  실행한 뒤 이 명령에 --skip-migrations를 붙여 다시 실행하면 나머지 단계(Auth 설정·환경변수 파일)를 이어서 끝냅니다:'));
+          console.log(c.dim(`    node scripts/setup.mjs --project-ref ${projectRef} --skip-migrations`));
+          process.exit(1);
+        }
       }
     }
   }
