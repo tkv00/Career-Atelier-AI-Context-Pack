@@ -34,6 +34,12 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
               <SignOutButton />
             </div>
           </header>
+          {user?.user_metadata?.generated_password && (
+            <div className="banner info" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, margin: '0 0 14px' }}>
+              <span>설치 마법사가 자동으로 만들어 준 비밀번호를 아직 쓰고 있습니다.</span>
+              <a href="/auth/update-password" className="secondary-button">비밀번호 바꾸기</a>
+            </div>
+          )}
           {children}
         </section>
         <FocusTimer />

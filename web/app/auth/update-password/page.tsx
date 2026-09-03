@@ -23,7 +23,9 @@ export default function UpdatePasswordPage() {
     setStatus('saving');
     setErrorMessage('');
     const supabase = createClient();
-    const { error } = await supabase.auth.updateUser({ password });
+    // generated_password는 설치 마법사가 자동 생성한 비밀번호를 쓰는 동안만
+    // 대시보드 배너를 띄우는 플래그다 — 직접 바꿨으니 여기서 내린다.
+    const { error } = await supabase.auth.updateUser({ password, data: { generated_password: false } });
     if (error) {
       setStatus('error');
       setErrorMessage(error.message);

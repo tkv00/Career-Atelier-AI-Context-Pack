@@ -17,6 +17,7 @@
 //   node scripts/setup.mjs                      # 로그인만 하면 프로젝트 생성·키 조회까지 알아서
 //   node scripts/setup.mjs --new-project my-app --region ap-northeast-2
 //   node scripts/setup.mjs --project-ref abc --anon-key eyJ... --db-password ...   # 값을 직접 줄 때
+//   node scripts/setup.mjs --owner-email me@example.com   # 계정도 자동 생성(비밀번호는 화면에 출력)
 
 import { execFileSync, spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
@@ -39,6 +40,7 @@ function parseArgs(argv) {
     else if (flag === '--new-project') { out.newProject = value ?? 'career-atelier'; i += 1; }
     else if (flag === '--region') { out.region = value; i += 1; }
     else if (flag === '--db-password') { out.dbPassword = value; i += 1; }
+    else if (flag === '--owner-email') { out.ownerEmail = value; i += 1; }
     else if (flag === '--yes' || flag === '-y') { out.yes = true; }
   }
   return out;
@@ -355,7 +357,41 @@ async function main() {
     ok(`${path} 작성`);
   }
 
-  // 6. 다음 단계 -------------------------------------------------------------
+  // 6. 소유자 계정 -------------------------------------------------------------
+  // service_role은 여기서도 안 쓴다 — anon 키로 회원가입 API를 그대로 호출할
+  // 뿐이고, before_user_created 훅이 이미 "첫 계정만 허용"을 강제하므로 이
+  // 결과는 웹 폼으로 직접 가입하는 것과 동일하게 안전하다. AI 에이전트가
+  // --yes로 무인 설치할 때는 사람 대신 이메일을 지어내면 안 되므로(AGENTS.md
+  // "First sign-up ... this must be them"), --owner-email을 직접 받았거나
+  // 사람이 지금 이 프롬프트에 답한 경우에만 진행한다.
+  let ownerEmail = args.ownerEmail;
+  if (!ownerEmail && interactive) {
+    ownerEmail = await ask('\n웹 앱 로그인에 쓸 본인 이메일 (건너뛰려면 Enter): ');
+  }
+
+  let ownerAccountCreated = false;
+  if (ownerEmail) {
+    const ownerPassword = randomBytes(9).toString('base64url');
+    const signupResult = await fetch(`${supabaseUrl}/auth/v1/signup`, {
+      method: 'POST',
+      headers: { apikey: anonKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: ownerEmail, password: ownerPassword, data: { generated_password: true } }),
+    }).catch((error) => ({ ok: false, status: null, statusText: error.message }));
+
+    if (signupResult.ok) {
+      ownerAccountCreated = true;
+      console.log(c.bold('\n계정을 만들었습니다.\n'));
+      console.log(`  이메일:   ${ownerEmail}`);
+      console.log(`  비밀번호: ${c.bold(ownerPassword)}`);
+      console.log(c.dim('  로그인 후 반드시 비밀번호를 바꾸세요 — 대시보드에 안내 배너가 뜹니다.'));
+    } else {
+      const detail = await signupResult.json?.().catch(() => null);
+      warn(`계정 자동 생성 실패(${detail?.msg ?? signupResult.statusText ?? signupResult.status}).`);
+      console.log(c.dim('  웹에서 직접 "계정이 없으신가요? 만들기"로 가입하세요.'));
+    }
+  }
+
+  // 7. 다음 단계 -------------------------------------------------------------
   // 명령을 한 줄씩 따로 찍는다 — &&로 이으면 Windows 기본 PowerShell(5.1)에서
   // 그대로 붙여넣었을 때 파싱 에러가 난다.
   console.log(c.bold('\n\n설치 완료. 다음 순서로 실행하세요.\n'));
@@ -363,8 +399,12 @@ async function main() {
   console.log(`     ${c.dim('cd web')}`);
   console.log(`     ${c.dim('npm install')}`);
   console.log(`     ${c.dim('npm run dev')}`);
-  console.log(`     ${c.dim('http://localhost:3000 에서 본인 이메일로 로그인하세요.')}`);
-  console.log(`     ${c.dim('가장 먼저 가입한 계정이 이 인스턴스의 소유자가 되고, 이후 가입은 막힙니다.')}`);
+  if (ownerAccountCreated) {
+    console.log(c.dim('     http://localhost:3000 에서 위 이메일·비밀번호로 로그인하세요.'));
+  } else {
+    console.log(c.dim('     http://localhost:3000 에서 본인 이메일과 비밀번호로 계정을 만드세요.'));
+    console.log(c.dim('     가장 먼저 가입한 계정이 이 인스턴스의 소유자가 되고, 이후 가입은 막힙니다.'));
+  }
   console.log(`\n  ${c.bold('2)')} 러너 로그인`);
   console.log(`     ${c.dim('cd runner')}`);
   console.log(`     ${c.dim('npm install')}`);
