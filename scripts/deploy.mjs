@@ -9,8 +9,9 @@
 // `vercel link`는 로컬 폴더를 그대로 프로젝트로 등록하므로 이 문제를
 // 피해 간다 — 이 리포 자신도 지금 이 방식으로 배포돼 있다.
 //
-//   node scripts/deploy.mjs             # 로그인만 하면 나머지는 알아서
-//   node scripts/deploy.mjs --yes       # 확인 없이 끝까지 진행
+//   node scripts/deploy.mjs                          # 로그인만 하면 나머지는 알아서
+//   node scripts/deploy.mjs --yes                    # 확인 없이 끝까지 진행
+//   node scripts/deploy.mjs --project-name my-app     # 프로젝트 이름을 직접 정할 때
 
 import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
@@ -20,9 +21,18 @@ import { fileURLToPath } from 'node:url';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const webDir = resolve(root, 'web');
-const args = new Set(process.argv.slice(2));
-const yes = args.has('--yes') || args.has('-y');
-const interactive = !yes;
+
+function parseArgs(argv) {
+  const out = { yes: false };
+  for (let i = 0; i < argv.length; i += 1) {
+    const flag = argv[i];
+    if (flag === '--project-name') { out.projectName = argv[i + 1]; i += 1; }
+    else if (flag === '--yes' || flag === '-y') { out.yes = true; }
+  }
+  return out;
+}
+const args = parseArgs(process.argv.slice(2));
+const interactive = !args.yes;
 const rl = interactive ? createInterface({ input: process.stdin, output: process.stdout }) : null;
 const ask = async (question) => (rl ? (await rl.question(question)).trim() : '');
 
@@ -91,12 +101,24 @@ async function main() {
   if (existsSync(resolve(webDir, '.vercel/project.json'))) {
     ok('이미 연결된 프로젝트를 사용합니다');
   } else {
-    const link = spawnSync('vercel', ['link', '--yes'], { cwd: webDir, stdio: 'inherit', shell: process.platform === 'win32' });
+    // 이름을 안 주면 vercel link가 디렉토리 이름(= "web")을 그대로 쓰는데,
+    // 그건 흔해 빠진 이름이라 다른 사람이 이미 <이름>.vercel.app을 쓰고
+    // 있을 확률이 높다(2026-09-03 확인). Supabase project ref는 각자
+    // 고유하므로 그걸 붙여 기본값을 사실상 겹칠 일 없게 만든다.
+    const supabaseRef = supabaseUrl.match(/^https:\/\/([a-z0-9]+)\.supabase\.co/)?.[1];
+    const defaultName = supabaseRef ? `career-atelier-${supabaseRef}` : 'career-atelier';
+    const projectName = args.projectName || defaultName;
+
+    const link = spawnSync('vercel', ['link', '--project', projectName, '--yes'], {
+      cwd: webDir, stdio: 'inherit', shell: process.platform === 'win32',
+    });
     if (link.status !== 0) {
-      fail('vercel link 실패.');
+      fail(`vercel link 실패 — "${projectName}"이 이미 다른 사람의 프로젝트일 수 있습니다.`);
+      console.log(c.dim('  다른 이름으로 다시 시도하세요:'));
+      console.log(c.dim(`    npm run deploy -- --project-name <원하는-이름>`));
       process.exit(1);
     }
-    ok('프로젝트 연결됨');
+    ok(`프로젝트 연결됨: ${projectName}`);
   }
 
   // 환경변수 두 개만 설정한다 — service_role이나 AI 제공자 키는 절대

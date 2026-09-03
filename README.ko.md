@@ -389,7 +389,9 @@ npm run setup
 3. 프로젝트 선택 — 없으면 **새로 만들고** 준비될 때까지 대기
 4. anon 키를 **직접 조회**해서 가져옴
 5. 테이블 · 보안 정책 · 기본 프롬프트 적용
-6. `web/.env.local`과 `runner/.env` 생성
+6. 이메일 템플릿 · 단일 사용자 가입 방어 · SMTP 설정 적용
+7. `web/.env.local`과 `runner/.env` 생성
+8. 계정을 만들고 비밀번호를 터미널에 출력 — 이 값으로 한 번 로그인한 뒤, 대시보드 배너에서 원하는 비밀번호로 바꾸면 됩니다
 
 > DB 비밀번호는 무작위로 만들고 어디에도 저장하지 않습니다. `service_role` 키는 조회조차 하지 않습니다.
 
@@ -440,7 +442,7 @@ npm run login
 npm run start
 ```
 
-http://localhost:3000 에 접속해 본인 이메일과 비밀번호로 계정을 만듭니다.
+http://localhost:3000 에 접속합니다. 마법사가 이미 계정을 만들어 줬다면(위 8번) 그 이메일과 화면에 출력된 비밀번호로 로그인하고, 아니라면 본인 이메일과 비밀번호로 새로 계정을 만듭니다.
 
 > **가장 먼저 가입한 계정이 그 인스턴스의 소유자가 되고, 이후 가입은 전부 거부됩니다.** 첫 가입을 본인 이메일로 하세요.
 
@@ -457,6 +459,12 @@ npm run deploy
 ```
 
 `web/`을 Vercel CLI로 직접 프로젝트에 연결합니다 — GitHub Import를 거치지 않습니다. Vercel의 GitHub App이 그 저장소(특히 포크)에 접근 권한이 없으면 Import 목록에 아예 안 뜨는 경우가 흔한데, 이 방식은 그 문제 자체를 피해 갑니다. `npm run setup`이 이미 `web/.env.local`에 써 둔 `NEXT_PUBLIC_SUPABASE_URL`·`NEXT_PUBLIC_SUPABASE_ANON_KEY`를 그대로 읽어 Vercel 프로젝트에 설정하고 배포까지 끝냅니다. 처음 한 번만 Vercel 로그인 창이 뜨고, 이후 다시 올리고 싶을 때도 같은 명령을 그대로 실행하면 됩니다.
+
+프로젝트 이름은 기본적으로 `career-atelier-<본인의 Supabase ref>`로 정해집니다 — 각자의 Supabase 프로젝트에서 나온 값이라, 같은 저장소로 배포하는 다른 사람과 절대 겹치지 않습니다. 그런데도 Vercel이 거부한다면(본인 계정에 같은 이름의 무관한 프로젝트가 이미 있는 경우) 원하는 이름을 직접 정하면 됩니다:
+
+```bash
+npm run deploy -- --project-name 원하는-이름
+```
 
 service_role 키나 AI 제공자 키는 넣지 마세요. **일부러 빌드가 거부합니다** (`web/lib/env.ts`).
 

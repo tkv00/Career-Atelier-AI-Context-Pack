@@ -386,7 +386,9 @@ npm run setup
 3. Pick a project, or **create one** and wait until it is ready
 4. **Read the anon key directly** from the CLI
 5. Apply tables, row level security, and the default prompts
-6. Write `web/.env.local` and `runner/.env`
+6. Apply email templates, the single-owner signup guard, and SMTP settings
+7. Write `web/.env.local` and `runner/.env`
+8. Create your account and print the password to the terminal — type it in once to sign in, then change it from the dashboard banner
 
 > The database password is generated at random and stored nowhere. The `service_role` key is never even read.
 
@@ -437,7 +439,7 @@ npm run login
 npm run start
 ```
 
-Open http://localhost:3000 and create an account with your own email and a password.
+Open http://localhost:3000. If the wizard already created an account for you (step 8 above), log in with that email and the printed password. Otherwise, create one with your own email and a password.
 
 > **The first account to sign up becomes the owner of that instance, and every later signup is rejected.** Make sure the first sign-up is yours.
 
@@ -454,6 +456,12 @@ npm run deploy
 ```
 
 This installs the Vercel CLI's project link into `web/` directly — no GitHub import required, which is the step that tends to get stuck if Vercel's GitHub App does not have access to your fork. It reads the same `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` that `npm run setup` already wrote to `web/.env.local`, sets them on the Vercel project, and deploys. Sign in to Vercel once when prompted; re-run the same command any time you want to push a new deploy.
+
+The project name defaults to `career-atelier-<your-supabase-ref>`, which is unique to your own Supabase project, so it will not collide with anyone else deploying the same repository. If Vercel still rejects it (an unrelated project of yours already has that name), pick your own:
+
+```bash
+npm run deploy -- --project-name my-own-name
+```
 
 Do not add a service role key or any AI provider key. **The build rejects them on purpose** (`web/lib/env.ts`).
 

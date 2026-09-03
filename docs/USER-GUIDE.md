@@ -158,6 +158,9 @@ Mac과 완전히 동일합니다.
 **`npm run setup`이 "supabase db push 실패 — 직접 DB 연결이 막힌 네트워크일 수 있습니다"라고 나옵니다**
 → 학교·회사 네트워크가 데이터베이스 포트(5432/6543)를 막아 둔 경우입니다(웹은 되는데 DB 직결만 안 되는 흔한 방화벽 구성). 마법사가 자동으로 다른 경로(HTTPS)로 재시도합니다. 그것도 안 되면 `career-atelier-migrations-manual.sql` 파일을 만들어 주는데, 이 파일 전체를 복사해 `https://supabase.com/dashboard/project/<project-ref>/sql/new`의 SQL Editor(브라우저)에 붙여넣어 실행하면 됩니다 — 브라우저는 HTTPS만 쓰므로 같은 네트워크에서도 대개 됩니다. 실행 후 `npm run setup`을 다시 돌리면 나머지 단계를 이어서 끝냅니다.
 
+**`npm run deploy`가 "vercel link 실패"라고 나옵니다**
+→ 기본 프로젝트 이름(`career-atelier-<본인 Supabase ref>`)이 본인 Vercel 계정의 다른 프로젝트와 우연히 겹친 경우입니다. 원하는 이름을 직접 정해서 다시 실행하세요: `npm run deploy -- --project-name 원하는-이름`
+
 **백업 폴더에 파일이 안 생깁니다**
 → 러너가 켜져 있어야 하고, 승인된 상태여야 하며, 경로가 절대 경로여야 합니다. 관제실의 러너 항목에 실패 사유가 표시됩니다.
 
