@@ -17,7 +17,7 @@ A self-hosted job-application workspace that runs on the ChatGPT, Claude, and Ge
 
 No metered API keys. Seven AI agents handle everything from industry research to cover-letter review and interview prep, inside your existing subscription.
 
-<img src="docs/images/screens/00-login.png" alt="Sign-in screen" width="100%">
+
 
 <br>
 

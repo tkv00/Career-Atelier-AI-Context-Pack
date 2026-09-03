@@ -17,7 +17,6 @@
 
 토큰당 과금되는 API 키는 쓰지 않습니다. 이미 내고 있는 구독료 안에서 7명의 AI 비서가 뉴스 조사부터 자소서 검수, 면접 준비까지 이어서 처리합니다.
 
-<img src="docs/images/screens/00-login.png" alt="로그인 화면" width="100%">
 
 <br>
 
