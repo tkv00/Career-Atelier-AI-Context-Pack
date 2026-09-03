@@ -3680,7 +3680,7 @@ input.interview-question-title:focus {
 }
 .galaxy-login-card form {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 148px;
+  grid-template-columns: 1fr;
   gap: var(--s2);
 }
 .galaxy-login-card label {
@@ -3775,6 +3775,27 @@ input.interview-question-title:focus {
   border-radius: 50%;
   background: currentColor;
   flex-shrink: 0;
+}
+.galaxy-auth-switch {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--s3);
+  font-size: var(--fs-xs);
+  color: var(--text-3);
+}
+.galaxy-auth-switch button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--cyan);
+  font-size: inherit;
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.galaxy-auth-switch button:hover {
+  color: var(--cyan-dim);
 }
 
 /* ── 14. 반응형 ──────────────────────────────────────────────────────── */

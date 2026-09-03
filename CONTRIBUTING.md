@@ -118,7 +118,10 @@ changes how the issue gets scheduled.
 4. Describe **what you verified**, not just what you wrote.
 
 ```bash
-cd web && npx tsc --noEmit && npm run lint && npm run build
+cd web
+npx tsc --noEmit
+npm run lint
+npm run build
 ```
 
 On verification: "typechecks" is not verification. "Created a job post, clicked
@@ -190,11 +193,10 @@ change alters a screen that appears in the README, regenerate them:
 npm run shoot-docs
 ```
 
-A Chrome window opens. Sign in there — the magic link has to be opened in that
-same window, so open your mail in a new tab of that window rather than clicking
-through from another browser. The script captures every documented screen at a
-consistent size once it detects your session. The profile is remembered, so later
-runs can use `npm run shoot-docs -- --headless`.
+A Chrome window opens. Sign in there with your email and password. The script
+captures every documented screen at a consistent size once it detects your
+session. The profile is remembered, so later runs can use
+`npm run shoot-docs -- --headless`.
 
 Email addresses on screen are replaced with `you@example.com` before each
 capture. Check the result before committing anyway — screenshots are the easiest

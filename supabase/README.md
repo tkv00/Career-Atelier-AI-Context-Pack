@@ -21,8 +21,9 @@ supabase start                        # Docker로 로컬 Postgres+Auth+PostgREST
 ```
 
 기동하면 `ANON_KEY`, `SERVICE_ROLE_KEY`, `API_URL`(기본 http://127.0.0.1:54321),
-Studio URL(http://127.0.0.1:54323), Mailpit(http://127.0.0.1:54324, 로컬 매직링크
-이메일 확인용)이 출력된다. `web/.env.local`에 `API_URL`과 `ANON_KEY`를 넣으면
+Studio URL(http://127.0.0.1:54323), Mailpit(http://127.0.0.1:54324, 로컬 인증
+이메일 — 비밀번호 재설정·러너 로그인 코드 — 확인용)이 출력된다. `web/.env.local`에
+`API_URL`과 `ANON_KEY`를 넣으면
 `web/`이 로컬 스택을 바라본다.
 
 **주의**: 여기서 나오는 `SERVICE_ROLE_KEY`는 로컬 테스트 계정을 만들 때만 쓴다

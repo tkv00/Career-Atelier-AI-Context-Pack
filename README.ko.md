@@ -404,10 +404,12 @@ npm run setup
 다음 설치 지침을 읽고 그대로 따라 Career Atelier를 설치해 줘: https://raw.githubusercontent.com/tkv00/Career-Atelier-AI-Context-Pack/refs/heads/main/docs/AI-INSTALL.md
 ```
 
-에이전트라면 아래처럼 한 줄로 끝낼 수도 있습니다. `--yes`를 주면 아무것도 묻지 않고 끝까지 돕니다.
+에이전트라면 아래 명령을 순서대로 실행해 끝까지 맡길 수도 있습니다. `--yes`를 주면 아무것도 묻지 않고 끝까지 돕니다.
 
 ```bash
-git clone https://github.com/tkv00/Career-Atelier-AI-Context-Pack.git && cd Career-Atelier-AI-Context-Pack && npm run setup -- --yes
+git clone https://github.com/tkv00/Career-Atelier-AI-Context-Pack.git
+cd Career-Atelier-AI-Context-Pack
+npm run setup -- --yes
 ```
 
 AI는 준비물을 확인하고 공식 저장소 복제, 잠긴 버전의 의존성 설치, 기존 설치 마법사 실행, 빌드 검증까지 진행합니다. 설치 지침에는 API 키 사용, 파괴적인 Git 명령, 환경변수 파일의 무단 덮어쓰기, 자동 배포를 금지하는 안전 규칙도 들어 있습니다. 로그인과 인스턴스 소유권 확인은 직접 해야 합니다. 전체 절차는 실행 전에 [docs/AI-INSTALL.md](docs/AI-INSTALL.md)에서 확인할 수 있습니다.
@@ -424,17 +426,22 @@ AI는 준비물을 확인하고 공식 저장소 복제, 잠긴 버전의 의존
 
 ```bash
 # 1번 창 — 웹 앱
-cd web && npm install && npm run dev
+cd web
+npm install
+npm run dev
 ```
 
 ```bash
 # 2번 창 — 러너
-cd runner && npm install && npm run login && npm run start
+cd runner
+npm install
+npm run login
+npm run start
 ```
 
-http://localhost:3000 에 접속해 본인 이메일로 로그인합니다.
+http://localhost:3000 에 접속해 본인 이메일과 비밀번호로 계정을 만듭니다.
 
-> **가장 먼저 가입한 계정이 그 인스턴스의 소유자가 되고, 이후 가입은 전부 거부됩니다.** 첫 로그인을 본인 이메일로 하세요.
+> **가장 먼저 가입한 계정이 그 인스턴스의 소유자가 되고, 이후 가입은 전부 거부됩니다.** 첫 가입을 본인 이메일로 하세요.
 
 마지막으로 관제실 화면 아래 "러너" 목록에서 이 기기를 **승인**하면 작업을 받기 시작합니다. 기기마다 한 번만 하면 됩니다.
 
