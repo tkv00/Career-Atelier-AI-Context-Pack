@@ -156,7 +156,12 @@ Mac과 완전히 동일합니다.
 → 그 Supabase 프로젝트에는 이미 다른 계정이 등록돼 있습니다. 본인 프로젝트를 새로 만들어 `npm run setup`을 다시 실행하세요.
 
 **`npm run setup`이 "supabase db push 실패 — 직접 DB 연결이 막힌 네트워크일 수 있습니다"라고 나옵니다**
-→ 학교·회사 네트워크가 데이터베이스 포트(5432/6543)를 막아 둔 경우입니다(웹은 되는데 DB 직결만 안 되는 흔한 방화벽 구성). 마법사가 자동으로 다른 경로(HTTPS)로 재시도합니다. 그것도 안 되면 `career-atelier-migrations-manual.sql` 파일을 만들어 주는데, 이 파일 전체를 복사해 `https://supabase.com/dashboard/project/<project-ref>/sql/new`의 SQL Editor(브라우저)에 붙여넣어 실행하면 됩니다 — 브라우저는 HTTPS만 쓰므로 같은 네트워크에서도 대개 됩니다. 실행 후 `npm run setup`을 다시 돌리면 나머지 단계를 이어서 끝냅니다.
+→ 학교·회사 네트워크가 데이터베이스 포트(5432/6543)를 막아 둔 경우입니다(웹은 되는데 DB 직결만 안 되는 흔한 방화벽 구성). 마법사가 자동으로 다른 경로(HTTPS)로 재시도합니다. 그것도 안 되면 `career-atelier-migrations-manual.sql` 파일을 만들어 주는데, 이 파일 전체를 복사해 `https://supabase.com/dashboard/project/<project-ref>/sql/new`의 SQL Editor(브라우저)에 붙여넣어 실행하면 됩니다 — 브라우저는 HTTPS만 쓰므로 같은 네트워크에서도 대개 됩니다.
+>
+> 실행한 뒤 **그냥 `npm run setup`을 다시 돌리지 마세요** — db push도 db query도 "이미 적용됐는지" 확인하는 것 자체가 direct 연결이라 이 네트워크에서는 매번 같은 실패를 반복하며 되돌아옵니다. 대신 `--skip-migrations`를 붙여서 그 단계를 건너뛰고 나머지(Auth 설정·환경변수 파일)만 마저 끝내세요:
+> ```bash
+> node scripts/setup.mjs --project-ref <project-ref> --db-password <아까 입력한 값> --skip-migrations
+> ```
 
 **`npm run deploy`에서 원하는 주소 이름을 입력했는데 계속 "이미 다른 곳에서 쓰고 있습니다"가 나옵니다**
 → 정상적인 흐름입니다. `<이름>.vercel.app`은 Vercel 전체에서 하나뿐이라 흔한 이름은 이미 다른 사람이 쓰고 있을 수 있습니다. 다른 이름을 입력해 다시 시도하면 되고, 세 번 연달아 실패하면 스크립트가 확실히 비어 있는 무작위 이름을 제안합니다.

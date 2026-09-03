@@ -18,6 +18,7 @@
 //   node scripts/setup.mjs --new-project my-app --region ap-northeast-2
 //   node scripts/setup.mjs --project-ref abc --anon-key eyJ... --db-password ...   # 값을 직접 줄 때
 //   node scripts/setup.mjs --owner-email me@example.com   # 계정도 자동 생성(비밀번호는 화면에 출력)
+//   node scripts/setup.mjs --skip-migrations              # SQL Editor로 이미 수동 적용을 끝냈을 때
 
 import { execFileSync, spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
@@ -47,6 +48,7 @@ function parseArgs(argv) {
     else if (flag === '--region') { out.region = value; i += 1; }
     else if (flag === '--db-password') { out.dbPassword = value; i += 1; }
     else if (flag === '--owner-email') { out.ownerEmail = value; i += 1; }
+    else if (flag === '--skip-migrations') { out.skipMigrations = true; }
     else if (flag === '--yes' || flag === '-y') { out.yes = true; }
   }
   return out;
@@ -301,8 +303,9 @@ async function main() {
       // db push는 관리 API가 아니라 실제 Postgres 접속이라 DB 비밀번호가
       // 따로 필요하다. 방금 만든 프로젝트라면 아래에서 그 값을 그대로 쓰지만,
       // 기존 프로젝트는 CLI도 이 값을 알려주지 않는다(서버가 평문 보관을
-      // 안 한다) — 사용자에게 직접 물어보는 수밖에 없다.
-      if (!dbPassword) {
+      // 안 한다) — 사용자에게 직접 물어보는 수밖에 없다. --skip-migrations면
+      // db push/db query를 아예 안 쓰므로 이 값 자체가 필요 없다.
+      if (!dbPassword && !args.skipMigrations) {
         if (!interactive) {
           fail(`${pick.name}의 DB 비밀번호를 모릅니다. --db-password로 넘기거나 --new-project로 새 프로젝트를 만드세요.`);
           process.exit(1);
@@ -364,8 +367,8 @@ async function main() {
 
   // --project-ref를 직접 줘서 위의 프로젝트 선택/생성 분기를 아예 건너뛴
   // 경우(문서에 나온 사용법)에도 마찬가지로 비밀번호가 필요하다 — 안전망으로
-  // 여기서 한 번 더 확인한다.
-  if (!dbPassword) {
+  // 여기서 한 번 더 확인한다. --skip-migrations면 필요 없다.
+  if (!dbPassword && !args.skipMigrations) {
     if (!interactive) {
       fail('DB 비밀번호가 없습니다. --db-password로 넘기세요(대시보드 Settings → Database에서 확인/재설정).');
       process.exit(1);
@@ -396,33 +399,43 @@ async function main() {
     process.exit(1);
   }
 
-  console.log(c.dim(`  (최대 ${DB_CONNECT_TIMEOUT_MS / 1000}초 기다립니다 — 막힌 네트워크면 CLI가 내부적으로 훨씬 오래 재시도하는데, 그건 기다리지 않습니다.)`));
-  const push = spawnSync('supabase', ['db', 'push', '--linked'], {
-    cwd: root,
-    stdio: 'inherit',
-    shell: process.platform === 'win32',
-    env: supabaseEnv,
-    timeout: DB_CONNECT_TIMEOUT_MS,
-  });
-
-  if (push.status === 0) {
-    ok('테이블·RLS·기본 프롬프트 적용 완료');
+  if (args.skipMigrations) {
+    // db push도 db query --linked도 원격 DB에 "이미 뭐가 적용됐는지" 확인하는
+    // 것부터 direct connection이 필요해서, 방화벽이 막은 네트워크에서는 이미
+    // 수동으로 다 끝냈어도 매번 처음부터 같은 실패를 반복하게 된다(SSAFY
+    // 실습실에서 실제로 겪음, 2026-09-04). 대시보드 SQL Editor로 이미 적용을
+    // 끝낸 경우를 위한 탈출구다.
+    warn('--skip-migrations — 마이그레이션이 이미 적용됐다고 보고 이 단계를 건너뜁니다.');
   } else {
-    // db push는 Postgres에 직접 접속한다(pooler로 TCP) — 학교·회사 네트워크가
-    // 이 포트를 막아 두면 여기서 조용히 타임아웃난다. db query --linked는
-    // Management API(HTTPS)를 우선 쓰므로 같은 네트워크에서도 될 수 있다.
-    warn('supabase db push 실패 — 직접 DB 연결(포트 5432/6543)이 막힌 네트워크일 수 있습니다.');
-    console.log(c.dim('  HTTPS 경로로 다시 시도합니다...'));
+    console.log(c.dim(`  (최대 ${DB_CONNECT_TIMEOUT_MS / 1000}초 기다립니다 — 막힌 네트워크면 CLI가 내부적으로 훨씬 오래 재시도하는데, 그건 기다리지 않습니다.)`));
+    const push = spawnSync('supabase', ['db', 'push', '--linked'], {
+      cwd: root,
+      stdio: 'inherit',
+      shell: process.platform === 'win32',
+      env: supabaseEnv,
+      timeout: DB_CONNECT_TIMEOUT_MS,
+    });
 
-    if (applyMigrationsOverHttps(root)) {
-      ok('테이블·RLS·기본 프롬프트 적용 완료 (HTTPS 경로)');
+    if (push.status === 0) {
+      ok('테이블·RLS·기본 프롬프트 적용 완료');
     } else {
-      const manualPath = writeManualMigrationFile(root);
-      fail('두 경로 모두 실패했습니다 — 이 네트워크에서는 CLI로 적용할 수 없습니다.');
-      console.log(c.dim(`  ${manualPath}의 전체 내용을 복사해 아래 주소의 SQL Editor에 붙여넣고 실행하세요:`));
-      console.log(c.dim(`    https://supabase.com/dashboard/project/${projectRef}/sql/new`));
-      console.log(c.dim('  실행 후 이 명령을 다시 실행하면 나머지 단계(Auth 설정·환경변수 파일)를 이어서 끝냅니다.'));
-      process.exit(1);
+      // db push는 Postgres에 직접 접속한다(pooler로 TCP) — 학교·회사 네트워크가
+      // 이 포트를 막아 두면 여기서 조용히 타임아웃난다. db query --linked는
+      // Management API(HTTPS)를 우선 쓰므로 같은 네트워크에서도 될 수 있다.
+      warn('supabase db push 실패 — 직접 DB 연결(포트 5432/6543)이 막힌 네트워크일 수 있습니다.');
+      console.log(c.dim('  HTTPS 경로로 다시 시도합니다...'));
+
+      if (applyMigrationsOverHttps(root)) {
+        ok('테이블·RLS·기본 프롬프트 적용 완료 (HTTPS 경로)');
+      } else {
+        const manualPath = writeManualMigrationFile(root);
+        fail('두 경로 모두 실패했습니다 — 이 네트워크에서는 CLI로 적용할 수 없습니다.');
+        console.log(c.dim(`  ${manualPath}의 전체 내용을 복사해 아래 주소의 SQL Editor에 붙여넣고 실행하세요:`));
+        console.log(c.dim(`    https://supabase.com/dashboard/project/${projectRef}/sql/new`));
+        console.log(c.dim('  실행한 뒤 이 명령에 --skip-migrations를 붙여 다시 실행하면 나머지 단계(Auth 설정·환경변수 파일)를 이어서 끝냅니다:'));
+        console.log(c.dim(`    node scripts/setup.mjs --project-ref ${projectRef} --db-password <위에서 입력한 값> --skip-migrations`));
+        process.exit(1);
+      }
     }
   }
 
