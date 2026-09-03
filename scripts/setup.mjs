@@ -24,6 +24,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
 import { existsSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { createInterface } from 'node:readline/promises';
+import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -162,8 +163,15 @@ function migrationFiles(root) {
 // 된다. 파일마다 db push와 같은 이력 테이블에도 기록해 둔다 — 안 하면
 // 나중에 정상 네트워크에서 db push를 다시 돌릴 때 이미 적용된 걸 또
 // 적용하려다 충돌한다.
+//
+// --file로 넘기는 경로는 항상 OS 임시 디렉터리에 둔다. Windows에서는 이
+// 명령을 shell: true로 실행하는데, 이 상태에서 경로에 공백이 있으면(예:
+// "OneDrive\바탕 화면\...") 인자가 공백에서 잘려 CLI가 파일을 못 찾는다
+// (SSAFY 실습실에서 "FileSystem.readFile (...\바탕)"으로 실제로 겪음,
+// 2026-09-04) — 프로젝트 루트는 사용자마다 경로가 달라 이 문제를 피할 수
+// 없으므로, 기존 마이그레이션 파일도 내용을 그대로 임시 경로에 복사해 넘긴다.
 function applyMigrationsOverHttps(root) {
-  const historyFile = resolve(root, '.setup-migration-history-init.sql');
+  const historyFile = resolve(tmpdir(), 'career-atelier-migration-history-init.sql');
   writeFileSync(historyFile, MIGRATION_HISTORY_TABLE_SQL, 'utf8');
   const initHistory = spawnSync('supabase', ['db', 'query', '--linked', '--file', historyFile], {
     cwd: root, stdio: 'inherit', shell: process.platform === 'win32', timeout: DB_CONNECT_TIMEOUT_MS,
@@ -173,13 +181,17 @@ function applyMigrationsOverHttps(root) {
 
   for (const { file, path, version, name } of migrationFiles(root)) {
     if (!version) continue;
-    const apply = spawnSync('supabase', ['db', 'query', '--linked', '--file', path], {
+
+    const tmpMigrationFile = resolve(tmpdir(), `career-atelier-migration-${version}.sql`);
+    writeFileSync(tmpMigrationFile, readFileSync(path, 'utf8'), 'utf8');
+    const apply = spawnSync('supabase', ['db', 'query', '--linked', '--file', tmpMigrationFile], {
       cwd: root, stdio: 'inherit', shell: process.platform === 'win32', timeout: DB_CONNECT_TIMEOUT_MS,
     });
+    try { unlinkSync(tmpMigrationFile); } catch {}
     if (apply.status !== 0) return false;
 
     const sql = readFileSync(path, 'utf8').replace(/'/g, "''");
-    const recordFile = resolve(root, `.setup-migration-record-${version}.sql`);
+    const recordFile = resolve(tmpdir(), `career-atelier-migration-record-${version}.sql`);
     writeFileSync(
       recordFile,
       `insert into supabase_migrations.schema_migrations (version, name, statements)\n` +
