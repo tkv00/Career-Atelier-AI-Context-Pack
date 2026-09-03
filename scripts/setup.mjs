@@ -123,6 +123,19 @@ function writeEnv(path, values) {
   writeFileSync(path, `${body}\n`, 'utf8');
 }
 
+// db push가 처음 성공할 때 자동으로 만들어 주는 이력 테이블이다. HTTPS
+// 폴백 경로는 db push를 거치지 않으므로, 이력을 기록하기 전에 이 스키마와
+// 테이블이 없으면 우리가 직접 만들어야 한다(실제로 SSAFY 실습실에서
+// "relation supabase_migrations.schema_migrations does not exist"로 걸림,
+// 2026-09-03). 컬럼 구성은 실제 운영 프로젝트에서 그대로 읽어 옴.
+const MIGRATION_HISTORY_TABLE_SQL =
+  'create schema if not exists supabase_migrations;\n' +
+  'create table if not exists supabase_migrations.schema_migrations (\n' +
+  '  version text not null primary key,\n' +
+  '  statements text[],\n' +
+  '  name text\n' +
+  ');\n';
+
 function migrationFiles(root) {
   const dir = resolve(root, 'supabase/migrations');
   return readdirSync(dir)
@@ -142,6 +155,14 @@ function migrationFiles(root) {
 // 나중에 정상 네트워크에서 db push를 다시 돌릴 때 이미 적용된 걸 또
 // 적용하려다 충돌한다.
 function applyMigrationsOverHttps(root) {
+  const historyFile = resolve(root, '.setup-migration-history-init.sql');
+  writeFileSync(historyFile, MIGRATION_HISTORY_TABLE_SQL, 'utf8');
+  const initHistory = spawnSync('supabase', ['db', 'query', '--linked', '--file', historyFile], {
+    cwd: root, stdio: 'inherit', shell: process.platform === 'win32',
+  });
+  try { unlinkSync(historyFile); } catch {}
+  if (initHistory.status !== 0) return false;
+
   for (const { file, path, version, name } of migrationFiles(root)) {
     if (!version) continue;
     const apply = spawnSync('supabase', ['db', 'query', '--linked', '--file', path], {
@@ -178,7 +199,9 @@ function writeManualMigrationFile(root) {
   const header =
     '-- Career Atelier 전체 마이그레이션을 순서대로 이어붙인 파일.\n' +
     '-- CLI로 적용이 안 되는 네트워크에서, 이 파일 전체를 복사해 Supabase\n' +
-    '-- 대시보드의 SQL Editor(브라우저)에 붙여넣고 실행하세요.\n\n';
+    '-- 대시보드의 SQL Editor(브라우저)에 붙여넣고 실행하세요.\n\n' +
+    MIGRATION_HISTORY_TABLE_SQL +
+    '\n';
   const body = migrationFiles(root)
     .map(({ file, path, version, name }) => {
       const sql = readFileSync(path, 'utf8');
