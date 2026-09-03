@@ -72,7 +72,7 @@ npm run dev
 ```bash
 cd runner
 npm install
-npm run login    # 이메일 입력 → 메일로 온 6자리 코드 입력
+npm run login    # 이메일 입력 → 비밀번호 입력 (웹 로그인과 같은 계정)
 npm run start
 ```
 

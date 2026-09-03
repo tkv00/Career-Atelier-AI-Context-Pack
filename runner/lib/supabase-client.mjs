@@ -4,9 +4,11 @@ import { env } from './env.mjs';
 import { clearSession, loadSession, saveSession } from './session-store.mjs';
 
 // 러너는 서버가 아니라 이 앱의 유일한 사용자 본인 세션으로 로그인해 RLS 적용을
-// 받는다(§6) — service_role은 절대 쓰지 않는다(§19.2 #2, #3). 브라우저가 없는
-// 백그라운드 프로세스라 매직링크 클릭 대신 같은 메일에 함께 오는 6자리 OTP
-// 코드로 로그인한다.
+// 받는다(§6) — service_role은 절대 쓰지 않는다(§19.2 #2, #3). 웹 로그인과 동일하게
+// 이메일+비밀번호로 인증한다. 예전에는 이메일로 발송되는 6자리 코드(OTP)를 썼지만,
+// Supabase 기본 메일 발송 한도(시간당 소량)에 걸려 두어 번만 실패해도 한동안
+// 로그인이 막히는 문제가 있었다 — 비밀번호 인증은 메일을 보내지 않으므로 이 한도의
+// 영향을 받지 않으면서도 본인 세션 로그인(RLS 격리)은 그대로 유지한다.
 
 function newClient() {
   return createClient(env.supabaseUrl, env.supabaseAnonKey, {
@@ -21,19 +23,12 @@ function persist(session) {
 
 export async function loginInteractive(email) {
   const supabase = newClient();
-  // shouldCreateUser: false를 주면 기존 사용자여도 "Signups not allowed for
-  // otp"로 실패하는 것을 실제 로그인 시도로 확인했다 — 웹 로그인 폼과 동일하게
-  // 기본값(true)으로 호출한다. 신규 계정 생성 자체는 Supabase Auth 쪽에서
-  // 이미 단일 허용 이메일로 막혀 있다(§6 3층).
-  const { error: otpError } = await supabase.auth.signInWithOtp({ email });
-  if (otpError) throw new Error(`OTP 발송 실패: ${otpError.message}`);
-
   const rl = createInterface({ input: process.stdin, output: process.stdout });
-  const code = (await rl.question(`${email}로 보낸 메일의 6자리 코드를 입력하세요: `)).trim();
+  const password = (await rl.question(`${email} 계정의 비밀번호를 입력하세요: `)).trim();
   rl.close();
 
-  const { data, error } = await supabase.auth.verifyOtp({ email, token: code, type: 'email' });
-  if (error || !data.session) throw new Error(`인증 실패: ${error?.message ?? '세션을 받지 못했습니다.'}`);
+  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error || !data.session) throw new Error(`로그인 실패: ${error?.message ?? '세션을 받지 못했습니다.'}`);
 
   persist(data.session);
   return data.session.user;

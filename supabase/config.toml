@@ -253,15 +253,6 @@ sender_name = "Career Atelier"
 # subject = "You have been invited"
 # content_path = "./supabase/templates/invite.html"
 
-# 러너 로그인 전용 메일(웹 로그인은 이메일+비밀번호로 바뀌었다 — web/app/login/page.tsx).
-# 러너는 브라우저가 없는 백그라운드 프로세스라 이 메일에 함께 오는 6자리 코드로
-# 인증한다(runner/lib/supabase-client.mjs). web/app/auth/confirm/page.tsx가
-# token_hash+type 쿼리를 기대하므로 기본 {{ .ConfirmationURL }} 대신 이 형식으로
-# 직접 링크를 구성해야 한다.
-[auth.email.template.magic_link]
-subject = "Career Atelier 러너 로그인 코드"
-content_path = "./supabase/templates/magic_link.html"
-
 # 비밀번호 재설정 메일.
 [auth.email.template.recovery]
 subject = "Career Atelier 비밀번호 재설정"
