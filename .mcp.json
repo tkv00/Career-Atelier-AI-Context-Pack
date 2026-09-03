@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "career-atelier": {
+      "command": "node",
+      "args": ["runner/mcp/server.mjs"],
+      "env": {}
+    }
+  }
+}

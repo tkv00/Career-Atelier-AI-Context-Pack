@@ -10,7 +10,11 @@
   "scripts": {
     "login": "node index.mjs login",
     "logout": "node index.mjs logout",
-    "start": "node index.mjs start"
+    "start": "node index.mjs start",
+    "mcp": "node mcp/server.mjs",
+    "mcp:preview": "node mcp/server.mjs preview --source",
+    "mcp:snapshot": "node mcp/server.mjs snapshot",
+    "mcp:bench": "node mcp/bench.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.58.0"

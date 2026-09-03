@@ -29,6 +29,7 @@
 - [구조](#구조)
 - [시작하기](#시작하기)
 - [AI에게 설치 맡기기](#ai에게-설치-맡기기)
+- [MCP로 정리본 일괄 가져오기](#mcp로-정리본-일괄-가져오기)
 - [데이터 백업](#데이터-백업)
 - [비용이 늘지 않는 이유](#비용이-늘지-않는-이유)
 - [기여하기](#기여하기)
@@ -454,6 +455,83 @@ service_role 키나 AI 제공자 키는 넣지 마세요. **일부러 빌드가 
 
 <br>
 
+## MCP로 정리본 일괄 가져오기
+
+*2026-09-03 추가.*
+
+경험 정리본은 이미 어딘가에 있을 겁니다. Notion 페이지든, 몇 달째 쌓아 온 Markdown 파일이든. 그걸 화면 일곱 개에 손으로 옮겨 적는 게 이 앱을 처음 쓰는 가장 나쁜 방법입니다.
+
+Career Atelier에는 그 정리본을 읽어 **알맞은 표에 바로 넣어 주는 자체 MCP 서버**가 들어 있습니다.
+
+### 어떤 MCP 서버인가
+
+stdio 위에서 JSON-RPC 2.0으로 말하는 **로컬 · 툴 전용 MCP 서버**입니다. 툴 3개만 제공하고 resources·prompts는 제공하지 않습니다. **의존성이 0개**입니다 — 프로토콜을 직접 구현했고, Supabase 클라이언트는 러너가 이미 쓰던 것을 그대로 씁니다.
+
+목적은 편의가 아니라 **토큰 비용**입니다. 에이전트에게 "이 정리본 읽고 DB에 넣어 줘"라고 시키면 문서 전체가 모델 컨텍스트로 들어오고, 모델은 그걸 다시 구조화된 INSERT 인자로 뱉어야 합니다 — 원문 값을 두 번 반, 사실상 2.5배로 치르는 셈입니다. 이 서버는 소스를 직접 읽고 행도 직접 씁니다. 모델이 보는 건 들어갈 때의 경로 하나와 돌아오는 짧은 영수증뿐이고, **원문은 모델 컨텍스트를 한 번도 통과하지 않습니다.**
+
+2,215자 정리본에서 9개 표에 12건을 만드는 작업으로 측정했습니다.
+
+| | 토큰 |
+|---|---:|
+| 에이전트가 직접 처리 | 3,006 |
+| 이 MCP 서버 경유 | 114 |
+| 절감 | **96.2%** |
+
+측정 방법과 한계, 토큰 환산식은 [docs/MCP-BENCHMARK.md](docs/MCP-BENCHMARK.md)에 있습니다.
+
+### Claude 전용이 아닙니다
+
+Anthropic SDK가 들어 있지 않습니다. MCP를 지원하는 클라이언트면 무엇이든 붙고, 이 프로젝트가 이미 쓰는 세 CLI 전부가 여기 해당합니다.
+
+| 클라이언트 | 등록 방법 |
+|---|---|
+| Claude Code | 리포 루트 `.mcp.json`에 이미 등록돼 있음 |
+| Codex | `codex mcp add career-atelier -- node <리포>/runner/mcp/server.mjs` |
+| Antigravity | `agy mcp add career-atelier -- node <리포>/runner/mcp/server.mjs` |
+
+Cursor · Windsurf · Cline · Zed도 같은 방식으로 붙습니다.
+
+### 툴 3개
+
+| 툴 | 하는 일 |
+|---|---|
+| `preview_import` | 무엇이 저장될지 보여줍니다. 아무것도 쓰지 않습니다. |
+| `import_records` | 저장합니다. **기본값이 `dry_run: true`** — 실제로 쓰려면 `dry_run: false`를 넘겨야 합니다. |
+| `db_snapshot` | 표별 행 수. 전후 비교용입니다. |
+
+같은 정리본을 다시 넣으면 중복이 쌓이지 않고 해당 행이 갱신되므로, 두 번 돌려도 안전합니다.
+
+### 정리본 형식
+
+1단계 제목이 어느 표에 넣을지 정하고, 2단계 제목이 항목 하나를 시작하고, `- 키: 값` 줄이 필드를 채웁니다. [`runner/mcp/fixtures/sample-notes.md`](runner/mcp/fixtures/sample-notes.md)가 그대로 동작하는 완전한 예시입니다.
+
+```markdown
+# 경험
+## 교내 스터디 운영진
+- 상황: 3개월간 출석률이 40%까지 떨어져 있었다
+- 결과: 3개월 뒤 85%로 회복
+- 수치: 출석률 40%→85%, 인원 12명→19명
+```
+
+인식하는 섹션은 기본정보 · 학력 · 자격증 · 대외활동 · 교육활동 · 프로젝트 · 경력사항 · 수상내역 · 경험입니다. 필드 이름은 별칭을 여럿 받습니다. **자리를 못 찾은 내용은 조용히 버리지 않고 `skipped` 목록으로 돌려줍니다.**
+
+### 터미널에서 직접 쓰기
+
+```bash
+cd runner
+node mcp/server.mjs preview --source /경로/정리본.md
+node mcp/server.mjs import  --source /경로/정리본.md --write
+npm run mcp:bench
+```
+
+### Notion에서 가져오기
+
+내부 통합을 만들고 **가져올 페이지를 그 통합과 공유**한 뒤(Notion은 공유하지 않은 것을 API에 아예 보여주지 않습니다), `runner/.env`에 `NOTION_TOKEN=secret_...`을 추가하고, 소스로 `notion://page/<id>` 또는 `notion://database/<id>`를 넘기면 됩니다.
+
+> Notion 어댑터는 코드로는 완성돼 있지만 **실제 API로 한 번도 호출해 보지 못했습니다** — 만들 당시 토큰이 없었습니다. 파일 어댑터는 전 구간 검증했습니다. 무엇이 검증됐고 무엇이 아닌지는 [runner/mcp/README.md](runner/mcp/README.md)에 정확히 적어 뒀습니다.
+
+<br>
+
 ## 데이터 백업
 
 Supabase 무료 플랜은 한동안 안 쓰면 프로젝트를 정지시킵니다. 클라우드 하나만 믿으면 다시 쓰기 어려운 글이 통째로 사라질 수 있습니다.
@@ -516,6 +594,9 @@ Supabase 무료 플랜은 한동안 안 쓰면 프로젝트를 정지시킵니�
 | [docs/DESIGN-V2-CLOUD.md](docs/DESIGN-V2-CLOUD.md) | 설계 결정과 근거 |
 | [docs/PRIVACY-AND-COST.md](docs/PRIVACY-AND-COST.md) | 개인정보·비용 보장 |
 | [runner/README.md](runner/README.md) | 러너 내부 구조와 검증 기록 |
+| [runner/mcp/README.md](runner/mcp/README.md) | MCP 서버 — 툴·정리본 형식·검증 상태 |
+| [docs/MCP-BENCHMARK.md](docs/MCP-BENCHMARK.md) | 토큰 측정 방법과 한계 |
+| [docs/MCP-DECISION-LOG.md](docs/MCP-DECISION-LOG.md) | MCP 서버를 이렇게 만든 이유 |
 
 <br>
 

@@ -29,6 +29,7 @@ No metered API keys. Seven AI agents handle everything from industry research to
 - [Architecture](#architecture)
 - [Getting started](#getting-started)
 - [Install with an AI coding agent](#install-with-an-ai-coding-agent)
+- [Bulk import over MCP](#bulk-import-over-mcp)
 - [Backups](#backups)
 - [Why your bill does not grow](#why-your-bill-does-not-grow)
 - [Contributing](#contributing)
@@ -452,6 +453,83 @@ Details in [docs/V2-SETUP.md](docs/V2-SETUP.md).
 
 <br>
 
+## Bulk import over MCP
+
+*Added 2026-09-03.*
+
+Your experience notes probably already exist somewhere — a Notion page, a Markdown file you have been adding to for months. Retyping them into seven different screens is the worst possible first hour with this app.
+
+Career Atelier ships its own **MCP server** that reads those notes and writes them straight into the right tables.
+
+### What kind of MCP server this is
+
+It is a **local, tool-only MCP server** that speaks JSON-RPC 2.0 over stdio. It exposes three tools and no resources or prompts. It has **zero dependencies** — the protocol is implemented directly, and the Supabase client is the one the runner already uses.
+
+The point is not convenience, it is **token cost**. Ask an agent to "read these notes and put them in the database" and the whole document enters the model's context, then the model has to restate it as structured insert arguments — the source is paid for roughly two and a half times. This server reads the source itself and writes the rows itself, so the model only ever sees a path going in and a short receipt coming back. **The source text never enters the model's context at all.**
+
+Measured on a 2,215-character note file producing 12 records across 9 tables:
+
+| | Tokens |
+|---|---:|
+| Agent doing it directly | 3,006 |
+| Through this MCP server | 114 |
+| Reduction | **96.2%** |
+
+Method, caveats, and the token conversion formula are in [docs/MCP-BENCHMARK.md](docs/MCP-BENCHMARK.md).
+
+### It is not Claude-only
+
+There is no Anthropic SDK in it. Any MCP-capable client works, including all three CLIs this project already uses:
+
+| Client | Register with |
+|---|---|
+| Claude Code | already registered in `.mcp.json` at the repo root |
+| Codex | `codex mcp add career-atelier -- node <repo>/runner/mcp/server.mjs` |
+| Antigravity | `agy mcp add career-atelier -- node <repo>/runner/mcp/server.mjs` |
+
+Cursor, Windsurf, Cline, and Zed connect the same way.
+
+### The three tools
+
+| Tool | What it does |
+|---|---|
+| `preview_import` | Shows what would be saved. Writes nothing. |
+| `import_records` | Saves. **Defaults to `dry_run: true`** — you must pass `dry_run: false` to actually write. |
+| `db_snapshot` | Row count per table, for before/after comparison. |
+
+Re-importing the same notes updates the matching rows instead of duplicating them, so running it twice is safe.
+
+### Note format
+
+One heading level picks the table, the next starts a record, and `- key: value` lines fill the fields. [`runner/mcp/fixtures/sample-notes.md`](runner/mcp/fixtures/sample-notes.md) is a complete working example.
+
+```markdown
+# Experience
+## Running a campus study group
+- Situation: attendance had fallen to 40% over three months
+- Result: back to 85% after three months
+- Metrics: attendance 40%→85%, members 12→19
+```
+
+Recognised sections: profile, education, certifications, external activities, training, projects, work history, awards, and experience cards. Field names accept several aliases. **Anything it cannot place is reported back in a `skipped` list rather than dropped silently.**
+
+### Using it from a terminal instead
+
+```bash
+cd runner
+node mcp/server.mjs preview --source /path/to/notes.md
+node mcp/server.mjs import  --source /path/to/notes.md --write
+npm run mcp:bench
+```
+
+### Reading from Notion
+
+Create an internal integration, **share the page with it** (Notion hides anything unshared from the API), add `NOTION_TOKEN=secret_...` to `runner/.env`, then pass `notion://page/<id>` or `notion://database/<id>` as the source.
+
+> The Notion adapter is written but **has never been run against the live API** — there was no token available when it was built. The file adapter is fully verified. See [runner/mcp/README.md](runner/mcp/README.md) for exactly what is and is not verified.
+
+<br>
+
 ## Backups
 
 Supabase pauses free-tier projects that go unused, and a single cloud database is a single point of failure for writing you cannot easily reproduce.
@@ -514,6 +592,9 @@ Good places to start:
 | [docs/DESIGN-V2-CLOUD.md](docs/DESIGN-V2-CLOUD.md) | Design decisions and rationale |
 | [docs/PRIVACY-AND-COST.md](docs/PRIVACY-AND-COST.md) | Privacy and cost guarantees |
 | [runner/README.md](runner/README.md) | Runner internals and verification log |
+| [runner/mcp/README.md](runner/mcp/README.md) | MCP server: tools, note format, verification status |
+| [docs/MCP-BENCHMARK.md](docs/MCP-BENCHMARK.md) | Token measurement, method, and limits |
+| [docs/MCP-DECISION-LOG.md](docs/MCP-DECISION-LOG.md) | Why the MCP server is built the way it is |
 
 <br>
 
