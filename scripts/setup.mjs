@@ -21,7 +21,7 @@
 
 import { execFileSync, spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { createInterface } from 'node:readline/promises';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -121,6 +121,78 @@ function writeEnv(path, values) {
     .map(([key, value]) => `${key}=${value}`)
     .join('\n');
   writeFileSync(path, `${body}\n`, 'utf8');
+}
+
+function migrationFiles(root) {
+  const dir = resolve(root, 'supabase/migrations');
+  return readdirSync(dir)
+    .filter((f) => f.endsWith('.sql'))
+    .sort()
+    .map((file) => {
+      const match = file.match(/^(\d+)_(.+)\.sql$/);
+      return { file, path: resolve(dir, file), version: match?.[1], name: match?.[2] };
+    });
+}
+
+// db push가 막힌 네트워크(학교·회사 방화벽으로 Postgres 5432/6543이 닫힌
+// 경우 — SSAFY 실습실에서 실제로 겪음, 2026-09-03)에서 쓰는 우회 경로.
+// `db query --linked`는 로컬에서 Postgres로 직접 붙는 대신 Management
+// API(HTTPS)로 SQL을 실행한다 — 웹 브라우징이 되는 네트워크면 대개 이것도
+// 된다. 파일마다 db push와 같은 이력 테이블에도 기록해 둔다 — 안 하면
+// 나중에 정상 네트워크에서 db push를 다시 돌릴 때 이미 적용된 걸 또
+// 적용하려다 충돌한다.
+function applyMigrationsOverHttps(root) {
+  for (const { file, path, version, name } of migrationFiles(root)) {
+    if (!version) continue;
+    const apply = spawnSync('supabase', ['db', 'query', '--linked', '--file', path], {
+      cwd: root, stdio: 'inherit', shell: process.platform === 'win32',
+    });
+    if (apply.status !== 0) return false;
+
+    const sql = readFileSync(path, 'utf8').replace(/'/g, "''");
+    const recordFile = resolve(root, `.setup-migration-record-${version}.sql`);
+    writeFileSync(
+      recordFile,
+      `insert into supabase_migrations.schema_migrations (version, name, statements)\n` +
+        `values ('${version}', '${name}', ARRAY['${sql}'])\n` +
+        `on conflict (version) do nothing;\n`,
+      'utf8',
+    );
+    const record = spawnSync('supabase', ['db', 'query', '--linked', '--file', recordFile], {
+      cwd: root, stdio: 'inherit', shell: process.platform === 'win32',
+    });
+    try { unlinkSync(recordFile); } catch {}
+    if (record.status !== 0) return false;
+
+    ok(`${file} 적용`);
+  }
+  return true;
+}
+
+// 마지막 수단: CLI로는 아예 안 되는 네트워크일 때, 사람이 브라우저로 Supabase
+// 대시보드 SQL Editor에 붙여넣을 수 있는 파일을 만든다. 대시보드는 HTTPS로만
+// 접속하므로 Postgres 포트가 막혀 있어도 언제나 열려 있다. 이력 테이블
+// 기록까지 같이 넣는다 — 안 하면 나중에 이 명령을 다시 실행했을 때 db
+// push(또는 위 HTTPS 폴백)가 이미 만들어진 테이블을 또 만들려다 충돌한다.
+function writeManualMigrationFile(root) {
+  const header =
+    '-- Career Atelier 전체 마이그레이션을 순서대로 이어붙인 파일.\n' +
+    '-- CLI로 적용이 안 되는 네트워크에서, 이 파일 전체를 복사해 Supabase\n' +
+    '-- 대시보드의 SQL Editor(브라우저)에 붙여넣고 실행하세요.\n\n';
+  const body = migrationFiles(root)
+    .map(({ file, path, version, name }) => {
+      const sql = readFileSync(path, 'utf8');
+      const record = version
+        ? `\ninsert into supabase_migrations.schema_migrations (version, name, statements)\n` +
+          `values ('${version}', '${name}', ARRAY['${sql.replace(/'/g, "''")}'])\n` +
+          `on conflict (version) do nothing;\n`
+        : '';
+      return `-- ===== ${file} =====\n${sql}${record}\n`;
+    })
+    .join('\n');
+  const outPath = resolve(root, 'career-atelier-migrations-manual.sql');
+  writeFileSync(outPath, header + body, 'utf8');
+  return outPath;
 }
 
 async function main() {
@@ -301,11 +373,27 @@ async function main() {
     shell: process.platform === 'win32',
     env: supabaseEnv,
   });
-  if (push.status !== 0) {
-    fail('마이그레이션 적용 실패.');
-    process.exit(1);
+
+  if (push.status === 0) {
+    ok('테이블·RLS·기본 프롬프트 적용 완료');
+  } else {
+    // db push는 Postgres에 직접 접속한다(pooler로 TCP) — 학교·회사 네트워크가
+    // 이 포트를 막아 두면 여기서 조용히 타임아웃난다. db query --linked는
+    // Management API(HTTPS)를 우선 쓰므로 같은 네트워크에서도 될 수 있다.
+    warn('supabase db push 실패 — 직접 DB 연결(포트 5432/6543)이 막힌 네트워크일 수 있습니다.');
+    console.log(c.dim('  HTTPS 경로로 다시 시도합니다...'));
+
+    if (applyMigrationsOverHttps(root)) {
+      ok('테이블·RLS·기본 프롬프트 적용 완료 (HTTPS 경로)');
+    } else {
+      const manualPath = writeManualMigrationFile(root);
+      fail('두 경로 모두 실패했습니다 — 이 네트워크에서는 CLI로 적용할 수 없습니다.');
+      console.log(c.dim(`  ${manualPath}의 전체 내용을 복사해 아래 주소의 SQL Editor에 붙여넣고 실행하세요:`));
+      console.log(c.dim(`    https://supabase.com/dashboard/project/${projectRef}/sql/new`));
+      console.log(c.dim('  실행 후 이 명령을 다시 실행하면 나머지 단계(Auth 설정·환경변수 파일)를 이어서 끝냅니다.'));
+      process.exit(1);
+    }
   }
-  ok('테이블·RLS·기본 프롬프트 적용 완료');
 
   // 4. Auth 설정(이메일 템플릿·가입 제한 훅·SMTP) -----------------------------
   // config.toml의 [auth] 섹션은 db push로는 안 밀린다 — 별도 명령이 필요하다.
