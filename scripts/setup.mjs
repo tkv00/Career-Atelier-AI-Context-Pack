@@ -479,31 +479,60 @@ async function main() {
 
   // 4. Auth 설정(이메일 템플릿·가입 제한 훅·SMTP) -----------------------------
   // config.toml의 [auth] 섹션은 db push로는 안 밀린다 — 별도 명령이 필요하다.
-  // 이게 빠지면 이메일이 기본 Supabase 템플릿(형식이 달라 로그인 링크가 깨짐)
-  // 으로 나가고, 단일 사용자 방어 훅도 원격에서 켜지지 않는다. env()로 참조하는
-  // SITE_URL 등은 supabase/.env에 있어야 하는데, 갓 설치한 시점엔 Vercel 주소를
-  // 아직 모를 수 있어 그 파일이 없으면 건너뛴다.
+  // 예전에는 supabase/.env(Resend 설정)가 없으면 이 단계 전체를 건너뛰었는데,
+  // 그러면 가입 제한 훅도, 이메일 확인 필수 여부도, 비밀번호 정책도 전부
+  // Supabase 기본값(훅 꺼짐 = 아무나 가입 가능, 이메일 확인 필수 = 방금 가입한
+  // 계정도 로그인 불가)으로 남는다 — 실제로 겪음, 2026-09-04: Resend를 안 쓴
+  // 새 프로젝트에서 가입은 됐는데 그 즉시 로그인이 막혔고, 가입 제한 훅도
+  // 꺼진 채 방치돼 있었다. Resend는 선택이지만 나머지는 항상 반영해야 한다 —
+  // SMTP 섹션만 조건부로 끄고, SITE_URL도 없으면 로컬 기본값으로 채운다.
   const supabaseEnvFile = resolve(root, 'supabase/.env');
-  if (existsSync(supabaseEnvFile)) {
-    const configPush = spawnSync('supabase', ['config', 'push', '--project-ref', projectRef], {
+  const configPath = resolve(root, 'supabase/config.toml');
+  const hasResend = existsSync(supabaseEnvFile);
+
+  let restoreConfig = null;
+  if (!hasResend) {
+    const original = readFileSync(configPath, 'utf8');
+    const disabled = original.replace(/(\[auth\.email\.smtp\]\nenabled = )true/, '$1false');
+    if (disabled !== original) {
+      writeFileSync(configPath, disabled, 'utf8');
+      restoreConfig = () => writeFileSync(configPath, original, 'utf8');
+    }
+  }
+
+  const configEnv = {
+    ...supabaseEnv,
+    SITE_URL: supabaseEnv.SITE_URL || 'http://localhost:3000',
+    SITE_REDIRECT_URL: supabaseEnv.SITE_REDIRECT_URL || 'http://localhost:3000/**',
+    RESEND_API_KEY: supabaseEnv.RESEND_API_KEY || '',
+    RESEND_ADMIN_EMAIL: supabaseEnv.RESEND_ADMIN_EMAIL || '',
+  };
+
+  let configPush;
+  try {
+    configPush = spawnSync('supabase', ['config', 'push', '--project-ref', projectRef], {
       cwd: root,
       stdio: 'inherit',
       shell: process.platform === 'win32',
-      env: supabaseEnv,
+      env: configEnv,
     });
-    if (configPush.status !== 0) {
-      warn('supabase config push 실패 — 이메일 템플릿과 가입 제한 훅이 원격에 반영되지 않았습니다.');
-      console.log(c.dim('  supabase/.env 값을 확인한 뒤 다시 실행하세요: supabase config push'));
-    } else {
-      ok('이메일 템플릿·가입 제한·SMTP 설정 적용 완료');
-    }
+  } finally {
+    restoreConfig?.();
+  }
+
+  if (configPush.status !== 0) {
+    warn('supabase config push 실패 — 이메일 템플릿과 가입 제한 훅이 원격에 반영되지 않았습니다.');
+    console.log(c.dim('  잠시 후 다시 실행하세요: supabase config push'));
+  } else if (hasResend) {
+    ok('이메일 템플릿·가입 제한·SMTP 설정 적용 완료');
   } else {
-    warn('supabase/.env가 없어 이메일 템플릿·가입 제한 훅·SMTP 설정을 원격에 반영하지 못했습니다.');
-    console.log(c.dim('  지금은 Supabase 기본 이메일 서비스(시간당 2통)를 씁니다 — 첫 가입 1번은'));
-    console.log(c.dim('  문제없지만 반복 테스트하면 금방 막힙니다. 더 넉넉한 한도가 필요하면'));
-    console.log(c.dim('  Resend(무료, resend.com)에 가입해 API 키를 supabase/.env에 채우고 실행하세요:'));
-    console.log(c.dim('    supabase config push'));
-    warn('가입 제한 훅도 아직 반영 전입니다 — 다른 사람이 먼저 가입할 위험이 있으니 곧 실행하세요.');
+    ok('이메일 템플릿·가입 제한 설정 적용 완료 (지금은 Supabase 기본 메일 서비스, 시간당 2통)');
+    console.log(c.dim('  더 넉넉한 한도가 필요하면 Resend(무료, resend.com)에 가입해 API 키를'));
+    console.log(c.dim('  supabase/.env에 채우고 다시 실행하세요: supabase config push'));
+  }
+  if (!existsSync(supabaseEnvFile)) {
+    console.log(c.dim('  참고: SITE_URL을 localhost 기본값으로 반영했습니다 — 나중에 배포 주소가'));
+    console.log(c.dim('  생기면(npm run deploy) supabase/.env에 실제 주소를 채우고 다시 실행하세요.'));
   }
 
   // 5. 환경변수 파일 ---------------------------------------------------------
