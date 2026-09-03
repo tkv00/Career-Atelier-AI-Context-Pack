@@ -450,16 +450,17 @@ http://localhost:3000 에 접속해 본인 이메일과 비밀번호로 계정�
 
 ### 배포
 
-Vercel 프로젝트의 Root Directory를 `web/`로 잡고 환경변수 두 개만 넣습니다.
+선택 사항입니다 — 러너는 내 컴퓨터가 켜져 있어야 하지만, 웹 앱 자체는 `localhost:3000`만으로도 잘 동작합니다. 집·회사 밖에서도 캘린더나 작성 중인 자소서를 보고 싶을 때만 배포하면 됩니다 — 그때도 러너가 켜져 있을 필요는 없습니다.
 
+```bash
+npm run deploy
 ```
-NEXT_PUBLIC_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY
-```
+
+`web/`을 Vercel CLI로 직접 프로젝트에 연결합니다 — GitHub Import를 거치지 않습니다. Vercel의 GitHub App이 그 저장소(특히 포크)에 접근 권한이 없으면 Import 목록에 아예 안 뜨는 경우가 흔한데, 이 방식은 그 문제 자체를 피해 갑니다. `npm run setup`이 이미 `web/.env.local`에 써 둔 `NEXT_PUBLIC_SUPABASE_URL`·`NEXT_PUBLIC_SUPABASE_ANON_KEY`를 그대로 읽어 Vercel 프로젝트에 설정하고 배포까지 끝냅니다. 처음 한 번만 Vercel 로그인 창이 뜨고, 이후 다시 올리고 싶을 때도 같은 명령을 그대로 실행하면 됩니다.
 
 service_role 키나 AI 제공자 키는 넣지 마세요. **일부러 빌드가 거부합니다** (`web/lib/env.ts`).
 
-자세한 내용은 [docs/V2-SETUP.md](docs/V2-SETUP.md)에 있습니다.
+직접 손으로 하고 싶다면 Vercel 프로젝트의 Root Directory를 `web/`로 잡고 같은 환경변수 두 개를 직접 넣으면 됩니다 — 자세한 내용은 [docs/V2-SETUP.md](docs/V2-SETUP.md)에 있습니다.
 
 <br>
 

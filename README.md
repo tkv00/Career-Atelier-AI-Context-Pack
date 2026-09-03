@@ -447,16 +447,17 @@ Finally, **approve** this machine in the runner list at the bottom of the dashbo
 
 ### Deploying
 
-Point a Vercel project at the `web/` directory and set two environment variables.
+Optional — the runner needs your machine, but the web app works fine as `localhost:3000` only. Deploy it if you want to open your calendar or a draft from outside your home or office; the runner does not need to be running for that.
 
+```bash
+npm run deploy
 ```
-NEXT_PUBLIC_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY
-```
+
+This installs the Vercel CLI's project link into `web/` directly — no GitHub import required, which is the step that tends to get stuck if Vercel's GitHub App does not have access to your fork. It reads the same `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_ANON_KEY` that `npm run setup` already wrote to `web/.env.local`, sets them on the Vercel project, and deploys. Sign in to Vercel once when prompted; re-run the same command any time you want to push a new deploy.
 
 Do not add a service role key or any AI provider key. **The build rejects them on purpose** (`web/lib/env.ts`).
 
-Details in [docs/V2-SETUP.md](docs/V2-SETUP.md).
+Prefer to do it by hand instead? Point a Vercel project at the `web/` directory and set those same two environment variables yourself — details in [docs/V2-SETUP.md](docs/V2-SETUP.md).
 
 <br>
 

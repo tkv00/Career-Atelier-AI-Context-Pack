@@ -532,6 +532,9 @@ async function main() {
   console.log(`     ${c.dim('cd runner')}`);
   console.log(`     ${c.dim('npm run start')}`);
   console.log(`     ${c.dim('웹 관제실 화면 아래 "러너" 목록에서 이 기기를 승인해야 작업을 받습니다.')}`);
+  console.log(`\n  ${c.bold('선택)')} 집·회사 밖에서도 웹으로 보고 싶다면`);
+  console.log(`     ${c.dim('npm run deploy')}`);
+  console.log(`     ${c.dim('러너가 꺼져 있어도 웹은 그대로 열립니다(새 에이전트 실행만 못 함).')}`);
   console.log(`\n자세한 내용: ${c.dim('docs/USER-GUIDE.md')}\n`);
 
   rl?.close();
