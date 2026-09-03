@@ -1565,6 +1565,25 @@ option {
   opacity: 0.5;
   cursor: not-allowed;
 }
+.inline-danger-button {
+  padding: 6px var(--s3);
+  border: 1px solid var(--danger-line);
+  border-radius: var(--r-control);
+  background: transparent;
+  color: var(--danger);
+  font-family: var(--font-mono);
+  font-size: var(--fs-xs);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
+}
+.inline-danger-button:hover:not(:disabled) {
+  background: var(--danger-bg);
+}
+.inline-danger-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 .application-status-scroll th {
   padding: var(--s2) var(--s3);
   border-bottom: 1px solid var(--line);

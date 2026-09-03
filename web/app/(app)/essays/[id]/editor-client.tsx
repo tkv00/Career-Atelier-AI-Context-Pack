@@ -13,6 +13,7 @@ import { markdownToHtml } from '@/lib/markdown';
 import { companyResearchToMarkdown, isCompanyResult, sanitizeFileName, type CompanyResult } from '@/lib/company-research';
 import { downloadTextFile } from '@/lib/download-text';
 import { downloadMarkdownAsPdf } from '@/lib/pdf';
+import { cancelQueuedJob } from '@/lib/jobs-actions';
 import {
   applySubtitle,
   forceSaveDraft,
@@ -94,6 +95,7 @@ export function EssayEditor({
   writerPending,
   companyPending,
   subtitlePending,
+  pendingJobs,
   runnerOnline,
   revisionRequests,
 }: {
@@ -108,6 +110,7 @@ export function EssayEditor({
   writerPending: boolean;
   companyPending: boolean;
   subtitlePending: boolean;
+  pendingJobs: { id: string; kind: string; status: string }[];
   runnerOnline: boolean;
   revisionRequests: { id: string; instruction: string; created_at: string }[];
 }) {
@@ -329,6 +332,17 @@ export function EssayEditor({
 
   async function handleRequestSubtitle() {
     await requestSubtitle(essay.id);
+    router.refresh();
+  }
+
+  // 러너가 꺼져 있어 queued로 무한 대기하는 잡만 취소 대상이다 — running은
+  // 러너가 실제로 처리 중이라 여기서 지워도 로컬 프로세스는 안 멈춘다.
+  function queuedJobId(kind: string) {
+    return pendingJobs.find((job) => job.kind === kind && job.status === 'queued')?.id ?? null;
+  }
+
+  async function handleCancelJob(jobId: string) {
+    await cancelQueuedJob(jobId, `/essays/${essay.id}`);
     router.refresh();
   }
 
@@ -595,26 +609,36 @@ export function EssayEditor({
               <span style={{ color: 'var(--text-dim)', fontSize: 11, fontWeight: 700, letterSpacing: '0.05em' }}>지원 기업</span>
               <p style={{ margin: '4px 0 0' }}>{jobPost ? `${jobPost.company} · ${jobPost.role}` : '연결된 채용공고가 없습니다.'}</p>
             </div>
-            <button
-              type="button"
-              className="secondary-button"
-              onClick={() => setShowCompanyForm(true)}
-              disabled={pipelinePending}
-            >
-              {pipelinePending
-                ? runnerOnline
-                  ? companyPending
-                    ? '조사 중…'
-                    : writerPending
-                      ? '초안 작성 중…'
-                      : reviewPending
-                        ? '검수 중…'
-                        : '소제목 작성 중…'
-                  : '대기 중 — 러너 꺼짐'
-                : jobPost
-                  ? '기업 조사 다시 요청'
-                  : '기업 조사 요청 (솔)'}
-            </button>
+            <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+              <button
+                type="button"
+                className="secondary-button"
+                onClick={() => setShowCompanyForm(true)}
+                disabled={pipelinePending}
+              >
+                {pipelinePending
+                  ? runnerOnline
+                    ? companyPending
+                      ? '조사 중…'
+                      : writerPending
+                        ? '초안 작성 중…'
+                        : reviewPending
+                          ? '검수 중…'
+                          : '소제목 작성 중…'
+                    : '대기 중 — 러너 꺼짐'
+                  : jobPost
+                    ? '기업 조사 다시 요청'
+                    : '기업 조사 요청 (솔)'}
+              </button>
+              {(() => {
+                const jobId = queuedJobId('company') ?? queuedJobId('writer') ?? queuedJobId('review') ?? queuedJobId('subtitle');
+                return jobId && (
+                  <button type="button" className="inline-danger-button" onClick={() => handleCancelJob(jobId)} title="러너가 켜질 때까지 대기 중인 요청을 취소합니다">
+                    취소
+                  </button>
+                );
+              })()}
+            </div>
           </div>
         )}
       </div>
@@ -695,6 +719,11 @@ export function EssayEditor({
           <button type="button" onClick={handleRequestSubtitle} disabled={subtitlePending} className="secondary-button">
             {subtitlePending ? (runnerOnline ? '짓는 중…' : '대기 중 — 러너 꺼짐') : '소제목 생성 (Gemini)'}
           </button>
+          {queuedJobId('subtitle') && (
+            <button type="button" className="inline-danger-button" onClick={() => handleCancelJob(queuedJobId('subtitle')!)} title="러너가 켜질 때까지 대기 중인 요청을 취소합니다">
+              취소
+            </button>
+          )}
         </div>
         <textarea
           value={content}
@@ -723,9 +752,19 @@ export function EssayEditor({
               <button type="button" onClick={handleRequestWriterDraft} disabled={writerPending} className="secondary-button">
                 {writerPending ? (runnerOnline ? '작성 중…' : '대기 중 — 러너 꺼짐') : 'AI 초안 생성 (뮤즈)'}
               </button>
+              {queuedJobId('writer') && (
+                <button type="button" className="inline-danger-button" onClick={() => handleCancelJob(queuedJobId('writer')!)} title="러너가 켜질 때까지 대기 중인 요청을 취소합니다">
+                  취소
+                </button>
+              )}
               <button type="button" onClick={handleRequestReview} disabled={reviewPending} className="secondary-button">
                 {reviewPending ? (runnerOnline ? '검수 진행 중…' : '대기 중 — 러너 꺼짐') : 'AI 검수 요청 (렌즈)'}
               </button>
+              {queuedJobId('review') && (
+                <button type="button" className="inline-danger-button" onClick={() => handleCancelJob(queuedJobId('review')!)} title="러너가 켜질 때까지 대기 중인 요청을 취소합니다">
+                  취소
+                </button>
+              )}
             </div>
             {!runnerOnline && (
               <span style={{ fontSize: 11, color: 'var(--danger)' }}>

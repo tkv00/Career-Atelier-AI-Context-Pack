@@ -106,6 +106,18 @@ export async function updateJobProgress(jobPostId: string, field: 'application_t
   revalidatePath('/dashboard');
 }
 
+// job_posts를 지우면 calendar_events·interview_questions는 FK cascade로 함께
+// 지워지고, essay_projects.job_id는 on delete set null이라 이미 쓴 자소서는
+// 남는다(0001_init_schema.sql) — 여기서 따로 정리할 게 없다.
+export async function deleteJobPost(jobPostId: string) {
+  const { supabase, user } = await requireUser();
+  const { error } = await supabase.from('job_posts').delete().eq('id', jobPostId).eq('owner_id', user.id);
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/calendar');
+  revalidatePath('/dashboard');
+}
+
 // 전형 단계 하나를 클릭할 때마다 대기→합격→불합격→대기로 순환시킨다.
 // stage_results를 갱신하면서 result_status도 같이 재계산해 써 둔다 —
 // 캘린더 칩·현황판 색이 이 컬럼만 보고 있어서, 한 번의 업데이트에 두

@@ -4,7 +4,7 @@ import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Database } from '@/lib/supabase/database.types';
 import { startEssayForJobPost } from '../essays/actions';
-import { cycleStageResult, saveCalendarJob, updateJobProgress } from './actions';
+import { cycleStageResult, deleteJobPost, saveCalendarJob, updateJobProgress } from './actions';
 import { formatDate } from '@/lib/datetime';
 import { parseStageResults, STAGES, type Stage } from '@/lib/stage-results';
 
@@ -107,6 +107,19 @@ export function CalendarClient({ events, jobs }: { events: CalendarEvent[]; jobs
     startTransition(async () => { await cycleStageResult(jobId, stage); router.refresh(); });
   }
 
+  function remove(job: JobPost) {
+    startTransition(async () => {
+      try {
+        await deleteJobPost(job.id);
+        if (form.jobPostId === job.id) chooseJob('');
+        setMessage(`${job.company} · ${job.role} 지원 기록을 삭제했습니다.`);
+        router.refresh();
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : '삭제에 실패했습니다.');
+      }
+    });
+  }
+
   return <>
     <div className="page-title"><div><p className="eyebrow">APPLICATION FLIGHT PLAN</p><h2>채용 캘린더</h2><p>마감일과 제출·전형별 합불을 함께 확인하고 자소서 작성으로 바로 연결합니다. 날짜에 마우스를 올리면 그날의 일정을 전부 볼 수 있습니다.</p></div><button className="secondary-button" onClick={() => chooseJob('')}>+ 직접 일정 입력</button></div>
     <div className="calendar-workspace">
@@ -162,7 +175,7 @@ export function CalendarClient({ events, jobs }: { events: CalendarEvent[]; jobs
       <div className="application-status-head"><div><p className="eyebrow">APPLICATION STATUS MATRIX</p><h3>채용공고별 진행상황</h3><span>전형·제출·단계별 합불을 한 화면에서 관리합니다.</span></div><b>{jobs.length}</b></div>
       <div className="application-status-scroll">
         <table>
-          <thead><tr><th>구분</th><th>채용공고</th><th>일정</th><th>링크</th><th>기업 유형</th><th>제출 여부</th><th>전형별 합불</th><th>자소서</th></tr></thead>
+          <thead><tr><th>구분</th><th>채용공고</th><th>일정</th><th>링크</th><th>기업 유형</th><th>제출 여부</th><th>전형별 합불</th><th>자소서</th><th>삭제</th></tr></thead>
           <tbody>
             {[...jobs].sort((a, b) => (a.deadline || '9999').localeCompare(b.deadline || '9999')).map((job) => (
               <tr key={job.id}>
@@ -174,6 +187,7 @@ export function CalendarClient({ events, jobs }: { events: CalendarEvent[]; jobs
                 <td><select disabled={pending} className={`status-select ${progressTone({ ...job, result_status: '아직' })}`} value={job.submission_status} onChange={(event) => update(job.id, 'submission_status', event.target.value)}>{SUBMISSION_STATUSES.map((item) => <option key={item}>{item}</option>)}</select></td>
                 <td><StageToggleRow job={job} disabled={pending} onToggle={(stage) => toggleStage(job.id, stage)} /></td>
                 <td><button type="button" className="essay-link-button" disabled={pending} onClick={() => startTransition(() => startEssayForJobPost(job.id))}>자소서 →</button></td>
+                <td><button type="button" className="inline-danger-button" disabled={pending} onClick={() => remove(job)} title="이 지원 기록과 캘린더 일정을 삭제합니다. 이미 작성한 자소서는 남습니다.">삭제</button></td>
               </tr>
             ))}
           </tbody>

@@ -78,6 +78,7 @@ export default async function EssayPage({ params }: { params: Promise<{ id: stri
       writerPending={(pendingJobs ?? []).some((job) => job.kind === 'writer')}
       companyPending={(pendingJobs ?? []).some((job) => job.kind === 'company')}
       subtitlePending={(pendingJobs ?? []).some((job) => job.kind === 'subtitle')}
+      pendingJobs={pendingJobs ?? []}
       runnerOnline={runnerOnline}
       revisionRequests={revisionRequests ?? []}
     />

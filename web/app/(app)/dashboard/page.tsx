@@ -70,8 +70,8 @@ export default async function DashboardPage() {
     supabase.from('essay_projects').select('*').order('updated_at', { ascending: false }),
     supabase.from('runners').select('*').order('created_at', { ascending: false }),
     supabase.from('research_notes').select('*').eq('kind', 'news').order('created_at', { ascending: false }).limit(1),
-    supabase.from('jobs').select('id').eq('kind', 'news').in('status', ['queued', 'running']).limit(1),
-    supabase.from('jobs').select('id').eq('kind', 'jobs').in('status', ['queued', 'running']).limit(1),
+    supabase.from('jobs').select('id, status').eq('kind', 'news').in('status', ['queued', 'running']).order('created_at', { ascending: false }).limit(1),
+    supabase.from('jobs').select('id, status').eq('kind', 'jobs').in('status', ['queued', 'running']).order('created_at', { ascending: false }).limit(1),
     supabase.from('essay_questions').select('job_post_id'),
     supabase.from('agent_runs').select('agent_id, provider, status, created_at').order('created_at', { ascending: false }).limit(50),
     // 구독 잔량은 별도 테이블 없이 실행 스트림에서 되읽는다(web/lib/llm-usage.ts).
@@ -81,8 +81,10 @@ export default async function DashboardPage() {
   ]);
 
   const runnerOnline = (runners ?? []).some((runner) => isRunnerOnline(runner.last_seen_at));
-  const newsPending = (pendingNewsJobs?.length ?? 0) > 0;
-  const jobsPending = (pendingJobSearchJobs?.length ?? 0) > 0;
+  const newsJob = pendingNewsJobs?.[0] ?? null;
+  const jobSearchJob = pendingJobSearchJobs?.[0] ?? null;
+  const newsPending = newsJob !== null;
+  const jobsPending = jobSearchJob !== null;
   const questionCountByJobPost = new Map<string, number>();
   for (const row of questionCounts ?? []) {
     if (!row.job_post_id) continue;
@@ -132,8 +134,8 @@ export default async function DashboardPage() {
                 <div className={active ? 'cloud-agent-speech live' : 'cloud-agent-speech'}><b>{agent.name}</b><span>{agentSpeech(agent.id, latest?.status, runnerOnline)}</span></div>
                 <div className={`cloud-space-agent frame-${agent.frame}`} aria-label={`${agent.name} 픽셀 채용 에이전트`}/>
                 <div><b>{agent.name}</b><span>{agent.role}</span><small>{(() => { const p = providerByAgent.get(agent.id); return p && isProvider(p) ? PROVIDER_META[p].label : '미설정'; })()} · {active ? 'RUNNING' : latest?.status?.toUpperCase() || 'STANDBY'}</small></div>
-                {agent.id === 'news' && <NewsRunButton pending={newsPending} runnerOnline={runnerOnline} />}
-                {agent.id === 'jobs' && <JobSearchButton pending={jobsPending} runnerOnline={runnerOnline} />}
+                {agent.id === 'news' && <NewsRunButton pending={newsPending} runnerOnline={runnerOnline} pendingJob={newsJob} />}
+                {agent.id === 'jobs' && <JobSearchButton pending={jobsPending} runnerOnline={runnerOnline} pendingJob={jobSearchJob} />}
               </article>;
             })}
           </div>
