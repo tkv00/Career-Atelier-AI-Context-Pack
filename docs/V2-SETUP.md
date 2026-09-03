@@ -19,7 +19,7 @@
    이게 "허용 이메일 1개"를 실제로 강제하는 지점이다. 그런 다음
    Authentication → Users에서 본인 이메일 1개만 초대(invite)한다.
 5. Authentication → URL Configuration에서 Redirect URLs에
-   `https://<너의-도메인>/auth/confirm`과 로컬 개발용
+   `https://<your-domain>/auth/confirm`과 로컬 개발용
    `http://localhost:3000/auth/confirm`을 등록한다.
 
 ## 2. Vercel 프로젝트

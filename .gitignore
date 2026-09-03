@@ -14,3 +14,7 @@ local-data/
 
 # Supabase CLI가 생성하는 로컬 연결 정보·시크릿
 supabase/.temp/
+
+# 로컬 전용 내부 설계 및 기획 문서 (오픈소스 배포본 제외)
+documentation/
+

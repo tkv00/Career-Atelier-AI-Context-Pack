@@ -1,5 +1,9 @@
 # Contributing to Career Atelier
 
+English · **[한국어](CONTRIBUTING.ko.md)**
+
+---
+
 Thanks for taking the time to contribute.
 
 This guide follows the conventions used by projects like [Rust](https://github.com/rust-lang/rust),

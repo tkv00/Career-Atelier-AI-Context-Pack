@@ -17,10 +17,7 @@
 이 서버는 소스를 직접 읽고 DB에 직접 쓴다. 모델은 "어디서 가져와라"와 압축된
 영수증만 주고받는다. 원문은 모델 컨텍스트를 **한 번도 통과하지 않는다.**
 
-측정값은 [docs/MCP-BENCHMARK.md](../../docs/MCP-BENCHMARK.md)에 있다 —
-같은 입력에서 3,006 → 114 토큰(96.2% 감소).
-
-설계 결정과 그 근거는 [docs/MCP-DECISION-LOG.md](../../docs/MCP-DECISION-LOG.md).
+실제 측정 결과 동일한 입력에서 3,006 -> 114 토큰으로 약 96.2%의 토큰 소비를 절감합니다.
 
 <br>
 
@@ -58,7 +55,7 @@
 
 리포 루트의 `.mcp.json`에 이미 등록돼 있다. Claude Code를 프로젝트 폴더에서
 실행하면 잡히고, **최초 1회 승인**이 필요하다(`claude mcp list`에서
-`⏸ Pending approval`로 보인다).
+`[Pending approval]`로 보인다).
 
 ### 2. 정리본 형식
 

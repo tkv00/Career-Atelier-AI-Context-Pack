@@ -1,0 +1,63 @@
+- name: "type: bug"
+  color: "d73a4a"
+  description: "Something is not working as expected"
+
+- name: "type: feature"
+  color: "a2eeef"
+  description: "New feature or enhancement request"
+
+- name: "type: documentation"
+  color: "0075ca"
+  description: "Improvements or additions to documentation"
+
+- name: "type: refactor"
+  color: "cfd3d7"
+  description: "Code restructuring without behavior changes"
+
+- name: "area: web"
+  color: "1d76db"
+  description: "Next.js frontend application (web/)"
+
+- name: "area: runner"
+  color: "5319e7"
+  description: "Local CLI runner and execution process (runner/)"
+
+- name: "area: database"
+  color: "3ecf8e"
+  description: "Supabase schema, migrations, and RLS policies"
+
+- name: "area: harness"
+  color: "fbca04"
+  description: "Agent orchestration, context packs, and schemas"
+
+- name: "area: mcp"
+  color: "0e8a16"
+  description: "Local MCP server implementation (runner/mcp/)"
+
+- name: "provider: codex"
+  color: "10a37f"
+  description: "Issues specific to OpenAI Codex CLI"
+
+- name: "provider: claude"
+  color: "d97706"
+  description: "Issues specific to Anthropic Claude Code CLI"
+
+- name: "provider: antigravity"
+  color: "4285f4"
+  description: "Issues specific to Google Antigravity (agy) CLI"
+
+- name: "good first issue"
+  color: "7057ff"
+  description: "Good for newcomers to the project"
+
+- name: "help wanted"
+  color: "008672"
+  description: "Extra attention or community contribution is welcomed"
+
+- name: "status: waiting for feedback"
+  color: "e4e669"
+  description: "Waiting on response from the author or reporter"
+
+- name: "status: blocked"
+  color: "b60205"
+  description: "Blocked by external dependencies or upstream behavior"

@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Security Vulnerability Reporting
+    url: https://github.com/tkv00/Career-Atelier-AI-Context-Pack/security/advisories/new
+    about: Please report sensitive security vulnerabilities privately rather than via public issues.
