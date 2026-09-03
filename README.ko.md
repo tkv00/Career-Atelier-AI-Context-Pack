@@ -394,6 +394,8 @@ npm run setup
 
 > DB 비밀번호는 무작위로 만들고 어디에도 저장하지 않습니다. `service_role` 키는 조회조차 하지 않습니다.
 
+**비밀번호 재설정 메일은 별도 설정 없이 바로 동작합니다** — Supabase 기본 메일 서비스를 쓰기 때문입니다. 다만 시간당 2통으로 제한돼 있어서, 실사용(가끔 비밀번호를 잊었을 때만)에는 충분하지만 가입 흐름을 반복 테스트할 때는 금방 막힙니다. 더 넉넉한 한도가 필요하면 [Resend](https://resend.com)에 무료로 가입해 `supabase/.env.example`을 `supabase/.env`로 복사한 뒤 `RESEND_API_KEY`와 사이트 주소 항목을 채우고 `supabase config push`를 실행하세요.
+
 <br>
 
 ### AI에게 설치 맡기기

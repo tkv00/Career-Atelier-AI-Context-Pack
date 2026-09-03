@@ -390,6 +390,8 @@ npm run setup
 
 > The database password is generated at random and stored nowhere. The `service_role` key is never even read.
 
+**Password-reset emails work out of the box**, using Supabase's built-in mailer — but it's capped at 2 emails per hour, which is fine for actual use (you only reset a forgotten password occasionally) but tight while you're testing the sign-up flow repeatedly. For a higher limit, sign up for a free [Resend](https://resend.com) account, copy `supabase/.env.example` to `supabase/.env`, fill in `RESEND_API_KEY` and the site URL fields, then run `supabase config push`.
+
 <br>
 
 ### Install with an AI coding agent

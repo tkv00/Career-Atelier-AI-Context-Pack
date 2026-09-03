@@ -326,9 +326,12 @@ async function main() {
       ok('이메일 템플릿·가입 제한·SMTP 설정 적용 완료');
     }
   } else {
-    warn('supabase/.env가 없어 이메일 템플릿과 가입 제한 훅을 원격에 반영하지 못했습니다.');
-    console.log(c.dim('  Vercel 배포 후 supabase/.env.example을 supabase/.env로 복사해 값을 채우고 다시 실행하세요:'));
+    warn('supabase/.env가 없어 이메일 템플릿·가입 제한 훅·SMTP 설정을 원격에 반영하지 못했습니다.');
+    console.log(c.dim('  지금은 Supabase 기본 이메일 서비스(시간당 2통)를 씁니다 — 첫 가입 1번은'));
+    console.log(c.dim('  문제없지만 반복 테스트하면 금방 막힙니다. 더 넉넉한 한도가 필요하면'));
+    console.log(c.dim('  Resend(무료, resend.com)에 가입해 API 키를 supabase/.env에 채우고 실행하세요:'));
     console.log(c.dim('    supabase config push'));
+    warn('가입 제한 훅도 아직 반영 전입니다 — 다른 사람이 먼저 가입할 위험이 있으니 곧 실행하세요.');
   }
 
   // 5. 환경변수 파일 ---------------------------------------------------------
