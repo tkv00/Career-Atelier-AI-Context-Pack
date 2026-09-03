@@ -248,19 +248,61 @@ export default function LoginPage() {
   </main>;
 }
 
+type Mode = 'login' | 'signup' | 'forgot';
+
 function LoginForm() {
   const searchParams = useSearchParams();
   const linkError = searchParams.get('error');
+  const [mode, setMode] = useState<Mode>('login');
   const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
 
-  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  function switchMode(next: Mode) {
+    setMode(next);
+    setStatus('idle');
+    setErrorMessage('');
+    setPassword('');
+  }
+
+  async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setStatus('sending');
     setErrorMessage('');
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({ email, options: { emailRedirectTo: `${window.location.origin}/auth/confirm` } });
+    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error) {
+      setStatus('error');
+      setErrorMessage('이메일 또는 비밀번호가 올바르지 않습니다.');
+      return;
+    }
+    // 서버 컴포넌트가 방금 설정된 쿠키를 확실히 읽도록 풀 네비게이션으로 이동한다.
+    window.location.assign('/dashboard');
+  }
+
+  async function handleSignup(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setStatus('sending');
+    setErrorMessage('');
+    const supabase = createClient();
+    const { error } = await supabase.auth.signUp({ email, password });
+    if (error) {
+      setStatus('error');
+      setErrorMessage(error.message);
+      return;
+    }
+    window.location.assign('/dashboard');
+  }
+
+  async function handleForgot(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setStatus('sending');
+    setErrorMessage('');
+    const supabase = createClient();
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/confirm`,
+    });
     if (error) {
       setStatus('error');
       setErrorMessage(error.message);
@@ -269,15 +311,60 @@ function LoginForm() {
     setStatus('sent');
   }
 
+  const headerText =
+    mode === 'signup'
+      ? '새 계정을 만듭니다. 이 인스턴스에는 계정을 하나만 만들 수 있습니다.'
+      : mode === 'forgot'
+        ? '가입한 이메일로 비밀번호 재설정 메일을 보내드립니다.'
+        : env.allowedEmail
+          ? `${env.allowedEmail} 계정으로만 로그인할 수 있습니다.`
+          : '이메일과 비밀번호로 로그인하세요.';
+
   return <section className="galaxy-login-card" aria-label="Career Atelier 로그인">
     <div className="galaxy-card-scan" aria-hidden="true"/>
-    <header><BrandIcon priority/><div><h2>Career Atelier</h2><p>{env.allowedEmail ? `${env.allowedEmail} 계정으로만 로그인할 수 있습니다.` : '이메일로 일회용 매직링크를 보내드립니다.'}</p></div></header>
+    <header><BrandIcon priority/><div><h2>Career Atelier</h2><p>{headerText}</p></div></header>
     {linkError && <div className="galaxy-auth-message error">{linkErrorMessages[linkError] ?? '로그인에 실패했습니다. 다시 시도해 주세요.'}</div>}
-    <form onSubmit={handleSubmit}>
-      <label><span>이메일</span><div><i>@</i><input type="email" required autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com"/></div></label>
-      <button type="submit" disabled={status === 'sending'}><span>{status === 'sending' ? '전송 중…' : '매직링크 받기'}</span><i>→</i></button>
-    </form>
-    {status === 'sent' && <div className="galaxy-auth-message success"><i/>메일함에 도킹 링크를 보냈습니다.</div>}
+
+    {mode === 'forgot' ? (
+      <form onSubmit={handleForgot}>
+        <label><span>이메일</span><div><i>@</i><input type="email" required autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com"/></div></label>
+        <button type="submit" disabled={status === 'sending'}><span>{status === 'sending' ? '전송 중…' : '재설정 메일 받기'}</span><i>→</i></button>
+      </form>
+    ) : (
+      <form onSubmit={mode === 'signup' ? handleSignup : handleLogin}>
+        <label><span>이메일</span><div><i>@</i><input type="email" required autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com"/></div></label>
+        <label>
+          <span>비밀번호</span>
+          <div>
+            <i>••</i>
+            <input
+              type="password"
+              required
+              minLength={8}
+              autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              placeholder={mode === 'signup' ? '8자 이상' : '비밀번호'}
+            />
+          </div>
+        </label>
+        <button type="submit" disabled={status === 'sending'}>
+          <span>{status === 'sending' ? (mode === 'signup' ? '만드는 중…' : '로그인 중…') : mode === 'signup' ? '계정 만들기' : '로그인'}</span>
+          <i>→</i>
+        </button>
+      </form>
+    )}
+
+    <div className="galaxy-auth-switch">
+      {mode === 'login' && <>
+        <button type="button" onClick={() => switchMode('signup')}>계정이 없으신가요? 만들기</button>
+        <button type="button" onClick={() => switchMode('forgot')}>비밀번호를 잊으셨나요?</button>
+      </>}
+      {mode === 'signup' && <button type="button" onClick={() => switchMode('login')}>이미 계정이 있으신가요? 로그인</button>}
+      {mode === 'forgot' && <button type="button" onClick={() => switchMode('login')}>로그인으로 돌아가기</button>}
+    </div>
+
+    {status === 'sent' && <div className="galaxy-auth-message success"><i/>메일함에 비밀번호 재설정 링크를 보냈습니다.</div>}
     {status === 'error' && <div className="galaxy-auth-message error">{errorMessage}</div>}
   </section>;
 }

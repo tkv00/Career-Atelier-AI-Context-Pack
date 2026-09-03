@@ -71,11 +71,10 @@ npm install
 
 Two things you cannot do:
 
-- **First sign-in.** Start the web app (`cd web`, then `npm run dev`), then the
-  human opens http://localhost:3000 and signs in with their own email. Sign-in
-  is a magic link sent to their inbox. **The first account to sign up becomes
-  the owner of that instance and every later signup is rejected**, so this must
-  be them.
+- **First sign-up.** Start the web app (`cd web`, then `npm run dev`), then the
+  human opens http://localhost:3000 and creates an account with their own email
+  and a password. **The first account to sign up becomes the owner of that
+  instance and every later signup is rejected**, so this must be them.
 - **Runner login and approval.** `cd runner`, then `npm run login` needs a
   six-digit code from their email. After `npm run start`, they approve the
   device in the dashboard's runner list.

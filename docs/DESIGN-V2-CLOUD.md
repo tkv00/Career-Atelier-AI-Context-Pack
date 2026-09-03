@@ -266,7 +266,7 @@ create policy owner_all on jobs
 
 **1겹 — Vercel Authentication.** 프리뷰 배포에 인증을 걸어, 만들어지는 족족 열려 있는 URL이 되지 않게 한다.
 
-**2겹 — Supabase Auth.** 매직링크 로그인. **가입은 첫 계정 한 번뿐** — 그 뒤로는 신규 가입 자체를 막는다(`web/lib/supabase/middleware.ts`가 로그인 안 된 요청을 전부 `/login`으로 돌려보낸다).
+**2겹 — Supabase Auth.** 이메일+비밀번호 로그인(2026-09-03, `before_user_created` 훅은 인증 방식과 무관하게 그대로 적용됨). **가입은 첫 계정 한 번뿐** — 그 뒤로는 신규 가입 자체를 막는다(`web/lib/supabase/middleware.ts`가 로그인 안 된 요청을 전부 `/login`으로 돌려보낸다).
 
 **3겹 — RLS(Row Level Security).** 위 두 겹이 전부 뚫려도 `owner_id = auth.uid()` 없이는 단 한 행도 안 나온다. 모든 테이블 기본 거부.
 

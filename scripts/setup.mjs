@@ -305,7 +305,33 @@ async function main() {
   }
   ok('테이블·RLS·기본 프롬프트 적용 완료');
 
-  // 4. 환경변수 파일 ---------------------------------------------------------
+  // 4. Auth 설정(이메일 템플릿·가입 제한 훅·SMTP) -----------------------------
+  // config.toml의 [auth] 섹션은 db push로는 안 밀린다 — 별도 명령이 필요하다.
+  // 이게 빠지면 이메일이 기본 Supabase 템플릿(형식이 달라 로그인 링크가 깨짐)
+  // 으로 나가고, 단일 사용자 방어 훅도 원격에서 켜지지 않는다. env()로 참조하는
+  // SITE_URL 등은 supabase/.env에 있어야 하는데, 갓 설치한 시점엔 Vercel 주소를
+  // 아직 모를 수 있어 그 파일이 없으면 건너뛴다.
+  const supabaseEnvFile = resolve(root, 'supabase/.env');
+  if (existsSync(supabaseEnvFile)) {
+    const configPush = spawnSync('supabase', ['config', 'push', '--project-ref', projectRef], {
+      cwd: root,
+      stdio: 'inherit',
+      shell: process.platform === 'win32',
+      env: supabaseEnv,
+    });
+    if (configPush.status !== 0) {
+      warn('supabase config push 실패 — 이메일 템플릿과 가입 제한 훅이 원격에 반영되지 않았습니다.');
+      console.log(c.dim('  supabase/.env 값을 확인한 뒤 다시 실행하세요: supabase config push'));
+    } else {
+      ok('이메일 템플릿·가입 제한·SMTP 설정 적용 완료');
+    }
+  } else {
+    warn('supabase/.env가 없어 이메일 템플릿과 가입 제한 훅을 원격에 반영하지 못했습니다.');
+    console.log(c.dim('  Vercel 배포 후 supabase/.env.example을 supabase/.env로 복사해 값을 채우고 다시 실행하세요:'));
+    console.log(c.dim('    supabase config push'));
+  }
+
+  // 5. 환경변수 파일 ---------------------------------------------------------
   const webEnv = resolve(root, 'web/.env.local');
   const runnerEnv = resolve(root, 'runner/.env');
 
@@ -326,7 +352,7 @@ async function main() {
     ok(`${path} 작성`);
   }
 
-  // 5. 다음 단계 -------------------------------------------------------------
+  // 6. 다음 단계 -------------------------------------------------------------
   // 명령을 한 줄씩 따로 찍는다 — &&로 이으면 Windows 기본 PowerShell(5.1)에서
   // 그대로 붙여넣었을 때 파싱 에러가 난다.
   console.log(c.bold('\n\n설치 완료. 다음 순서로 실행하세요.\n'));

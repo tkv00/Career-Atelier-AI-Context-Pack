@@ -435,9 +435,9 @@ npm run login
 npm run start
 ```
 
-Open http://localhost:3000 and sign in with your own email.
+Open http://localhost:3000 and create an account with your own email and a password.
 
-> **The first account to sign up becomes the owner of that instance, and every later signup is rejected.** Make sure the first sign-in is yours.
+> **The first account to sign up becomes the owner of that instance, and every later signup is rejected.** Make sure the first sign-up is yours.
 
 Finally, **approve** this machine in the runner list at the bottom of the dashboard. Once per device.
 
