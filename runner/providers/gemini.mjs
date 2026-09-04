@@ -1,4 +1,6 @@
-import { spawn } from 'node:child_process';
+// codex.mjs·claude.mjs와 같은 이유로 cross-spawn을 쓴다(Windows .cmd 셰임 +
+// 프롬프트 안전 이스케이프).
+import spawn from 'cross-spawn';
 import { childEnvironment } from '../safety.mjs';
 
 // "Gemini"는 실제로는 Antigravity CLI(바이너리명 agy)를 통해 실행한다 —

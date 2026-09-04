@@ -17,6 +17,7 @@
     "mcp:bench": "node mcp/bench.mjs"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.58.0"
+    "@supabase/supabase-js": "^2.58.0",
+    "cross-spawn": "^7.0.6"
   }
 }

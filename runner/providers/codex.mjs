@@ -1,4 +1,7 @@
-import { spawn } from 'node:child_process';
+// Windows에서 codex는 실행파일이 아니라 .cmd 셰임이라 node:child_process의
+// spawn(shell:false 기본값)으로는 ENOENT로 죽는다 — cross-spawn이 프롬프트에
+// 셸 메타문자(%, &, " 등)가 있어도 안전하게 이스케이프해서 실행한다.
+import spawn from 'cross-spawn';
 import { childEnvironment } from '../safety.mjs';
 
 // 인자 구성만 담당한다 — 프로세스 생명주기(스트림 파싱·타임아웃·취소)는

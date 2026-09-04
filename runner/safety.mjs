@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process';
+import spawn from 'cross-spawn';
 
 // v1(server/index.mjs)의 안전장치를 그대로 옮긴 것 — UI에서 끌 수 없는 코드
 // 상수로만 존재해야 한다(§5, §6, §19.2 #10). 값을 DB/env로 노출하지 않는다.
@@ -37,6 +37,10 @@ export function childEnvironment() {
   return environment;
 }
 
+// node:child_process의 spawn이 아니라 cross-spawn을 쓴다 — Windows에서 codex·
+// claude·agy는 실행파일이 아니라 .cmd 셰임이라, shell:false(기본값)로는
+// ENOENT로 죽는다(실제로 겪음, 2026-09-04: CLI를 설치해도 계속 "설치돼 있지
+// 않다"고 나옴). cross-spawn이 이 케이스만 안전하게 셸을 거쳐 실행한다.
 function runCommand(command, args, { timeoutMs = 12_000 } = {}) {
   return new Promise((resolveResult) => {
     const child = spawn(command, args, { env: childEnvironment(), stdio: ['ignore', 'pipe', 'pipe'] });

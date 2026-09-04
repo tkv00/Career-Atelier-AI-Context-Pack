@@ -1,4 +1,6 @@
-import { spawn } from 'node:child_process';
+// codex.mjs와 같은 이유로 cross-spawn을 쓴다(Windows .cmd 셰임 + 프롬프트
+// 안전 이스케이프).
+import spawn from 'cross-spawn';
 import { childEnvironment } from '../safety.mjs';
 
 // 인자 구성만 담당한다 — 프로세스 생명주기는 index.mjs가 공통 처리한다.
