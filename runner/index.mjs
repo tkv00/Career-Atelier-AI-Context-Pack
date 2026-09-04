@@ -185,6 +185,26 @@ async function blockOnEmptyProfile(supabase, ownerId, job, provider, prompt, rea
   console.log(`잡 ${job.id}: ${reason}`);
 }
 
+// 결과가 비었으면 딱 1번만 자동으로 다시 시도한다. codex가 "검색하겠습니다"라는
+// 계획 발화만 내고 실제 웹 검색 없이 끝내는 실행 편차가 실제로 있다(실측,
+// 2026-09-04 — 러너가 codex를 부르는 방식과 정확히 동일한 프롬프트·스키마로
+// 직접 재현: 같은 조건에서도 검색까지 끝까지 가는 실행과 계획만 말하고 멈추는
+// 실행이 섞여 나왔다. 코드·네트워크 문제가 아니라 모델 자체의 비결정성).
+// RETRY_COUNT=0(실패 시 자동 재실행 금지, §6)과는 다른 상황이다 — 이건
+// "실패(failed)"가 아니라 "완료(completed)됐지만 빈 결과"이므로, 무한 재시도를
+// 막는 조건(payload.retried) 아래 딱 1회만 허용한다.
+async function retryOnceIfEmpty(supabase, ownerId, job, isEmpty) {
+  if (!isEmpty || job.payload?.retried) return;
+  const { error } = await supabase.from('jobs').insert({
+    owner_id: ownerId,
+    kind: job.kind,
+    payload: { ...job.payload, retried: true },
+    harness_snapshot: {},
+  });
+  if (error) console.log(`잡 ${job.id}: 재시도 큐잉 실패 — ${error.message}`);
+  else console.log(`잡 ${job.id}: 결과가 비어 있어 한 번 더 시도합니다.`);
+}
+
 // job.pipeline_id가 있으면 체인의 다음 단계를 큐에 넣는다 — 사용자가 "기업
 // 조사 요청" 버튼으로 시작한 잡에만 pipeline_id가 채워지므로(actions.ts),
 // 개별 재실행 버튼(AI 초안 생성 등)으로 만든 잡은 여기 안 걸리고 단독으로
@@ -438,6 +458,7 @@ async function processNewsJob(supabase, ownerId, job) {
         sources: parsed?.items ?? [],
         provider: run.provider,
       });
+      await retryOnceIfEmpty(supabase, ownerId, job, Array.isArray(parsed?.items) && parsed.items.length === 0);
     },
   });
 }
@@ -611,6 +632,7 @@ async function processJobSearchJob(supabase, ownerId, job) {
         }
       }
       console.log(`잡 ${job.id}: 채용공고 ${saved}건 저장/갱신`);
+      await retryOnceIfEmpty(supabase, ownerId, job, saved === 0);
     },
   });
 }
