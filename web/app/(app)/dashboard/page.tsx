@@ -25,8 +25,11 @@ const ORBIT_AGENTS = [
 ];
 
 
-function agentSpeech(agentId: string, status: string | null | undefined, runnerOnline: boolean) {
+function agentSpeech(agentId: string, status: string | null | undefined, runnerOnline: boolean, errorMessage?: string | null) {
   if (!runnerOnline) return '로컬 러너의 연결을 기다리고 있어요.';
+  // CLI 미설치·미로그인으로 막힌 경우. 러너 터미널에만 찍히던 이유를 그대로
+  // 보여준다 — "codex CLI가 설치되어 있지 않습니다" 같은 메시지(safety.mjs).
+  if (status === 'blocked_auth') return errorMessage || '이 비서가 쓰는 CLI 로그인이 필요해요. 러너 컴퓨터를 확인해 주세요.';
   if (status === 'waiting_for_reset') return '구독 한도 초기화를 기다리고 있어요.';
   if (status === 'failed') return '오류 기록을 확인하고 재시도를 준비 중이에요.';
   if (status === 'cancelled') return '중단된 임무를 정리하고 대기 중이에요.';
@@ -73,7 +76,7 @@ export default async function DashboardPage() {
     supabase.from('jobs').select('id, status').eq('kind', 'news').in('status', ['queued', 'running']).order('created_at', { ascending: false }).limit(1),
     supabase.from('jobs').select('id, status').eq('kind', 'jobs').in('status', ['queued', 'running']).order('created_at', { ascending: false }).limit(1),
     supabase.from('essay_questions').select('job_post_id'),
-    supabase.from('agent_runs').select('agent_id, provider, status, created_at').order('created_at', { ascending: false }).limit(50),
+    supabase.from('agent_runs').select('agent_id, provider, status, error, created_at').order('created_at', { ascending: false }).limit(50),
     // 구독 잔량은 별도 테이블 없이 실행 스트림에서 되읽는다(web/lib/llm-usage.ts).
     supabase.from('run_events').select('payload').eq('kind', 'rate_limit_event').order('created_at', { ascending: false }).limit(1),
     supabase.from('run_events').select('payload').eq('kind', 'turn.completed').order('created_at', { ascending: false }).limit(200),
@@ -131,9 +134,9 @@ export default async function DashboardPage() {
               const active = activeAgentIds.has(agent.id);
               const latest = (agentRuns ?? []).find((run) => run.agent_id === agent.id);
               return <article className={active ? 'cloud-agent active' : 'cloud-agent'} key={agent.id}>
-                <div className={active ? 'cloud-agent-speech live' : 'cloud-agent-speech'}><b>{agent.name}</b><span>{agentSpeech(agent.id, latest?.status, runnerOnline)}</span></div>
+                <div className={active ? 'cloud-agent-speech live' : 'cloud-agent-speech'}><b>{agent.name}</b><span>{agentSpeech(agent.id, latest?.status, runnerOnline, latest?.error)}</span></div>
                 <div className={`cloud-space-agent frame-${agent.frame}`} aria-label={`${agent.name} 픽셀 채용 에이전트`}/>
-                <div><b>{agent.name}</b><span>{agent.role}</span><small>{(() => { const p = providerByAgent.get(agent.id); return p && isProvider(p) ? PROVIDER_META[p].label : '미설정'; })()} · {active ? 'RUNNING' : latest?.status?.toUpperCase() || 'STANDBY'}</small></div>
+                <div><b>{agent.name}</b><span>{agent.role}</span><small>{(() => { const p = providerByAgent.get(agent.id); return p && isProvider(p) ? PROVIDER_META[p].label : '미설정'; })()} · {active ? 'RUNNING' : latest?.status === 'blocked_auth' ? 'CLI 인증 필요' : latest?.status?.toUpperCase() || 'STANDBY'}</small></div>
                 {agent.id === 'news' && <NewsRunButton pending={newsPending} runnerOnline={runnerOnline} pendingJob={newsJob} />}
                 {agent.id === 'jobs' && <JobSearchButton pending={jobsPending} runnerOnline={runnerOnline} pendingJob={jobSearchJob} />}
               </article>;

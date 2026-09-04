@@ -100,6 +100,21 @@ async function recordAndRun(supabase, ownerId, job, { provider, prompt, workspac
     await assertSubscriptionProvider(provider);
   } catch (error) {
     await supabase.from('jobs').update({ status: 'blocked_auth' }).eq('id', job.id);
+    // 웹 대시보드는 jobs가 아니라 agent_runs에서 에이전트별 최신 상태를 읽는다
+    // (web/app/(app)/dashboard/page.tsx) — 여기서 return만 하면 이 실패가
+    // jobs.status에만 남고 agent_runs에는 전혀 안 남아, 터미널을 보지 않는 한
+    // "왜 멈췄는지" 알 방법이 없었다(사용자가 실제로 겪음, 2026-09-04).
+    await supabase.from('agent_runs').insert({
+      owner_id: ownerId,
+      pipeline_id: job.pipeline_id,
+      agent_id: job.kind,
+      provider,
+      status: 'blocked_auth',
+      prompt,
+      error: error.message,
+      started_at: new Date().toISOString(),
+      finished_at: new Date().toISOString(),
+    });
     console.log(`잡 ${job.id}: ${error.message}`);
     return;
   }
