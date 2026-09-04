@@ -226,7 +226,10 @@ export const NEWS_OUTPUT_SCHEMA = {
         additionalProperties: false,
         properties: {
           title: { type: 'string' },
-          source: { type: 'string' },
+          source: {
+            type: 'string',
+            description: '기사를 게시한 실제 매체명. context 파일명이나 로컬 경로를 쓰지 않는다.',
+          },
           url: { type: 'string' },
           date: { type: 'string' },
           implication: { type: 'string' },
@@ -355,7 +358,10 @@ export const JOBS_OUTPUT_SCHEMA = {
           description: { type: 'string' },
           requirements: { type: 'array', items: { type: 'string' } },
           fit_score: { type: 'integer' },
-          source: { type: 'string' },
+          source: {
+            type: 'string',
+            description: '실제 공고를 확인한 채용 사이트 또는 회사 이름. context 파일명이나 로컬 경로를 쓰지 않는다.',
+          },
         },
       },
     },

@@ -63,12 +63,13 @@ test('뉴스와 공고에서 저장 불가능한 URL을 제거한다', () => {
     { title: '위험', source: '가짜', url: 'javascript:alert(1)' },
   ]);
   const jobs = normalizeJobCandidates([
-    { company: '회사', role: '개발자', url: 'https://example.com/job' },
+    { company: '회사', role: '개발자', url: 'https://www.example.com/job', source: 'context/03-search-discovery.md' },
     { company: '회사', role: '개발자', url: 'not-a-url' },
   ]);
   assert.equal(news.length, 1);
   assert.equal(jobs.length, 1);
-  assert.equal(jobs[0].url, 'https://example.com/job');
+  assert.equal(jobs[0].url, 'https://www.example.com/job');
+  assert.equal(jobs[0].source, 'example.com');
 });
 
 test('Codex가 검색하지 않았으면 결과 배열이 있어도 거부한다', () => {

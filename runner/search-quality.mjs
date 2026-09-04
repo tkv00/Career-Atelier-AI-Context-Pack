@@ -95,8 +95,14 @@ export function normalizeJobCandidates(items, limit = 30) {
     const role = String(item?.role ?? '').trim();
     const url = normalizeHttpUrl(item?.url);
     if (!company || !role || !url || seenUrls.has(url)) continue;
+    const claimedSource = String(item?.source ?? '').trim();
+    // 구조화 모델이 조사 메모의 로컬 경로를 출처명으로 복사하는 경우가 있다.
+    // URL 호스트는 러너가 확정할 수 있으므로 그런 값만 결정론적으로 교체한다.
+    const source = !claimedSource || /context[\\/]|search-discovery|\.md\b/i.test(claimedSource)
+      ? new URL(url).hostname.replace(/^www\./, '')
+      : claimedSource;
     seenUrls.add(url);
-    normalized.push({ ...item, company, role, url });
+    normalized.push({ ...item, company, role, url, source });
     if (normalized.length >= limit) break;
   }
   return normalized;
