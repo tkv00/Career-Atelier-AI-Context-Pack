@@ -27,6 +27,7 @@ const PROVIDER_META: Record<string, { label: string; icon: string; tone: string 
 const STATUS_META: Record<string, { label: string; pill: string }> = {
   running: { label: '실행 중', pill: 'dirty' },
   completed: { label: '완료', pill: 'saved' },
+  retrying: { label: '자동 재시도', pill: 'dirty' },
   failed: { label: '실패', pill: 'error' },
   blocked_paid_overage: { label: '유료 초과 차단', pill: 'error' },
   waiting_for_reset: { label: '쿼터 대기', pill: 'dirty' },

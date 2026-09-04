@@ -209,9 +209,9 @@ export function createWriterContextPack(runId, { essay, experiences, jobPost, cu
   return { workspace, contextDir, outputDir, schemaPath: resolve(schemaDir, 'writer.json') };
 }
 
-// 루미(뉴스) — Codex의 자동 web_search 도구 사용(실측 확인: 별도 --search
-// 플래그 불필요, 모델이 필요하면 알아서 검색한다). additionalProperties:false는
-// OpenAI 구조화 출력 요구사항(§9 실측, WRITER_OUTPUT_SCHEMA와 같은 이유).
+// 루미(뉴스) — Codex는 `codex --search exec`로 실시간 검색을 명시적으로 켠다.
+// 기본 cached 모드나 모델의 기억에 최신성을 맡기지 않는다. additionalProperties:
+// false는 OpenAI 구조화 출력 요구사항(§9 실측, WRITER와 같은 이유).
 export const NEWS_OUTPUT_SCHEMA = {
   type: 'object',
   required: ['summary', 'items'],

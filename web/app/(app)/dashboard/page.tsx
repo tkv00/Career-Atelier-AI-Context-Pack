@@ -35,7 +35,8 @@ function agentSpeech(agentId: string, status: string | null | undefined, runnerO
   // blockOnEmptyProfile. 이 카드 바로 위 프로필 폼을 채우면 풀린다.
   if (status === 'blocked_profile') return errorMessage || '프로필을 채우면 시작할 수 있어요.';
   if (status === 'waiting_for_reset') return '구독 한도 초기화를 기다리고 있어요.';
-  if (status === 'failed') return '오류 기록을 확인하고 재시도를 준비 중이에요.';
+  if (status === 'failed') return errorMessage || '오류 기록을 확인하고 다시 실행해 주세요.';
+  if (status === 'retrying') return errorMessage || '결과를 검증하지 못해 한 번 더 검색하고 있어요.';
   if (status === 'cancelled') return '중단된 임무를 정리하고 대기 중이에요.';
   if (status === 'completed') return '결과물을 다음 에이전트에게 전달했어요.';
   if (status === 'queued') return '입력 자료를 확인하며 제 차례를 기다리고 있어요.';
@@ -54,6 +55,7 @@ function agentSpeech(agentId: string, status: string | null | undefined, runnerO
 function statusLabel(status: string | null | undefined) {
   if (status === 'blocked_auth') return 'CLI 인증 필요';
   if (status === 'blocked_profile') return '프로필 필요';
+  if (status === 'retrying') return '자동 재시도';
   return status?.toUpperCase() || 'STANDBY';
 }
 

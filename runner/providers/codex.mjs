@@ -4,14 +4,25 @@
 import spawn from 'cross-spawn';
 import { childEnvironment } from '../safety.mjs';
 
-// 인자 구성만 담당한다 — 프로세스 생명주기(스트림 파싱·타임아웃·취소)는
-// index.mjs가 두 프로바이더 공통으로 처리한다 (§9 프로바이더 지원 매트릭스).
-export function spawnCodex({ workspace, prompt, model, effort, outputSchema, sandbox = 'read-only' }) {
-  const args = ['exec', '-C', workspace, '--skip-git-repo-check', '--ephemeral', '--ignore-user-config', '-s', sandbox];
+// --search는 exec의 옵션이 아니라 codex 자체의 전역 옵션이다. 따라서 반드시
+// `codex --search exec` 순서여야 한다(`codex exec --search`는 현재 CLI에서
+// unexpected argument로 실패한다). 루미·모카에만 켜서 최신 결과가 필요 없는
+// 작성 비서가 불필요하게 웹을 보지 않게 한다.
+export function buildCodexArgs({ workspace, prompt, model, effort, outputSchema, sandbox = 'read-only', liveWebSearch = false }) {
+  const args = liveWebSearch ? ['--search', 'exec'] : ['exec'];
+  args.push('-C', workspace, '--skip-git-repo-check', '--ephemeral', '--ignore-user-config', '-s', sandbox);
   if (model) args.push('-m', model);
   if (effort) args.push('-c', `model_reasoning_effort="${effort}"`);
   if (outputSchema) args.push('--output-schema', outputSchema);
   args.push('--json', prompt);
+  return args;
+}
+
+// 인자 구성만 담당한다 — 프로세스 생명주기(스트림 파싱·타임아웃·취소)는
+// execute.mjs가 모든 프로바이더 공통으로 처리한다 (§9 프로바이더 지원 매트릭스).
+export function spawnCodex(options) {
+  const { workspace } = options;
+  const args = buildCodexArgs(options);
 
   // stdin은 'ignore'가 아니라 실제 파이프를 즉시 닫아 EOF를 준다 — Codex가
   // "stdin이 파이프면 프롬프트에 이어붙인다"를 시도할 때 tty 없는 헤드리스

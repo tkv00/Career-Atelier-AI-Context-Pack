@@ -25,6 +25,13 @@ import {
 } from './context-pack.mjs';
 import { runProvider } from './execute.mjs';
 import { runBackup, shouldBackupNow } from './backup.mjs';
+import {
+  normalizeJobCandidates,
+  normalizeNewsItems,
+  nextSearchRetryAttempt,
+  parseResultArray,
+  searchQualityError,
+} from './search-quality.mjs';
 import { schemaArgsFor } from './schema-compat.mjs';
 import { CONCURRENT_RUN_LIMIT, DAILY_RUN_LIMIT, HEARTBEAT_INTERVAL_MS, assertSubscriptionProvider } from './safety.mjs';
 
@@ -95,7 +102,7 @@ async function countRunsToday(supabase, ownerId) {
 
 // 잡 하나를 agent_runs에 기록하면서 실행하고, 완료되면 jobs/agent_runs 상태를
 // 갱신한다. 두 경로(범용 payload.prompt / kind별 전용 로직) 모두 이걸 쓴다.
-async function recordAndRun(supabase, ownerId, job, { provider, prompt, workspace, contextDir, model, effort, timeoutMinutes, outputSchema, jsonSchema, onComplete }) {
+async function recordAndRun(supabase, ownerId, job, { provider, prompt, workspace, contextDir, model, effort, timeoutMinutes, outputSchema, jsonSchema, liveWebSearch, onComplete }) {
   try {
     await assertSubscriptionProvider(provider);
   } catch (error) {
@@ -150,18 +157,32 @@ async function recordAndRun(supabase, ownerId, job, { provider, prompt, workspac
     timeoutMinutes,
     outputSchema,
     jsonSchema,
+    liveWebSearch,
   });
+
+  let finalResult = result;
+  if (result.status === 'completed' && onComplete) {
+    try {
+      // 저장·검증까지 끝나야 completed다. 예전에는 CLI 종료 직후 completed로
+      // 먼저 찍어서 JSON 파싱이나 DB 저장이 실패해도 성공처럼 남았다.
+      const override = await onComplete(result, run);
+      if (override) finalResult = { ...result, ...override };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      finalResult = {
+        ...result,
+        status: 'failed',
+        error: `결과 검증 또는 저장 중 실패했습니다: ${message}`,
+      };
+    }
+  }
 
   await supabase
     .from('agent_runs')
-    .update({ status: result.status, output: result.output, error: result.error, finished_at: new Date().toISOString() })
+    .update({ status: finalResult.status, output: finalResult.output, error: finalResult.error, finished_at: new Date().toISOString() })
     .eq('id', run.id);
-  await supabase.from('jobs').update({ status: result.status }).eq('id', job.id);
-  console.log(`잡 ${job.id} 종료: ${result.status}`);
-
-  if (result.status === 'completed' && onComplete) {
-    await onComplete(result, run);
-  }
+  await supabase.from('jobs').update({ status: finalResult.status }).eq('id', job.id);
+  console.log(`잡 ${job.id} 종료: ${finalResult.status}${finalResult.error ? ` — ${finalResult.error}` : ''}`);
 }
 
 // 프로필(목표 직무·관심 분야)이 비어 있으면 루미·모카가 LLM을 불러도 뭘
@@ -185,24 +206,25 @@ async function blockOnEmptyProfile(supabase, ownerId, job, provider, prompt, rea
   console.log(`잡 ${job.id}: ${reason}`);
 }
 
-// 결과가 비었으면 딱 1번만 자동으로 다시 시도한다. codex가 "검색하겠습니다"라는
-// 계획 발화만 내고 실제 웹 검색 없이 끝내는 실행 편차가 실제로 있다(실측,
-// 2026-09-04 — 러너가 codex를 부르는 방식과 정확히 동일한 프롬프트·스키마로
-// 직접 재현: 같은 조건에서도 검색까지 끝까지 가는 실행과 계획만 말하고 멈추는
-// 실행이 섞여 나왔다. 코드·네트워크 문제가 아니라 모델 자체의 비결정성).
-// RETRY_COUNT=0(실패 시 자동 재실행 금지, §6)과는 다른 상황이다 — 이건
-// "실패(failed)"가 아니라 "완료(completed)됐지만 빈 결과"이므로, 무한 재시도를
-// 막는 조건(payload.retried) 아래 딱 1회만 허용한다.
-async function retryOnceIfEmpty(supabase, ownerId, job, isEmpty) {
-  if (!isEmpty || job.payload?.retried) return;
+// 검색을 안 했거나 저장 가능한 결과가 없으면 딱 한 번만 새 잡으로 재시도한다.
+// 이미 배포된 payload.retried도 1회 사용으로 간주해 이전 버전에서 만들어진
+// 대기 잡이 업그레이드 뒤 무한 반복하지 않게 한다.
+async function retryInvalidSearchOnce(supabase, ownerId, job, reason) {
+  const nextAttempt = nextSearchRetryAttempt(job.payload);
+  if (nextAttempt === null) {
+    return { status: 'failed', error: `${reason} 자동 재시도 후에도 유효한 결과를 얻지 못했습니다. 수동으로 다시 실행해 주세요.` };
+  }
   const { error } = await supabase.from('jobs').insert({
     owner_id: ownerId,
     kind: job.kind,
-    payload: { ...job.payload, retried: true },
-    harness_snapshot: {},
+    pipeline_id: job.pipeline_id,
+    payload: { ...job.payload, searchRetryAttempt: nextAttempt },
+    harness_snapshot: job.harness_snapshot ?? {},
+    priority: job.priority ?? 0,
   });
-  if (error) console.log(`잡 ${job.id}: 재시도 큐잉 실패 — ${error.message}`);
-  else console.log(`잡 ${job.id}: 결과가 비어 있어 한 번 더 시도합니다.`);
+  if (error) return { status: 'failed', error: `${reason} 자동 재시도 큐잉도 실패했습니다: ${error.message}` };
+  console.log(`잡 ${job.id}: ${reason} 한 번 더 시도합니다.`);
+  return { status: 'retrying', error: `${reason} 자동으로 한 번 더 시도합니다.` };
 }
 
 // job.pipeline_id가 있으면 체인의 다음 단계를 큐에 넣는다 — 사용자가 "기업
@@ -435,30 +457,40 @@ async function processNewsJob(supabase, ownerId, job) {
   }
   const runIdForWorkspace = randomUUID();
   const { workspace, schemaPath } = createNewsContextPack(runIdForWorkspace, { interests });
-  const prompt = `${template.body}\n\n[대상]\ncontext/01-interests.md를 읽고 스키마에 맞는 JSON으로만 답하라.`;
+  const prompt = `${template.body}\n\n[대상]\ncontext/01-interests.md를 읽고 스키마에 맞는 JSON으로만 답하라.\n\n[필수 실행 조건]\n최종 답변 전에 웹 검색 도구를 실제로 한 번 이상 호출하라. 검색 계획만 말하거나 기억에 의존해 답하지 말고, 첫 검색 결과가 부족하면 검색어를 바꿔라.`;
 
   await recordAndRun(supabase, ownerId, job, {
     provider,
     prompt,
     workspace,
+    liveWebSearch: provider === 'codex',
     ...schemaArgsFor(provider, NEWS_OUTPUT_SCHEMA, schemaPath, writeSchema),
     onComplete: async (result, run) => {
-      let parsed = null;
-      try {
-        parsed = JSON.parse(result.output);
-      } catch {
-        console.log(`잡 ${job.id}: 뉴스 결과가 JSON이 아니어서 원문으로 저장합니다.`);
-      }
-      await supabase.from('research_notes').insert({
+      const { parsed, items, error: parseError } = parseResultArray(result.output, 'items');
+      if (parseError) return retryInvalidSearchOnce(supabase, ownerId, job, parseError);
+
+      const validItems = normalizeNewsItems(items);
+      const qualityError = searchQualityError({
+        provider,
+        webSearchUsed: result.webSearchUsed,
+        validCount: validItems.length,
+        subject: '뉴스 조사',
+      });
+      if (qualityError) return retryInvalidSearchOnce(supabase, ownerId, job, qualityError);
+
+      const summary = String(parsed.summary ?? '').trim();
+      const normalizedOutput = JSON.stringify({ ...parsed, summary, items: validItems }, null, 2);
+      const { error: saveError } = await supabase.from('research_notes').insert({
         owner_id: ownerId,
         job_id: null,
         kind: 'news',
-        title: parsed?.summary?.slice(0, 80) || '뉴스 조사',
-        body: result.output,
-        sources: parsed?.items ?? [],
+        title: summary.slice(0, 80) || '뉴스 조사',
+        body: normalizedOutput,
+        sources: validItems,
         provider: run.provider,
       });
-      await retryOnceIfEmpty(supabase, ownerId, job, Array.isArray(parsed?.items) && parsed.items.length === 0);
+      if (saveError) throw saveError;
+      return null;
     },
   });
 }
@@ -559,34 +591,30 @@ async function processJobSearchJob(supabase, ownerId, job) {
   }
   const runIdForWorkspace = randomUUID();
   const { workspace, schemaPath } = createJobsContextPack(runIdForWorkspace, { targetRoles, interests, experiences: experiences ?? [] });
-  const prompt = `${template.body}\n\n[대상]\ncontext/01-profile.md, context/02-experiences.md를 읽고 스키마에 맞는 JSON으로만 답하라.`;
+  const prompt = `${template.body}\n\n[대상]\ncontext/01-profile.md, context/02-experiences.md를 읽고 스키마에 맞는 JSON으로만 답하라.\n\n[필수 실행 조건]\n최종 답변 전에 웹 검색 도구를 실제로 한 번 이상 호출하라. 검색 계획만 말하거나 기억에 의존해 답하지 말고, 첫 검색 결과가 부족하면 검색어를 바꿔라.`;
 
   await recordAndRun(supabase, ownerId, job, {
     provider,
     prompt,
     workspace,
+    liveWebSearch: provider === 'codex',
     ...schemaArgsFor(provider, JOBS_OUTPUT_SCHEMA, schemaPath, writeSchema),
     onComplete: async (result) => {
-      let parsed = null;
-      try {
-        parsed = JSON.parse(result.output);
-      } catch {
-        console.log(`잡 ${job.id}: 채용탐색 결과가 JSON이 아니어서 저장을 건너뜁니다.`);
-        return;
-      }
+      const { items, error: parseError } = parseResultArray(result.output, 'jobs');
+      if (parseError) return retryInvalidSearchOnce(supabase, ownerId, job, parseError);
 
-      const candidates = Array.isArray(parsed?.jobs) ? parsed.jobs.slice(0, 30) : [];
+      const candidates = normalizeJobCandidates(items);
+      const qualityError = searchQualityError({
+        provider,
+        webSearchUsed: result.webSearchUsed,
+        validCount: candidates.length,
+        subject: '채용공고',
+      });
+      if (qualityError) return retryInvalidSearchOnce(supabase, ownerId, job, qualityError);
+
       let saved = 0;
       for (const row of candidates) {
-        if (!row?.company || !row?.role || !row?.url) continue;
-        let normalizedUrl;
-        try {
-          const candidate = new URL(String(row.url));
-          if (!['http:', 'https:'].includes(candidate.protocol)) continue;
-          normalizedUrl = candidate.toString();
-        } catch {
-          continue;
-        }
+        const normalizedUrl = row.url;
         // job_posts.deadline은 date 컬럼 — "채용 시 마감"·"상시채용" 같은 비-날짜
         // 문자열을 그대로 넣으면 insert 자체가 깨진다(실측). YYYY-MM-DD 형식만
         // 통과시키고, 그 외("상시채용" 등)는 null로 둔다 — 원문 보존은 §11(5단계
@@ -632,7 +660,10 @@ async function processJobSearchJob(supabase, ownerId, job) {
         }
       }
       console.log(`잡 ${job.id}: 채용공고 ${saved}건 저장/갱신`);
-      await retryOnceIfEmpty(supabase, ownerId, job, saved === 0);
+      if (saved === 0) {
+        return retryInvalidSearchOnce(supabase, ownerId, job, '채용공고를 검색했지만 데이터베이스에 저장된 결과가 0건입니다.');
+      }
+      return null;
     },
   });
 }

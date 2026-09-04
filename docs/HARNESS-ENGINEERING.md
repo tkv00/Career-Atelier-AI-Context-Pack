@@ -104,10 +104,12 @@ Career Atelier는 7개의 특화 AI 비서와 2개의 비(非) LLM 결정론적 
 각 AI 도구는 비대화형(Headless) CLI 실행 시 서로 다른 동작 특성을 보입니다. 하네스는 이 차이를 코드 레벨에서 흡수합니다.
 
 ### 1. Codex CLI (`runner/providers/codex.mjs`)
-- 실행 커맨드: `codex exec -C <workspace> --skip-git-repo-check --ephemeral --ignore-user-config -s read-only`
+- 일반 실행 커맨드: `codex exec -C <workspace> --skip-git-repo-check --ephemeral --ignore-user-config -s read-only`
+- 루미·모카 실행 커맨드: `codex --search exec ...` (`--search`는 `exec`보다 앞에 오는 전역 옵션이며, 기본 cached 검색 대신 live 검색을 사용)
 - 스키마 옵션: `--output-schema <file_path>` (파일 경로를 전달)
 - 표준입력(stdin) 주의점: 헤드리스 환경에서 stdin을 `ignore`로 설정하면 tty 부재로 인해 `os error 2`가 발생합니다. child process 생성 즉시 stdin 파이프를 열고 `child.stdin.end()`로 EOF를 명시적으로 보내야 정상 동작합니다.
 - 스키마 제약: 모든 object 타입에 `additionalProperties: false`가 선언되어 있지 않으면 OpenAI API 수준에서 `invalid_json_schema` 400 에러를 반환합니다.
+- 검색 완료 판정: 프롬프트의 주장이나 결과 개수만 믿지 않고 JSONL 스트림에 실제 `item.type = "web_search"` 이벤트가 있었는지 확인합니다. 검색 미호출·JSON 파싱 실패·저장 가능 결과 0건은 완료로 기록하지 않고 최대 한 번만 새 작업으로 재시도합니다.
 
 ### 2. Claude Code CLI (`runner/providers/claude.mjs`)
 - 실행 커맨드: `claude -p <prompt> --add-dir <context_dir> --permission-mode plan --restricted`

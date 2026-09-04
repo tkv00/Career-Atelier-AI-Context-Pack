@@ -574,7 +574,8 @@ These are fixed in code and cannot be switched off from the UI.
 | Runs per day | 40 |
 | Concurrent runs | 1 |
 | Single run timeout | 15 min |
-| Retries | 0 |
+| Failed-run retries | 0 |
+| Lumi/Moka invalid-search retry | At most 1 |
 | Job expiry | 6 hours |
 
 <br>

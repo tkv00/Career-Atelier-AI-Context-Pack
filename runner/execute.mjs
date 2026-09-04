@@ -11,6 +11,13 @@ const PROVIDERS = {
 
 const EVENT_FLUSH_MS = 200;
 
+// Codex --json의 완료된 검색 이벤트는 item.completed 안의
+// item.type='web_search'로 온다. item.started만 있고 실패한 요청이나 최종
+// 문장에 "검색했다"고 쓴 것은 근거가 아니므로 완료 이벤트만 인정한다.
+export function eventUsesWebSearch(event) {
+  return event?.type === 'item.completed' && event?.item?.type === 'web_search';
+}
+
 function flushBuffer(supabase, runId, ownerId, buffer) {
   if (buffer.length === 0) return;
   const rows = buffer.splice(0, buffer.length).map((event) => ({
@@ -44,9 +51,10 @@ export function runProvider({
   timeoutMinutes,
   outputSchema,
   jsonSchema,
+  liveWebSearch = false,
 }) {
   const safeTimeoutMinutes = Math.max(1, Math.min(TIMEOUT_MINUTES_CAP, Number(timeoutMinutes) || TIMEOUT_MINUTES_CAP));
-  const child = PROVIDERS[provider].spawn({ workspace, contextDir, prompt, model, effort, outputSchema, jsonSchema });
+  const child = PROVIDERS[provider].spawn({ workspace, contextDir, prompt, model, effort, outputSchema, jsonSchema, liveWebSearch });
 
   return new Promise((resolveRun) => {
     let buffer = '';
@@ -54,6 +62,7 @@ export function runProvider({
     let sequence = 1;
     let finalOutput = '';
     let paidOverageBlocked = false;
+    let webSearchUsed = false;
     const eventBuffer = [];
     const flushTimer = setInterval(() => flushBuffer(supabase, runId, ownerId, eventBuffer), EVENT_FLUSH_MS);
     const timeout = setTimeout(() => child.kill('SIGTERM'), safeTimeoutMinutes * 60 * 1000);
@@ -69,6 +78,7 @@ export function runProvider({
         parsed = { type: 'text', text: line };
       }
       eventBuffer.push({ sequence: sequence++, kind: parsed.type || 'event', payload: parsed });
+      if (provider === 'codex' && eventUsesWebSearch(parsed)) webSearchUsed = true;
       // Codex는 rate_limit_event를 내지 않는다(§9 실측) — 나머지 스트리밍
       // 계열 프로바이더는 감지해둔다. detectPaidOverage 자체가
       // type!=='rate_limit_event'면 항상 false라 안전하다.
@@ -100,7 +110,7 @@ export function runProvider({
       clearTimeout(timeout);
       clearInterval(flushTimer);
       flushBuffer(supabase, runId, ownerId, eventBuffer);
-      resolveRun({ status: 'failed', output: finalOutput, error: error.message });
+      resolveRun({ status: 'failed', output: finalOutput, error: error.message, webSearchUsed });
     });
     child.once('close', (code, signal) => {
       clearTimeout(timeout);
@@ -109,12 +119,12 @@ export function runProvider({
       flushBuffer(supabase, runId, ownerId, eventBuffer);
 
       if (paidOverageBlocked) {
-        resolveRun({ status: 'blocked_paid_overage', output: finalOutput, error: '유료 초과 사용 가능성이 감지되어 실행을 중단했습니다.' });
+        resolveRun({ status: 'blocked_paid_overage', output: finalOutput, error: '유료 초과 사용 가능성이 감지되어 실행을 중단했습니다.', webSearchUsed });
       } else if (code === 0 && finalOutput) {
-        resolveRun({ status: 'completed', output: finalOutput, error: '' });
+        resolveRun({ status: 'completed', output: finalOutput, error: '', webSearchUsed });
       } else {
         const errorText = stderr || `프로세스가 code=${code}, signal=${signal || 'none'}로 종료되었습니다.`;
-        resolveRun({ status: isUsageLimitError(errorText) ? 'waiting_for_reset' : 'failed', output: finalOutput, error: errorText.slice(0, 12_000) });
+        resolveRun({ status: isUsageLimitError(errorText) ? 'waiting_for_reset' : 'failed', output: finalOutput, error: errorText.slice(0, 12_000), webSearchUsed });
       }
     });
   });

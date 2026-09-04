@@ -11,6 +11,7 @@
     "login": "node index.mjs login",
     "logout": "node index.mjs logout",
     "start": "node index.mjs start",
+    "test": "node --test",
     "mcp": "node mcp/server.mjs",
     "mcp:preview": "node mcp/server.mjs preview --source",
     "mcp:snapshot": "node mcp/server.mjs snapshot",
