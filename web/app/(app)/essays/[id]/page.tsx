@@ -57,7 +57,7 @@ export default async function EssayPage({ params }: { params: Promise<{ id: stri
 
   const runnerOnline = (runners ?? []).some((runner) => isRunnerOnline(runner.last_seen_at));
 
-  const [{ data: jobPost }, { data: companyResearch }] = essay.job_id
+  const [{ data: jobPost }, { data: companyResearch }, { data: siblingEssays }] = essay.job_id
     ? await Promise.all([
         supabase.from('job_posts').select('*').eq('id', essay.job_id).maybeSingle(),
         supabase
@@ -67,8 +67,16 @@ export default async function EssayPage({ params }: { params: Promise<{ id: stri
           .eq('job_id', essay.job_id)
           .order('created_at', { ascending: false })
           .limit(1),
+        // "문항 붙여넣기"로 여러 문항을 저장해 뒀으면 같은 공고에 자소서가
+        // 여러 개 있을 수 있다(actions.ts startEssayForJobPost) — 편집 화면에서
+        // 서로를 오갈 수 있게 형제 목록을 함께 불러온다.
+        supabase
+          .from('essay_projects')
+          .select('id, title, question, draft, target_chars, updated_at')
+          .eq('job_id', essay.job_id)
+          .order('created_at', { ascending: true }),
       ])
-    : [{ data: null }, { data: null }];
+    : [{ data: null }, { data: null }, { data: null }];
 
   return (
     <EssayEditor
@@ -87,6 +95,7 @@ export default async function EssayPage({ params }: { params: Promise<{ id: stri
       runnerOnline={runnerOnline}
       revisionRequests={revisionRequests ?? []}
       companyAttachments={companyAttachments ?? []}
+      siblingEssays={siblingEssays ?? []}
     />
   );
 }

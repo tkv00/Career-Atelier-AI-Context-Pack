@@ -288,20 +288,16 @@ export async function deleteCompanyAttachment(attachmentId: string, essayId: str
 // 솔 다이얼로그의 JD 칸을 자동으로 채운다(essays/[id]/page.tsx가 이미
 // job_id로 job_posts를 조회해 jobPost prop을 채워주고 있었다).
 //
-// 이 공고로 이미 쓰던 자소서가 있으면 그리로 보내고, 없을 때만 새로 만든다.
-// 예전에는 누를 때마다 무조건 새로 만들어서 같은 공고에 빈 자소서가 계속
-// 쌓였다(2026-09-02 수정). 여러 개면 가장 최근 것을 연다.
+// "문항 붙여넣기"(question-import.tsx)로 이 공고에 문항을 여러 개 저장해
+// 뒀으면(essay_questions) 그 개수만큼 자소서를 한 번에 만든다 — 예전엔
+// 문항이 몇 개든 항상 빈 자소서 1개만 만들어서, 붙여넣은 문항이 실제 작성
+// 화면 어디에도 연결되지 않는 문제가 있었다(사용자 실제로 겪음, 2026-09-04).
+// 이미 그 문항 텍스트로 만들어 둔 자소서가 있으면 새로 만들지 않는다(같은
+// 공고에서 다시 눌러도 중복 생성 안 됨) — 문항 텍스트 자체를 키로 매칭한다,
+// essay_projects가 essay_questions를 참조하는 FK를 아직 두지 않았으므로.
+// 문항이 하나도 없으면(아직 안 붙여넣었으면) 예전처럼 빈 자소서 1개만 만든다.
 export async function startEssayForJobPost(jobPostId: string) {
   const { supabase, user } = await requireUser();
-
-  const { data: existing } = await supabase
-    .from('essay_projects')
-    .select('id')
-    .eq('job_id', jobPostId)
-    .order('updated_at', { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (existing) redirect(`/essays/${existing.id}`);
 
   const { data: jobPost, error: jobPostError } = await supabase
     .from('job_posts')
@@ -310,14 +306,75 @@ export async function startEssayForJobPost(jobPostId: string) {
     .single();
   if (jobPostError || !jobPost) throw new Error(jobPostError?.message ?? '채용공고를 찾을 수 없습니다');
 
-  const { data: essay, error } = await supabase
-    .from('essay_projects')
-    .insert({ owner_id: user.id, title: `${jobPost.company} · ${jobPost.role}`, job_id: jobPostId })
-    .select('id')
-    .single();
-  if (error || !essay) throw new Error(error?.message ?? '자소서 생성 실패');
+  const { data: questions } = await supabase
+    .from('essay_questions')
+    .select('question, char_limit')
+    .eq('job_post_id', jobPostId)
+    .order('order_no', { ascending: true });
 
-  redirect(`/essays/${essay.id}`);
+  const { data: existingEssays } = await supabase
+    .from('essay_projects')
+    .select('id, question')
+    .eq('job_id', jobPostId)
+    .order('updated_at', { ascending: false });
+
+  if (!questions?.length) {
+    if (existingEssays?.[0]) redirect(`/essays/${existingEssays[0].id}`);
+    const { data: essay, error } = await supabase
+      .from('essay_projects')
+      .insert({ owner_id: user.id, title: `${jobPost.company} · ${jobPost.role}`, job_id: jobPostId })
+      .select('id')
+      .single();
+    if (error || !essay) throw new Error(error?.message ?? '자소서 생성 실패');
+    redirect(`/essays/${essay.id}`);
+  }
+
+  const existingByQuestion = new Map((existingEssays ?? []).map((e) => [e.question, e.id]));
+  let firstEssayId: string | null = null;
+
+  for (const [index, q] of questions.entries()) {
+    const already = existingByQuestion.get(q.question);
+    if (already) {
+      firstEssayId ??= already;
+      continue;
+    }
+    const { data: essay, error } = await supabase
+      .from('essay_projects')
+      .insert({
+        owner_id: user.id,
+        title: `${jobPost.company} · ${jobPost.role} · 문항 ${index + 1}`,
+        job_id: jobPostId,
+        question: q.question,
+        ...(q.char_limit ? { target_chars: q.char_limit } : {}),
+      })
+      .select('id')
+      .single();
+    if (error || !essay) throw new Error(error?.message ?? '자소서 생성 실패');
+    firstEssayId ??= essay.id;
+  }
+
+  redirect(`/essays/${firstEssayId}`);
+}
+
+// 같은 공고의 모든 문항에 대해 한 번에 초안 생성을 요청한다(사용자 요청
+// 2026-09-04, "처음 초안은 한 번에 모든 문항에 대해서 작성"). requestWriterDraft
+// 하나를 여러 essay에 반복하는 것과 같다 — 러너가 CONCURRENT_RUN_LIMIT=1로
+// 어차피 순차 처리하므로 한꺼번에 큐에 넣어도 안전하다.
+export async function requestAllDrafts(jobPostId: string) {
+  const { supabase, user } = await requireUser();
+
+  const { data: essays } = await supabase.from('essay_projects').select('id').eq('job_id', jobPostId);
+  if (!essays?.length) return;
+
+  const { error } = await supabase.from('jobs').insert(
+    essays.map((essay) => ({
+      owner_id: user.id,
+      kind: 'writer',
+      payload: { essayId: essay.id },
+      harness_snapshot: {},
+    })),
+  );
+  if (error) throw new Error(error.message);
 }
 
 // 6번째 비서(소제목) — Gemini로 실행. 잡 큐에 넣기만 한다. 완성된 본문이

@@ -18,6 +18,7 @@ import {
   applySubtitle,
   deleteCompanyAttachment,
   forceSaveDraft,
+  requestAllDrafts,
   requestCompanyResearch,
   requestReview,
   requestSubtitle,
@@ -109,6 +110,7 @@ export function EssayEditor({
   runnerOnline,
   revisionRequests,
   companyAttachments,
+  siblingEssays,
 }: {
   essay: Essay;
   initialVersions: EssayVersion[];
@@ -125,6 +127,7 @@ export function EssayEditor({
   runnerOnline: boolean;
   revisionRequests: { id: string; instruction: string; created_at: string }[];
   companyAttachments: CompanyAttachment[];
+  siblingEssays: { id: string; title: string; question: string; draft: string; target_chars: number; updated_at: string }[];
 }) {
   const router = useRouter();
   const [content, setContent] = useState(essay.draft);
@@ -368,6 +371,12 @@ export function EssayEditor({
     router.refresh();
   }
 
+  async function handleRequestAllDrafts() {
+    if (!essay.job_id) return;
+    await requestAllDrafts(essay.job_id);
+    router.refresh();
+  }
+
   async function handleRequestSubtitle() {
     await requestSubtitle(essay.id);
     router.refresh();
@@ -583,6 +592,53 @@ export function EssayEditor({
           </div>
         )}
       </div>
+
+      {siblingEssays.length > 1 && (
+        <div className="card card-pad" style={{ marginBottom: 14 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+            <span style={{ color: 'var(--text-dim)', fontSize: 11, fontWeight: 700, letterSpacing: '0.05em' }}>
+              이 공고의 문항 {siblingEssays.length}개
+            </span>
+            <button type="button" className="secondary-button" onClick={handleRequestAllDrafts} disabled={!runnerOnline}>
+              전체 초안 한 번에 생성 (뮤즈)
+            </button>
+          </div>
+          <ul style={{ listStyle: 'none', margin: '10px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+            {siblingEssays.map((sibling, idx) => {
+              const isCurrent = sibling.id === essay.id;
+              const written = countChars(sibling.draft).withSpaces;
+              return (
+                <li
+                  key={sibling.id}
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: 12,
+                    fontSize: 13,
+                    padding: '7px 8px',
+                    borderRadius: 8,
+                    background: isCurrent ? 'var(--surface-2)' : 'transparent',
+                  }}
+                >
+                  {isCurrent ? (
+                    <b style={{ fontWeight: 600 }}>
+                      {idx + 1}. {sibling.question || '(문항 미지정)'} · 지금 보는 중
+                    </b>
+                  ) : (
+                    <Link href={`/essays/${sibling.id}`} style={{ color: 'var(--cyan)' }}>
+                      {idx + 1}. {sibling.question || '(문항 미지정)'}
+                    </Link>
+                  )}
+                  <span style={{ color: 'var(--text-dim)', fontSize: 12, flexShrink: 0 }}>
+                    {written > 0 ? `${written}/${sibling.target_chars}자` : '미작성'}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
 
       <div className="card card-pad" style={{ marginBottom: 14 }}>
         {showCompanyForm ? (
