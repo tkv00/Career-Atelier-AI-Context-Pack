@@ -220,7 +220,9 @@ async function retryInvalidSearchOnce(supabase, ownerId, job, reason) {
     pipeline_id: job.pipeline_id,
     payload: { ...job.payload, searchRetryAttempt: nextAttempt },
     harness_snapshot: job.harness_snapshot ?? {},
-    priority: job.priority ?? 0,
+    // 상한 직전에 일반 잡이 먼저 실행되면 재시도가 다음 날까지 밀릴 수 있다.
+    // 원래 잡보다 한 단계만 높여 이미 시작한 검색을 먼저 마무리한다.
+    priority: (Number(job.priority) || 0) + 1,
   });
   if (error) return { status: 'failed', error: `${reason} 자동 재시도 큐잉도 실패했습니다: ${error.message}` };
   console.log(`잡 ${job.id}: ${reason} 한 번 더 시도합니다.`);
@@ -898,6 +900,14 @@ async function startLoop() {
   let running = false;
   let stopped = false;
   let backingUp = false;
+  let lastPollNotice = '';
+
+  // 5초마다 같은 경고를 찍지는 않되, 멈춘 이유가 바뀌면 즉시 한 번 알린다.
+  function reportPollPause(key, message) {
+    if (lastPollNotice === key) return;
+    lastPollNotice = key;
+    console.log(message);
+  }
 
   const heartbeat = setInterval(() => {
     void supabase.from('runners').update({ last_seen_at: new Date().toISOString() }).eq('id', runner.id);
@@ -944,26 +954,58 @@ async function startLoop() {
 
   const poll = setInterval(async () => {
     if (stopped || running) return;
-
-    void supabase.rpc('reap_stale_jobs');
-    void supabase.rpc('expire_old_jobs');
-
-    const { data: fresh } = await supabase.from('runners').select('approved').eq('id', runner.id).maybeSingle();
-    if (!fresh?.approved) return;
-
-    const runsToday = await countRunsToday(supabase, user.id);
-    if (runsToday >= DAILY_RUN_LIMIT) return;
-
-    const { data: job, error } = await supabase.rpc('claim_next_job', { p_runner_id: runner.id });
-    // claim_next_job이 "없음"을 반환할 때 PostgREST가 bare null이 아니라 전
-    // 필드가 null인 row로 내려주는 경우가 있어 id까지 함께 확인한다.
-    if (error || !job || !job.id) return;
-
     running = true;
+    let claimedJobId = null;
     try {
+      void supabase.rpc('reap_stale_jobs');
+      void supabase.rpc('expire_old_jobs');
+
+      const { data: fresh, error: runnerError } = await supabase
+        .from('runners')
+        .select('approved')
+        .eq('id', runner.id)
+        .maybeSingle();
+      if (runnerError) {
+        reportPollPause(`runner:${runnerError.message}`, `큐 확인 중 러너 상태를 읽지 못했습니다: ${runnerError.message}`);
+        return;
+      }
+      if (!fresh?.approved) {
+        reportPollPause('not-approved', '러너 승인이 해제되어 큐 처리를 멈췄습니다. 대시보드에서 다시 승인해 주세요.');
+        return;
+      }
+
+      const runsToday = await countRunsToday(supabase, user.id);
+      if (runsToday >= DAILY_RUN_LIMIT) {
+        const { count: queuedCount } = await supabase
+          .from('jobs')
+          .select('id', { count: 'exact', head: true })
+          .eq('status', 'queued');
+        reportPollPause(
+          `daily-limit:${runsToday}:${queuedCount ?? 'unknown'}`,
+          `오늘 실행 상한 ${DAILY_RUN_LIMIT}회에 도달해 큐 처리를 일시 중지했습니다. 대기 작업 ${queuedCount ?? '확인 불가'}건은 6시간 유효기간 안에 로컬 자정이 지나면 재개되며, 만료되면 수동으로 다시 실행해야 합니다.`,
+        );
+        return;
+      }
+
+      const { data: job, error } = await supabase.rpc('claim_next_job', { p_runner_id: runner.id });
+      if (error) {
+        reportPollPause(`claim:${error.message}`, `작업 큐를 가져오지 못했습니다: ${error.message}`);
+        return;
+      }
+      // claim_next_job이 "없음"을 반환할 때 PostgREST가 bare null이 아니라 전
+      // 필드가 null인 row로 내려주는 경우가 있어 id까지 함께 확인한다.
+      if (!job || !job.id) {
+        lastPollNotice = '';
+        return;
+      }
+
+      lastPollNotice = '';
+      claimedJobId = job.id;
       await processJob(supabase, user.id, job);
     } catch (error) {
-      console.error(`잡 ${job.id} 처리 중 오류:`, error.message);
+      const message = error instanceof Error ? error.message : String(error);
+      const target = claimedJobId ? `잡 ${claimedJobId}` : '큐';
+      reportPollPause(`poll:${claimedJobId ?? 'none'}:${message}`, `${target} 처리 중 오류가 발생했습니다: ${message}`);
     } finally {
       running = false;
     }
