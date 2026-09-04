@@ -1,7 +1,6 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
-import { PDFParse } from 'pdf-parse';
 
 // §8 컨텍스트 팩의 최소 형태. 문항·JD·경험 카드 등 에이전트별 파일 생성은
 // 4단계(에이전트 이식)에서 구체화한다 — 지금은 3단계(러너 엔진) 검증에 필요한
@@ -281,49 +280,39 @@ export const COMPANY_RESEARCH_SCHEMA = {
 // instruction은 사용자가 다이얼로그에 자유 형식으로 적은 추가 지시(예: "경쟁사
 // 대비 기술 스택 차이 위주로", "최근 인수합병 이슈 확인해줘") — 회사/직무/JD로는
 // 못 담는 조사 방향을 사용자가 직접 얹을 수 있게 한다.
-async function extractPdfText(buffer) {
-  const parser = new PDFParse({ data: buffer });
-  try {
-    const result = await parser.getText();
-    return result.text;
-  } finally {
-    await parser.destroy();
-  }
+// 파일명에서 workspace 안전한 stem·확장자를 뽑는다 — 경로 구분자·특수문자를
+// 지워 다른 context 파일과 충돌하거나 워크스페이스 밖으로 못 나가게 한다.
+function safeFileParts(fileName) {
+  const match = fileName.match(/\.([^./\\]+)$/);
+  const extension = (match?.[1] ?? '').replace(/[^A-Za-z0-9]/g, '').slice(0, 10).toLowerCase() || 'bin';
+  const stem = fileName.slice(0, match ? fileName.length - match[0].length : fileName.length);
+  const safeStem = stem.replace(/[^A-Za-z0-9가-힣_-]/g, '_').slice(0, 40) || 'file';
+  return { safeStem, extension };
 }
 
-// 파일명에서 workspace 안전한 stem만 남긴다 — 경로 구분자·특수문자를 지워
-// 다른 context 파일과 충돌하거나 워크스페이스 밖으로 못 나가게 한다.
-function safeFileStem(fileName) {
-  const stem = fileName.replace(/\.[^./\\]+$/, '');
-  return stem.replace(/[^A-Za-z0-9가-힣_-]/g, '_').slice(0, 40) || 'file';
-}
-
-// 솔(기업조사) 첨부파일 — DART 공시자료 등. Codex/Claude/Antigravity 중 어느
-// CLI가 PDF를 직접 읽을 수 있는지 실측하지 않았으므로, Node에서 미리 텍스트로
-// 뽑아 어떤 프로바이더를 쓰든 동일하게 읽게 한다. 실패한 파일은 건너뛰고
-// 계속 진행한다 — 첨부 하나가 깨졌다고 조사 자체를 막을 이유는 없다.
+// 솔(기업조사) 첨부파일 — DART 공시자료 등. 원본 파일을 그대로 workspace에
+// 두고 프롬프트로 직접 읽게 한다(Node에서 미리 텍스트로 뽑지 않는다 — 사용자
+// 요청 2026-09-04, "에이전트가 알아서 분석하는 형태"). 표·각주 같은 PDF
+// 레이아웃을 텍스트 추출 과정에서 잃지 않는다는 장점이 있는 대신, 이 비서가
+// 쓰는 CLI가 실제로 PDF를 읽을 수 있어야 한다 — 기본값(Claude, 0021)은
+// PDF 읽기를 지원한다. 다운로드 실패한 파일은 건너뛰고 계속 진행한다 —
+// 첨부 하나가 깨졌다고 조사 자체를 막을 이유는 없다.
 async function writeCompanyAttachments(contextDir, attachments, supabase) {
-  if (!attachments?.length) return { hasAttachments: false, notes: '(첨부파일 없음)' };
+  if (!attachments?.length) return { hasAttachments: false };
 
-  const notes = [];
   for (const [index, attachment] of attachments.entries()) {
-    const outFile = `04-attachment-${index + 1}-${safeFileStem(attachment.file_name)}.md`;
+    const { safeStem, extension } = safeFileParts(attachment.file_name);
+    const outFile = `04-attachment-${index + 1}-${safeStem}.${extension}`;
     try {
       const { data, error } = await supabase.storage.from('company-research').download(attachment.storage_path);
       if (error || !data) throw new Error(error?.message ?? '다운로드 결과가 비었습니다.');
       const buffer = Buffer.from(await data.arrayBuffer());
-
-      const text = /\.pdf$/i.test(attachment.file_name)
-        ? await extractPdfText(buffer)
-        : buffer.toString('utf8');
-
-      writeFileSync(resolve(contextDir, outFile), `# ${attachment.file_name}\n\n${text}`);
-      notes.push(`- ${attachment.file_name} → context/${outFile}`);
+      writeFileSync(resolve(contextDir, outFile), buffer);
     } catch (error) {
-      notes.push(`- ${attachment.file_name}: 처리 실패(${error.message})`);
+      console.log(`첨부파일 ${attachment.file_name} 처리 실패: ${error.message}`);
     }
   }
-  return { hasAttachments: true, notes: notes.join('\n') };
+  return { hasAttachments: true };
 }
 
 export async function createCompanyContextPack(runId, { company, role, jobDescription, instruction, attachments, supabase }) {

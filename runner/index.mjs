@@ -450,7 +450,7 @@ async function processCompanyJob(supabase, ownerId, job) {
     supabase,
   });
   const attachmentInstruction = hasAttachments
-    ? ' context/04-attachment-*.md 파일이 있으면 사용자가 올린 원문 자료(예: DART 공시자료)이니 반드시 읽고 근거로 활용하라.'
+    ? ' context/04-attachment-*로 시작하는 파일(PDF 원문 포함)이 있으면 사용자가 올린 원문 자료(예: DART 공시자료)이니 직접 열어서 읽고 근거로 활용하라.'
     : '';
   const prompt = `${template.body}\n\n[조사 대상]\ncontext/01-company.md, context/02-job-description.md를 읽어라. context/03-user-instruction.md에 사용자가 추가로 지시한 조사 방향이 있으면 그것도 반드시 반영하라.${attachmentInstruction} 스키마에 맞는 JSON으로만 답하라.`;
 
