@@ -571,7 +571,6 @@ These are fixed in code and cannot be switched off from the UI.
 
 | Safety limit | Value |
 |---|---|
-| Runs per day | 40 |
 | Concurrent runs | 1 |
 | Single run timeout | 15 min |
 | Failed-run retries | 0 |

@@ -23,7 +23,6 @@ export const SENSITIVE_API_VARIABLES = [
 ];
 
 // §6 "LLM 남용 방지" 표의 값. 고정값이며 하네스/DB로 바꿀 수 없다.
-export const DAILY_RUN_LIMIT = 40;
 export const CONCURRENT_RUN_LIMIT = 1;
 export const TIMEOUT_MINUTES_CAP = 15;
 export const RETRY_COUNT = 0;

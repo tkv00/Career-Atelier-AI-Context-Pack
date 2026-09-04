@@ -33,7 +33,7 @@ import {
   searchQualityError,
 } from './search-quality.mjs';
 import { schemaArgsFor } from './schema-compat.mjs';
-import { CONCURRENT_RUN_LIMIT, DAILY_RUN_LIMIT, HEARTBEAT_INTERVAL_MS, assertSubscriptionProvider } from './safety.mjs';
+import { CONCURRENT_RUN_LIMIT, HEARTBEAT_INTERVAL_MS, assertSubscriptionProvider } from './safety.mjs';
 
 const POLL_INTERVAL_MS = 5_000;
 // 자소서 수정 요청을 몇 개까지 함께 넘길지. 너무 많으면 서로 모순되는 지시가
@@ -86,18 +86,6 @@ async function ensureRunnerRow(supabase, userId) {
   if (insertError) throw insertError;
   console.log(`신규 러너로 등록했습니다 (${env.deviceName}). 웹 대시보드에서 승인해야 잡을 실행합니다.`);
   return inserted;
-}
-
-async function countRunsToday(supabase, ownerId) {
-  const startOfDay = new Date();
-  startOfDay.setHours(0, 0, 0, 0);
-  const { count, error } = await supabase
-    .from('agent_runs')
-    .select('id', { count: 'exact', head: true })
-    .eq('owner_id', ownerId)
-    .gte('created_at', startOfDay.toISOString());
-  if (error) throw error;
-  return count ?? 0;
 }
 
 // 잡 하나를 agent_runs에 기록하면서 실행하고, 완료되면 jobs/agent_runs 상태를
@@ -220,8 +208,7 @@ async function retryInvalidSearchOnce(supabase, ownerId, job, reason) {
     pipeline_id: job.pipeline_id,
     payload: { ...job.payload, searchRetryAttempt: nextAttempt },
     harness_snapshot: job.harness_snapshot ?? {},
-    // 상한 직전에 일반 잡이 먼저 실행되면 재시도가 다음 날까지 밀릴 수 있다.
-    // 원래 잡보다 한 단계만 높여 이미 시작한 검색을 먼저 마무리한다.
+    // 새 일반 잡보다 먼저 처리해 이미 시작한 검색을 우선 마무리한다.
     priority: (Number(job.priority) || 0) + 1,
   });
   if (error) return { status: 'failed', error: `${reason} 자동 재시도 큐잉도 실패했습니다: ${error.message}` };
@@ -974,19 +961,6 @@ async function startLoop() {
         return;
       }
 
-      const runsToday = await countRunsToday(supabase, user.id);
-      if (runsToday >= DAILY_RUN_LIMIT) {
-        const { count: queuedCount } = await supabase
-          .from('jobs')
-          .select('id', { count: 'exact', head: true })
-          .eq('status', 'queued');
-        reportPollPause(
-          `daily-limit:${runsToday}:${queuedCount ?? 'unknown'}`,
-          `오늘 실행 상한 ${DAILY_RUN_LIMIT}회에 도달해 큐 처리를 일시 중지했습니다. 대기 작업 ${queuedCount ?? '확인 불가'}건은 6시간 유효기간 안에 로컬 자정이 지나면 재개되며, 만료되면 수동으로 다시 실행해야 합니다.`,
-        );
-        return;
-      }
-
       const { data: job, error } = await supabase.rpc('claim_next_job', { p_runner_id: runner.id });
       if (error) {
         reportPollPause(`claim:${error.message}`, `작업 큐를 가져오지 못했습니다: ${error.message}`);
@@ -1021,7 +995,7 @@ async function startLoop() {
     });
   }
 
-  console.log(`동시 실행 상한: ${CONCURRENT_RUN_LIMIT} · 일일 실행 상한: ${DAILY_RUN_LIMIT} · ${POLL_INTERVAL_MS / 1000}초마다 큐 확인`);
+  console.log(`동시 실행 상한: ${CONCURRENT_RUN_LIMIT} · ${POLL_INTERVAL_MS / 1000}초마다 큐 확인`);
 }
 
 async function main() {
