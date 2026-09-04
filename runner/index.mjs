@@ -28,6 +28,7 @@ import { runBackup, shouldBackupNow } from './backup.mjs';
 import {
   normalizeJobCandidates,
   normalizeNewsItems,
+  isSearchRecoveryAttempt,
   nextSearchRetryAttempt,
   parseResultArray,
   searchQualityError,
@@ -446,14 +447,23 @@ async function processNewsJob(supabase, ownerId, job) {
   }
   const runIdForWorkspace = randomUUID();
   const { workspace, schemaPath } = createNewsContextPack(runIdForWorkspace, { interests });
-  const prompt = `${template.body}\n\n[대상]\ncontext/01-interests.md를 읽고 스키마에 맞는 JSON으로만 답하라.\n\n[필수 실행 조건]\n최종 답변 전에 웹 검색 도구를 실제로 한 번 이상 호출하라. 검색 계획만 말하거나 기억에 의존해 답하지 말고, 첫 검색 결과가 부족하면 검색어를 바꿔라.`;
+  const recovery = provider === 'codex' && isSearchRecoveryAttempt(job.payload);
+  const executionInstruction = recovery
+    ? '[복구 재시도]\n이전 실행은 완료된 web_search 호출 없이 최종 답변을 제출해 폐기됐다. 이번에는 최종 답변을 만들기 전에 먼저 web_search를 실제로 호출하라. 검색이 끝난 뒤 schema/news.json을 읽고, Markdown 코드 블록이나 설명 없이 그 형식의 JSON 객체만 최종 답변으로 제출하라.'
+    : '[필수 실행 조건]\n최종 답변 전에 웹 검색 도구를 실제로 한 번 이상 호출하라. 검색 계획만 말하거나 기억에 의존해 답하지 말고, 첫 검색 결과가 부족하면 검색어를 바꿔라.';
+  const prompt = `${template.body}\n\n[대상]\ncontext/01-interests.md를 읽고 스키마에 맞는 JSON으로만 답하라.\n\n${executionInstruction}`;
+  // Windows 0.153.2에서 짧은 무스키마 프롬프트는 web_search를 정상 호출하지만,
+  // 실제 긴 프롬프트+--output-schema 조합은 검색 전에 빈 최종 JSON으로 끝나는
+  // 현상을 확인했다. 첫 실패 뒤에는 같은 조건을 반복하지 않고 모델이 검색을
+  // 먼저 끝낸 다음 워크스페이스의 스키마 파일을 직접 읽어 JSON을 만들게 한다.
+  const schemaOptions = recovery ? {} : schemaArgsFor(provider, NEWS_OUTPUT_SCHEMA, schemaPath, writeSchema);
 
   await recordAndRun(supabase, ownerId, job, {
     provider,
     prompt,
     workspace,
     liveWebSearch: provider === 'codex',
-    ...schemaArgsFor(provider, NEWS_OUTPUT_SCHEMA, schemaPath, writeSchema),
+    ...schemaOptions,
     onComplete: async (result, run) => {
       const { parsed, items, error: parseError } = parseResultArray(result.output, 'items');
       if (parseError) return retryInvalidSearchOnce(supabase, ownerId, job, parseError);
@@ -580,14 +590,19 @@ async function processJobSearchJob(supabase, ownerId, job) {
   }
   const runIdForWorkspace = randomUUID();
   const { workspace, schemaPath } = createJobsContextPack(runIdForWorkspace, { targetRoles, interests, experiences: experiences ?? [] });
-  const prompt = `${template.body}\n\n[대상]\ncontext/01-profile.md, context/02-experiences.md를 읽고 스키마에 맞는 JSON으로만 답하라.\n\n[필수 실행 조건]\n최종 답변 전에 웹 검색 도구를 실제로 한 번 이상 호출하라. 검색 계획만 말하거나 기억에 의존해 답하지 말고, 첫 검색 결과가 부족하면 검색어를 바꿔라.`;
+  const recovery = provider === 'codex' && isSearchRecoveryAttempt(job.payload);
+  const executionInstruction = recovery
+    ? '[복구 재시도]\n이전 실행은 완료된 web_search 호출 없이 최종 답변을 제출해 폐기됐다. 이번에는 최종 답변을 만들기 전에 먼저 web_search를 실제로 호출하라. 검색이 끝난 뒤 schema/jobs.json을 읽고, Markdown 코드 블록이나 설명 없이 그 형식의 JSON 객체만 최종 답변으로 제출하라.'
+    : '[필수 실행 조건]\n최종 답변 전에 웹 검색 도구를 실제로 한 번 이상 호출하라. 검색 계획만 말하거나 기억에 의존해 답하지 말고, 첫 검색 결과가 부족하면 검색어를 바꿔라.';
+  const prompt = `${template.body}\n\n[대상]\ncontext/01-profile.md, context/02-experiences.md를 읽고 스키마에 맞는 JSON으로만 답하라.\n\n${executionInstruction}`;
+  const schemaOptions = recovery ? {} : schemaArgsFor(provider, JOBS_OUTPUT_SCHEMA, schemaPath, writeSchema);
 
   await recordAndRun(supabase, ownerId, job, {
     provider,
     prompt,
     workspace,
     liveWebSearch: provider === 'codex',
-    ...schemaArgsFor(provider, JOBS_OUTPUT_SCHEMA, schemaPath, writeSchema),
+    ...schemaOptions,
     onComplete: async (result) => {
       const { items, error: parseError } = parseResultArray(result.output, 'jobs');
       if (parseError) return retryInvalidSearchOnce(supabase, ownerId, job, parseError);

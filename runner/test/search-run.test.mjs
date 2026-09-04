@@ -5,6 +5,7 @@ import { buildCodexArgs } from '../providers/codex.mjs';
 import {
   normalizeJobCandidates,
   normalizeNewsItems,
+  isSearchRecoveryAttempt,
   nextSearchRetryAttempt,
   parseResultArray,
   searchQualityError,
@@ -33,6 +34,12 @@ test('JSON 파싱 실패와 배열 누락을 빈 성공으로 취급하지 않�
   assert.match(parseResultArray('{"summary":"완료"}', 'items').error, /items/);
 });
 
+test('복구 실행의 Markdown JSON 코드 블록을 읽는다', () => {
+  const result = parseResultArray('```json\n{"items":[]}\n```', 'items');
+  assert.equal(result.error, '');
+  assert.deepEqual(result.items, []);
+});
+
 test('뉴스와 공고에서 저장 불가능한 URL을 제거한다', () => {
   const news = normalizeNewsItems([
     { title: '유효', source: '공식', url: 'https://example.com/news', date: '2026-09-04', implication: '확인' },
@@ -57,4 +64,7 @@ test('새 형식과 이전 retried 형식 모두 검색 재시도를 한 번으�
   assert.equal(nextSearchRetryAttempt({}), 1);
   assert.equal(nextSearchRetryAttempt({ searchRetryAttempt: 1 }), null);
   assert.equal(nextSearchRetryAttempt({ retried: true }), null);
+  assert.equal(isSearchRecoveryAttempt({}), false);
+  assert.equal(isSearchRecoveryAttempt({ searchRetryAttempt: 1 }), true);
+  assert.equal(isSearchRecoveryAttempt({ retried: true }), true);
 });

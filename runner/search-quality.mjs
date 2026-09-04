@@ -7,7 +7,16 @@ export function parseResultArray(output, key) {
   try {
     parsed = JSON.parse(output);
   } catch {
-    return { error: '구조화 결과를 JSON으로 읽지 못했습니다.', parsed: null, items: [] };
+    // 복구 재시도는 --output-schema를 제거하므로 일부 CLI 버전이 JSON을
+    // Markdown 코드 블록으로 감쌀 수 있다. 첫 실행의 엄격한 JSON 경로는
+    // 유지하면서 이 한 가지 흔한 포장만 벗겨 다시 읽는다.
+    const fenced = String(output).match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1];
+    if (!fenced) return { error: '구조화 결과를 JSON으로 읽지 못했습니다.', parsed: null, items: [] };
+    try {
+      parsed = JSON.parse(fenced.trim());
+    } catch {
+      return { error: '구조화 결과를 JSON으로 읽지 못했습니다.', parsed: null, items: [] };
+    }
   }
   if (!parsed || typeof parsed !== 'object' || !Array.isArray(parsed[key])) {
     return { error: `구조화 결과에 ${key} 배열이 없습니다.`, parsed, items: [] };
@@ -72,4 +81,8 @@ export function searchQualityError({ provider, webSearchUsed, validCount, subjec
 export function nextSearchRetryAttempt(payload) {
   const attempt = Number(payload?.searchRetryAttempt) || (payload?.retried ? 1 : 0);
   return attempt >= 1 ? null : attempt + 1;
+}
+
+export function isSearchRecoveryAttempt(payload) {
+  return Number(payload?.searchRetryAttempt) >= 1 || payload?.retried === true;
 }
