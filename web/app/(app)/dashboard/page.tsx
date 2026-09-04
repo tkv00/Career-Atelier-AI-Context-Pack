@@ -13,6 +13,7 @@ import { NewsRunButton } from './news-run-button';
 import { JobSearchButton } from './job-search-button';
 import { QuestionImportButton } from './question-import';
 import { AgentLiveRefresh } from './agent-live-refresh';
+import { ProfileForm } from './profile-form';
 
 const ORBIT_AGENTS = [
   { id: 'news', name: '루미', role: '통신·뉴스', frame: 1 },
@@ -30,6 +31,9 @@ function agentSpeech(agentId: string, status: string | null | undefined, runnerO
   // CLI 미설치·미로그인으로 막힌 경우. 러너 터미널에만 찍히던 이유를 그대로
   // 보여준다 — "codex CLI가 설치되어 있지 않습니다" 같은 메시지(safety.mjs).
   if (status === 'blocked_auth') return errorMessage || '이 비서가 쓰는 CLI 로그인이 필요해요. 러너 컴퓨터를 확인해 주세요.';
+  // 프로필(목표 직무·관심 분야)이 비어 있어 막힌 경우 — runner/index.mjs
+  // blockOnEmptyProfile. 이 카드 바로 위 프로필 폼을 채우면 풀린다.
+  if (status === 'blocked_profile') return errorMessage || '프로필을 채우면 시작할 수 있어요.';
   if (status === 'waiting_for_reset') return '구독 한도 초기화를 기다리고 있어요.';
   if (status === 'failed') return '오류 기록을 확인하고 재시도를 준비 중이에요.';
   if (status === 'cancelled') return '중단된 임무를 정리하고 대기 중이에요.';
@@ -45,6 +49,12 @@ function agentSpeech(agentId: string, status: string | null | undefined, runnerO
     subtitle: '본문의 핵심 근거를 15자 소제목으로 압축 중이에요.',
   } as Record<string, string>)[agentId];
   return '다음 임무를 기다리며 작업함을 정리하고 있어요.';
+}
+
+function statusLabel(status: string | null | undefined) {
+  if (status === 'blocked_auth') return 'CLI 인증 필요';
+  if (status === 'blocked_profile') return '프로필 필요';
+  return status?.toUpperCase() || 'STANDBY';
 }
 
 // 1단계(기반) 산출물: "다기기에서 읽기가 된다"를 눈으로 확인하기 위한 읽기 전용 화면.
@@ -116,10 +126,17 @@ export default async function DashboardPage() {
           <p>
             {profile
               ? `${profile.display_name} · ${(profile.target_roles as string[] | null)?.join(', ') || '목표 직무 미설정'}`
-              : '아직 v1에서 데이터를 이관하지 않았습니다.'}
+              : '프로필을 설정하면 루미·모카가 그 정보로 뉴스와 채용공고를 찾습니다.'}
           </p>
         </div>
       </div>
+
+      <ProfileForm
+        displayName={profile?.display_name ?? '사용자'}
+        targetRoles={(profile?.target_roles as string[] | null) ?? []}
+        interests={(profile?.interests as string[] | null) ?? []}
+        summary={profile?.summary ?? ''}
+      />
 
       <section className="cloud-mission-deck">
         <div className="cloud-orbit-scene">
@@ -136,7 +153,7 @@ export default async function DashboardPage() {
               return <article className={active ? 'cloud-agent active' : 'cloud-agent'} key={agent.id}>
                 <div className={active ? 'cloud-agent-speech live' : 'cloud-agent-speech'}><b>{agent.name}</b><span>{agentSpeech(agent.id, latest?.status, runnerOnline, latest?.error)}</span></div>
                 <div className={`cloud-space-agent frame-${agent.frame}`} aria-label={`${agent.name} 픽셀 채용 에이전트`}/>
-                <div><b>{agent.name}</b><span>{agent.role}</span><small>{(() => { const p = providerByAgent.get(agent.id); return p && isProvider(p) ? PROVIDER_META[p].label : '미설정'; })()} · {active ? 'RUNNING' : latest?.status === 'blocked_auth' ? 'CLI 인증 필요' : latest?.status?.toUpperCase() || 'STANDBY'}</small></div>
+                <div><b>{agent.name}</b><span>{agent.role}</span><small>{(() => { const p = providerByAgent.get(agent.id); return p && isProvider(p) ? PROVIDER_META[p].label : '미설정'; })()} · {active ? 'RUNNING' : statusLabel(latest?.status)}</small></div>
                 {agent.id === 'news' && <NewsRunButton pending={newsPending} runnerOnline={runnerOnline} pendingJob={newsJob} />}
                 {agent.id === 'jobs' && <JobSearchButton pending={jobsPending} runnerOnline={runnerOnline} pendingJob={jobSearchJob} />}
               </article>;

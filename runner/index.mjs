@@ -164,6 +164,27 @@ async function recordAndRun(supabase, ownerId, job, { provider, prompt, workspac
   }
 }
 
+// 프로필(목표 직무·관심 분야)이 비어 있으면 루미·모카가 LLM을 불러도 뭘
+// 찾아야 할지 몰라 매번 빈 배열만 반환한다(실제로 겪음, 2026-09-04 — v1에
+// 있던 프로필 편집 화면이 v2엔 아직 없어서 이 값을 채울 방법 자체가 없었다).
+// 호출 전에 막아서 구독 사용량을 아끼고, blocked_auth와 같은 방식으로
+// agent_runs에 남겨 대시보드에서 바로 원인을 볼 수 있게 한다.
+async function blockOnEmptyProfile(supabase, ownerId, job, provider, prompt, reason) {
+  await supabase.from('jobs').update({ status: 'blocked_profile' }).eq('id', job.id);
+  await supabase.from('agent_runs').insert({
+    owner_id: ownerId,
+    pipeline_id: job.pipeline_id,
+    agent_id: job.kind,
+    provider,
+    status: 'blocked_profile',
+    prompt,
+    error: reason,
+    started_at: new Date().toISOString(),
+    finished_at: new Date().toISOString(),
+  });
+  console.log(`잡 ${job.id}: ${reason}`);
+}
+
 // job.pipeline_id가 있으면 체인의 다음 단계를 큐에 넣는다 — 사용자가 "기업
 // 조사 요청" 버튼으로 시작한 잡에만 pipeline_id가 채워지므로(actions.ts),
 // 개별 재실행 버튼(AI 초안 생성 등)으로 만든 잡은 여기 안 걸리고 단독으로
@@ -385,6 +406,13 @@ async function processNewsJob(supabase, ownerId, job) {
   const provider = providerFor(template);
 
   const interests = (profile?.interests ?? []);
+  if (interests.length === 0) {
+    await blockOnEmptyProfile(
+      supabase, ownerId, job, provider, template.body,
+      '프로필에 관심 분야가 설정되지 않아 루미가 무엇을 조사할지 알 수 없습니다. 대시보드에서 관심 분야를 입력해 주세요.',
+    );
+    return;
+  }
   const runIdForWorkspace = randomUUID();
   const { workspace, schemaPath } = createNewsContextPack(runIdForWorkspace, { interests });
   const prompt = `${template.body}\n\n[대상]\ncontext/01-interests.md를 읽고 스키마에 맞는 JSON으로만 답하라.`;
@@ -501,6 +529,13 @@ async function processJobSearchJob(supabase, ownerId, job) {
 
   const targetRoles = profile?.target_roles ?? [];
   const interests = profile?.interests ?? [];
+  if (targetRoles.length === 0 && interests.length === 0) {
+    await blockOnEmptyProfile(
+      supabase, ownerId, job, provider, template.body,
+      '프로필에 목표 직무·관심 분야가 설정되지 않아 모카가 무엇을 찾을지 알 수 없습니다. 대시보드에서 프로필을 입력해 주세요.',
+    );
+    return;
+  }
   const runIdForWorkspace = randomUUID();
   const { workspace, schemaPath } = createJobsContextPack(runIdForWorkspace, { targetRoles, interests, experiences: experiences ?? [] });
   const prompt = `${template.body}\n\n[대상]\ncontext/01-profile.md, context/02-experiences.md를 읽고 스키마에 맞는 JSON으로만 답하라.`;

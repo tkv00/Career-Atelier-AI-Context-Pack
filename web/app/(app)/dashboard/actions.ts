@@ -1,8 +1,43 @@
 'use server';
 
+import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import type { ParsedQuestion } from '@/lib/parse-questions';
+
+// 프로필(목표 직무·관심 분야)이 비어 있으면 루미(뉴스)·모카(채용탐색)가
+// 무엇을 찾아야 할지 알 수 없어 매번 빈 결과만 낸다(실제로 겪음, 2026-09-04
+// — profiles 행 자체가 없어 두 비서가 계속 빈 배열을 반환했다). v1에서
+// 있었던 프로필 편집이 v2엔 아직 없어서, 이 화면 자체가 존재하지 않았다.
+// owner_id가 unique(0001)라 upsert로 안전하게 한 번에 처리한다.
+export async function saveProfile(formData: FormData) {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
+
+  const splitList = (value: FormDataEntryValue | null) =>
+    String(value ?? '')
+      .split(',')
+      .map((item) => item.trim())
+      .filter(Boolean);
+
+  const { error } = await supabase.from('profiles').upsert(
+    {
+      owner_id: user.id,
+      display_name: String(formData.get('display_name') ?? '').trim() || '사용자',
+      target_roles: splitList(formData.get('target_roles')),
+      interests: splitList(formData.get('interests')),
+      summary: String(formData.get('summary') ?? '').trim(),
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'owner_id' },
+  );
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/dashboard');
+}
 
 // 4단계 세 번째 수직 슬라이스(루미/뉴스) — 잡 큐에 넣기만 한다. 프로필 기반이라
 // essayId가 필요 없다.
