@@ -9,8 +9,10 @@ const AGENT_LABEL: Record<string, string> = {
   review: '렌즈 · 검수',
   writer: '뮤즈 · 작성',
   news: '루미 · 뉴스',
+  news_format: '루미 · 검색 결과 구조화',
   company: '솔 · 기업조사',
   jobs: '모카 · 채용탐색',
+  jobs_format: '모카 · 검색 결과 구조화',
   interview: '에코 · 면접 코치',
   subtitle: '소제목 · 헤드라인',
 };
