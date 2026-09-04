@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
+import { PDFParse } from 'pdf-parse';
 
 // §8 컨텍스트 팩의 최소 형태. 문항·JD·경험 카드 등 에이전트별 파일 생성은
 // 4단계(에이전트 이식)에서 구체화한다 — 지금은 3단계(러너 엔진) 검증에 필요한
@@ -280,7 +281,52 @@ export const COMPANY_RESEARCH_SCHEMA = {
 // instruction은 사용자가 다이얼로그에 자유 형식으로 적은 추가 지시(예: "경쟁사
 // 대비 기술 스택 차이 위주로", "최근 인수합병 이슈 확인해줘") — 회사/직무/JD로는
 // 못 담는 조사 방향을 사용자가 직접 얹을 수 있게 한다.
-export function createCompanyContextPack(runId, { company, role, jobDescription, instruction }) {
+async function extractPdfText(buffer) {
+  const parser = new PDFParse({ data: buffer });
+  try {
+    const result = await parser.getText();
+    return result.text;
+  } finally {
+    await parser.destroy();
+  }
+}
+
+// 파일명에서 workspace 안전한 stem만 남긴다 — 경로 구분자·특수문자를 지워
+// 다른 context 파일과 충돌하거나 워크스페이스 밖으로 못 나가게 한다.
+function safeFileStem(fileName) {
+  const stem = fileName.replace(/\.[^./\\]+$/, '');
+  return stem.replace(/[^A-Za-z0-9가-힣_-]/g, '_').slice(0, 40) || 'file';
+}
+
+// 솔(기업조사) 첨부파일 — DART 공시자료 등. Codex/Claude/Antigravity 중 어느
+// CLI가 PDF를 직접 읽을 수 있는지 실측하지 않았으므로, Node에서 미리 텍스트로
+// 뽑아 어떤 프로바이더를 쓰든 동일하게 읽게 한다. 실패한 파일은 건너뛰고
+// 계속 진행한다 — 첨부 하나가 깨졌다고 조사 자체를 막을 이유는 없다.
+async function writeCompanyAttachments(contextDir, attachments, supabase) {
+  if (!attachments?.length) return { hasAttachments: false, notes: '(첨부파일 없음)' };
+
+  const notes = [];
+  for (const [index, attachment] of attachments.entries()) {
+    const outFile = `04-attachment-${index + 1}-${safeFileStem(attachment.file_name)}.md`;
+    try {
+      const { data, error } = await supabase.storage.from('company-research').download(attachment.storage_path);
+      if (error || !data) throw new Error(error?.message ?? '다운로드 결과가 비었습니다.');
+      const buffer = Buffer.from(await data.arrayBuffer());
+
+      const text = /\.pdf$/i.test(attachment.file_name)
+        ? await extractPdfText(buffer)
+        : buffer.toString('utf8');
+
+      writeFileSync(resolve(contextDir, outFile), `# ${attachment.file_name}\n\n${text}`);
+      notes.push(`- ${attachment.file_name} → context/${outFile}`);
+    } catch (error) {
+      notes.push(`- ${attachment.file_name}: 처리 실패(${error.message})`);
+    }
+  }
+  return { hasAttachments: true, notes: notes.join('\n') };
+}
+
+export async function createCompanyContextPack(runId, { company, role, jobDescription, instruction, attachments, supabase }) {
   const workspace = workspaceRoot(runId);
   const contextDir = resolve(workspace, 'context');
   const schemaDir = resolve(workspace, 'schema');
@@ -292,9 +338,10 @@ export function createCompanyContextPack(runId, { company, role, jobDescription,
   writeFileSync(resolve(contextDir, '01-company.md'), `## 기업\n${company}\n\n## 직무\n${role || '(미지정)'}`);
   writeFileSync(resolve(contextDir, '02-job-description.md'), jobDescription || '(JD 미제공)');
   writeFileSync(resolve(contextDir, '03-user-instruction.md'), (instruction || '').trim() || '(추가 지시 없음 — 회사·직무·JD 기준으로 일반 조사)');
+  const { hasAttachments } = await writeCompanyAttachments(contextDir, attachments, supabase);
   writeFileSync(resolve(schemaDir, 'company.json'), JSON.stringify(COMPANY_RESEARCH_SCHEMA, null, 2));
 
-  return { workspace, contextDir, outputDir, schemaPath: resolve(schemaDir, 'company.json') };
+  return { workspace, contextDir, outputDir, schemaPath: resolve(schemaDir, 'company.json'), hasAttachments };
 }
 
 // 모카(채용탐색) — Codex 사용, additionalProperties:false 필요(§9 실측).

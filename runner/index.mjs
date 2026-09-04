@@ -423,9 +423,13 @@ async function processCompanyJob(supabase, ownerId, job) {
     return;
   }
 
-  const [{ data: jobPost }, { data: template }] = await Promise.all([
+  const essayId = job.payload?.essayId;
+  const [{ data: jobPost }, { data: template }, { data: attachments }] = await Promise.all([
     supabase.from('job_posts').select('*').eq('id', jobPostId).maybeSingle(),
     supabase.from('prompt_templates').select('*').eq('agent_id', 'company').eq('is_active', true).maybeSingle(),
+    essayId
+      ? supabase.from('company_research_attachments').select('file_name, storage_path').eq('essay_id', essayId)
+      : Promise.resolve({ data: [] }),
   ]);
 
   if (!jobPost || !template) {
@@ -437,13 +441,18 @@ async function processCompanyJob(supabase, ownerId, job) {
   const provider = providerFor(template);
 
   const runIdForWorkspace = randomUUID();
-  const { workspace, contextDir, schemaPath } = createCompanyContextPack(runIdForWorkspace, {
+  const { workspace, contextDir, schemaPath, hasAttachments } = await createCompanyContextPack(runIdForWorkspace, {
     company: jobPost.company,
     role: jobPost.role,
     jobDescription: jobPost.description,
     instruction: job.payload?.instruction,
+    attachments: attachments ?? [],
+    supabase,
   });
-  const prompt = `${template.body}\n\n[조사 대상]\ncontext/01-company.md, context/02-job-description.md를 읽어라. context/03-user-instruction.md에 사용자가 추가로 지시한 조사 방향이 있으면 그것도 반드시 반영하라. 스키마에 맞는 JSON으로만 답하라.`;
+  const attachmentInstruction = hasAttachments
+    ? ' context/04-attachment-*.md 파일이 있으면 사용자가 올린 원문 자료(예: DART 공시자료)이니 반드시 읽고 근거로 활용하라.'
+    : '';
+  const prompt = `${template.body}\n\n[조사 대상]\ncontext/01-company.md, context/02-job-description.md를 읽어라. context/03-user-instruction.md에 사용자가 추가로 지시한 조사 방향이 있으면 그것도 반드시 반영하라.${attachmentInstruction} 스키마에 맞는 JSON으로만 답하라.`;
 
   await recordAndRun(supabase, ownerId, job, {
     provider,

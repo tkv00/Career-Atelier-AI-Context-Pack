@@ -12,31 +12,6 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
-  graphql_public: {
-    Tables: {
-      [_ in never]: never
-    }
-    Views: {
-      [_ in never]: never
-    }
-    Functions: {
-      graphql: {
-        Args: {
-          extensions?: Json
-          operationName?: string
-          query?: string
-          variables?: Json
-        }
-        Returns: Json
-      }
-    }
-    Enums: {
-      [_ in never]: never
-    }
-    CompositeTypes: {
-      [_ in never]: never
-    }
-  }
   public: {
     Tables: {
       agent_runs: {
@@ -258,6 +233,44 @@ export type Database = {
           updated_at?: string
         }
         Relationships: []
+      }
+      company_research_attachments: {
+        Row: {
+          created_at: string
+          essay_id: string
+          file_name: string
+          id: string
+          owner_id: string
+          size_bytes: number | null
+          storage_path: string
+        }
+        Insert: {
+          created_at?: string
+          essay_id: string
+          file_name: string
+          id?: string
+          owner_id: string
+          size_bytes?: number | null
+          storage_path: string
+        }
+        Update: {
+          created_at?: string
+          essay_id?: string
+          file_name?: string
+          id?: string
+          owner_id?: string
+          size_bytes?: number | null
+          storage_path?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "company_research_attachments_essay_id_fkey"
+            columns: ["essay_id"]
+            isOneToOne: false
+            referencedRelation: "essay_projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       education_courses: {
         Row: {
@@ -1319,6 +1332,10 @@ export type Database = {
       expire_old_jobs: { Args: never; Returns: undefined }
       reap_stale_jobs: { Args: never; Returns: undefined }
       restrict_signup_to_owner: { Args: { event: Json }; Returns: Json }
+      seed_default_prompts: {
+        Args: { target_owner: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
@@ -1447,9 +1464,6 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
-  graphql_public: {
-    Enums: {},
-  },
   public: {
     Enums: {},
   },

@@ -219,6 +219,70 @@ export async function requestCompanyResearch(essayId: string, company: string, r
   if (jobError) throw new Error(jobError.message);
 }
 
+// 솔(기업조사) 첨부파일 — DART 공시자료 등. 회사명·JD처럼 텍스트로 붙여넣기
+// 힘든 원문 자료를 파일로 올리면, essayId로 연결돼 있어 러너가 조사를 실행할
+// 때 함께 읽는다(runner/index.mjs processCompanyJob, context-pack.mjs).
+const COMPANY_ATTACHMENT_BUCKET = 'company-research';
+const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024; // DART 공시자료는 records의 증명서보다 클 수 있다.
+const ALLOWED_ATTACHMENT_EXTENSIONS = new Set(['pdf', 'md', 'markdown']);
+
+export async function uploadCompanyAttachment(essayId: string, formData: FormData) {
+  const { supabase, user } = await requireUser();
+  const file = formData.get('file');
+  if (!(file instanceof File) || file.size === 0) throw new Error('파일을 선택하세요.');
+
+  if (file.size > MAX_ATTACHMENT_BYTES) {
+    throw new Error(`파일이 너무 큽니다. ${Math.round(MAX_ATTACHMENT_BYTES / 1024 / 1024)}MB 이하만 올릴 수 있습니다.`);
+  }
+  // 마크다운은 브라우저마다 file.type이 제각각(text/markdown · text/plain ·
+  // 빈 문자열)이라 MIME이 아니라 확장자로 판별한다.
+  const extension = file.name.includes('.') ? file.name.split('.').pop()!.toLowerCase() : '';
+  if (!ALLOWED_ATTACHMENT_EXTENSIONS.has(extension)) {
+    throw new Error('PDF나 마크다운(.md) 파일만 올릴 수 있습니다.');
+  }
+
+  // 경로 첫 칸이 소유자 uid여야 Storage 정책을 통과한다(0024). 파일명은 새로
+  // 만든다 — 사용자가 준 이름을 경로에 그대로 쓰지 않아 경로 조작을 막는다.
+  const storagePath = `${user.id}/${essayId}/${crypto.randomUUID()}.${extension}`;
+
+  const { error: uploadError } = await supabase.storage
+    .from(COMPANY_ATTACHMENT_BUCKET)
+    .upload(storagePath, file, { contentType: file.type || 'application/octet-stream', upsert: false });
+  if (uploadError) throw new Error(uploadError.message);
+
+  const { error } = await supabase.from('company_research_attachments').insert({
+    owner_id: user.id,
+    essay_id: essayId,
+    file_name: file.name,
+    storage_path: storagePath,
+    size_bytes: file.size,
+  });
+  if (error) {
+    // 행을 못 남겼으면 파일만 떠도는 상태가 된다. 되돌린다.
+    await supabase.storage.from(COMPANY_ATTACHMENT_BUCKET).remove([storagePath]);
+    throw new Error(error.message);
+  }
+
+  revalidatePath(`/essays/${essayId}`);
+}
+
+export async function deleteCompanyAttachment(attachmentId: string, essayId: string) {
+  const { supabase } = await requireUser();
+
+  const { data: attachment } = await supabase
+    .from('company_research_attachments')
+    .select('storage_path')
+    .eq('id', attachmentId)
+    .maybeSingle();
+  if (!attachment) return;
+
+  await supabase.storage.from(COMPANY_ATTACHMENT_BUCKET).remove([attachment.storage_path]);
+  const { error } = await supabase.from('company_research_attachments').delete().eq('id', attachmentId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/essays/${essayId}`);
+}
+
 // 6단계 JD 입력(§10 후반) — 모카가 찾은 채용공고에서 바로 자소서를 시작한다.
 // job_id를 미리 연결해 두면 에디터가 열리자마자 solPost의 description이
 // 솔 다이얼로그의 JD 칸을 자동으로 채운다(essays/[id]/page.tsx가 이미

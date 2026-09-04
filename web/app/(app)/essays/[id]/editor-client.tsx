@@ -16,6 +16,7 @@ import { downloadMarkdownAsPdf } from '@/lib/pdf';
 import { cancelQueuedJob } from '@/lib/jobs-actions';
 import {
   applySubtitle,
+  deleteCompanyAttachment,
   forceSaveDraft,
   requestCompanyResearch,
   requestReview,
@@ -27,6 +28,7 @@ import {
   saveQuestionSettings,
   saveVersion,
   snapshotDraft,
+  uploadCompanyAttachment,
   type SaveDraftResult,
 } from '../actions';
 import type { Database } from '@/lib/supabase/database.types';
@@ -51,6 +53,14 @@ type EvidenceItem = { paragraph_index: number; experience_id: string; quoted_fac
 type WriterResult = { draft: string; evidence: EvidenceItem[] };
 
 type SubtitleResult = { subtitle: string; rationale: string };
+
+type CompanyAttachment = { id: string; file_name: string; size_bytes: number | null; created_at: string };
+
+function formatFileSize(bytes: number | null) {
+  if (!bytes) return '';
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))}KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)}MB`;
+}
 
 const PROVIDER_LABEL: Record<string, string> = {
   codex: 'Codex(ChatGPT 구독)',
@@ -98,6 +108,7 @@ export function EssayEditor({
   pendingJobs,
   runnerOnline,
   revisionRequests,
+  companyAttachments,
 }: {
   essay: Essay;
   initialVersions: EssayVersion[];
@@ -113,6 +124,7 @@ export function EssayEditor({
   pendingJobs: { id: string; kind: string; status: string }[];
   runnerOnline: boolean;
   revisionRequests: { id: string; instruction: string; created_at: string }[];
+  companyAttachments: CompanyAttachment[];
 }) {
   const router = useRouter();
   const [content, setContent] = useState(essay.draft);
@@ -143,6 +155,9 @@ export function EssayEditor({
   const [companyJd, setCompanyJd] = useState(jobPost?.description ?? '');
   const [companyInstruction, setCompanyInstruction] = useState('');
   const [savingCompany, setSavingCompany] = useState(false);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
+  const [attachmentError, setAttachmentError] = useState('');
+  const attachmentInputRef = useRef<HTMLInputElement>(null);
   const [subtitle, setSubtitle] = useState(essay.subtitle ?? '');
   const [savingSubtitle, setSavingSubtitle] = useState(false);
 
@@ -328,6 +343,29 @@ export function EssayEditor({
     } finally {
       setSavingCompany(false);
     }
+  }
+
+  async function handleUploadAttachment(event: React.ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    setAttachmentError('');
+    setUploadingAttachment(true);
+    try {
+      const formData = new FormData();
+      formData.set('file', file);
+      await uploadCompanyAttachment(essay.id, formData);
+      router.refresh();
+    } catch (error) {
+      setAttachmentError(error instanceof Error ? error.message : '업로드하지 못했습니다.');
+    } finally {
+      setUploadingAttachment(false);
+      if (attachmentInputRef.current) attachmentInputRef.current.value = '';
+    }
+  }
+
+  async function handleDeleteAttachment(attachmentId: string) {
+    await deleteCompanyAttachment(attachmentId, essay.id);
+    router.refresh();
   }
 
   async function handleRequestSubtitle() {
@@ -591,8 +629,37 @@ export function EssayEditor({
                 style={{ marginTop: 4, resize: 'vertical' }}
               />
             </label>
+            <div style={{ fontSize: 12, color: 'var(--text-3)' }}>
+              첨부 자료 · 선택 (DART 공시자료 등 — PDF·MD, 20MB 이하)
+              {companyAttachments.length > 0 && (
+                <ul style={{ listStyle: 'none', margin: '4px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {companyAttachments.map((attachment) => (
+                    <li key={attachment.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
+                      <span>
+                        {attachment.file_name}
+                        {formatFileSize(attachment.size_bytes) && ` (${formatFileSize(attachment.size_bytes)})`}
+                      </span>
+                      <button type="button" className="inline-danger-button" onClick={() => handleDeleteAttachment(attachment.id)}>
+                        삭제
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <input
+                ref={attachmentInputRef}
+                type="file"
+                accept=".pdf,.md,.markdown"
+                onChange={handleUploadAttachment}
+                disabled={uploadingAttachment}
+                className="field-input"
+                style={{ marginTop: 6 }}
+              />
+              {uploadingAttachment && <p className="essay-revision-message" style={{ margin: '4px 0 0' }}>업로드 중…</p>}
+              {attachmentError && <p className="essay-revision-message" style={{ margin: '4px 0 0' }}>{attachmentError}</p>}
+            </div>
             <p style={{ fontSize: 11, color: 'var(--text-dim)', margin: 0 }}>
-              조사가 끝나면 자동으로 초안 작성(뮤즈) → 검수(렌즈) → 소제목 제안(콤마)까지 이어서 실행됩니다. 경험 카드가 하나도 없으면 뮤즈 단계에서 멈춥니다.
+              조사가 끝나면 자동으로 초안 작성(뮤즈) → 검수(렌즈) → 소제목 제안(콤마)까지 이어서 실행됩니다. 경험 카드가 하나도 없으면 뮤즈 단계에서 멈춥니다. 첨부 자료가 있으면 솔이 함께 읽습니다.
             </p>
             <div style={{ display: 'flex', gap: 8 }}>
               <button type="submit" className="run-button" disabled={savingCompany}>

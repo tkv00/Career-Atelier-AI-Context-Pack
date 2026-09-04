@@ -7,7 +7,7 @@ export default async function EssayPage({ params }: { params: Promise<{ id: stri
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: essay }, { data: versions }, { data: reviews }, { data: drafts }, { data: subtitles }, { data: pendingJobs }, { data: runners }, { data: revisionRequests }] =
+  const [{ data: essay }, { data: versions }, { data: reviews }, { data: drafts }, { data: subtitles }, { data: pendingJobs }, { data: runners }, { data: revisionRequests }, { data: companyAttachments }] =
     await Promise.all([
       supabase.from('essay_projects').select('*').eq('id', id).maybeSingle(),
       supabase.from('essay_versions').select('*').eq('essay_id', id).order('version', { ascending: false }),
@@ -46,6 +46,11 @@ export default async function EssayPage({ params }: { params: Promise<{ id: stri
         .select('id, instruction, created_at')
         .eq('essay_id', id)
         .order('created_at', { ascending: true }),
+      supabase
+        .from('company_research_attachments')
+        .select('id, file_name, size_bytes, created_at')
+        .eq('essay_id', id)
+        .order('created_at', { ascending: false }),
     ]);
 
   if (!essay) notFound();
@@ -81,6 +86,7 @@ export default async function EssayPage({ params }: { params: Promise<{ id: stri
       pendingJobs={pendingJobs ?? []}
       runnerOnline={runnerOnline}
       revisionRequests={revisionRequests ?? []}
+      companyAttachments={companyAttachments ?? []}
     />
   );
 }
