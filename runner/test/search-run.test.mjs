@@ -3,17 +3,33 @@ import test from 'node:test';
 import { eventUsesWebSearch } from '../execute.mjs';
 import { buildCodexArgs } from '../providers/codex.mjs';
 import {
+  buildJobsDiscoveryPrompt,
+  buildNewsDiscoveryPrompt,
   normalizeJobCandidates,
   normalizeNewsItems,
-  isSearchRecoveryAttempt,
   nextSearchRetryAttempt,
   parseResultArray,
   searchQualityError,
 } from '../search-quality.mjs';
 
+test('Codex 검색 단계는 프로필 데이터만 담고 JSON 구조화를 요구하지 않는다', () => {
+  const news = buildNewsDiscoveryPrompt({ interests: ['AI'], today: '2026-09-04' });
+  const jobs = buildJobsDiscoveryPrompt({ targetRoles: ['백엔드 개발자'], interests: ['핀테크'], today: '2026-09-04' });
+
+  assert.match(news, /web_search/);
+  assert.match(news, /AI/);
+  assert.match(jobs, /web_search/);
+  assert.match(jobs, /백엔드 개발자/);
+  assert.doesNotMatch(news, /스키마 변환을 하라/);
+  assert.doesNotMatch(jobs, /적합도 계산을 하라/);
+  assert.doesNotMatch(news, /context\//);
+  assert.doesNotMatch(jobs, /context\//);
+});
+
 test('실시간 검색 옵션은 exec 앞에 놓인다', () => {
   const args = buildCodexArgs({ workspace: 'C:\\Career Atelier\\run', prompt: '검색', liveWebSearch: true });
   assert.deepEqual(args.slice(0, 2), ['--search', 'exec']);
+  assert.equal(args.includes('web_search="disabled"'), false);
   assert.equal(args.at(-1), '검색');
 });
 
@@ -21,6 +37,7 @@ test('검색하지 않는 비서에는 --search를 넣지 않는다', () => {
   const args = buildCodexArgs({ workspace: '/tmp/run', prompt: '작성' });
   assert.equal(args[0], 'exec');
   assert.equal(args.includes('--search'), false);
+  assert.equal(args.includes('web_search="disabled"'), true);
 });
 
 test('Codex JSONL의 실제 web_search 이벤트만 검색 사용으로 인정한다', () => {
@@ -64,7 +81,4 @@ test('새 형식과 이전 retried 형식 모두 검색 재시도를 한 번으�
   assert.equal(nextSearchRetryAttempt({}), 1);
   assert.equal(nextSearchRetryAttempt({ searchRetryAttempt: 1 }), null);
   assert.equal(nextSearchRetryAttempt({ retried: true }), null);
-  assert.equal(isSearchRecoveryAttempt({}), false);
-  assert.equal(isSearchRecoveryAttempt({ searchRetryAttempt: 1 }), true);
-  assert.equal(isSearchRecoveryAttempt({ retried: true }), true);
 });

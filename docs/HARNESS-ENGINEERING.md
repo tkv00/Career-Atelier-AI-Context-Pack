@@ -106,10 +106,11 @@ Career Atelier는 7개의 특화 AI 비서와 2개의 비(非) LLM 결정론적 
 ### 1. Codex CLI (`runner/providers/codex.mjs`)
 - 일반 실행 커맨드: `codex exec -C <workspace> --skip-git-repo-check --ephemeral --ignore-user-config -s read-only`
 - 루미·모카 실행 커맨드: `codex --search exec ...` (`--search`는 `exec`보다 앞에 오는 전역 옵션이며, 기본 cached 검색 대신 live 검색을 사용)
+- 검색 격리: 검색 전용 단계가 아닌 Codex 실행은 `-c web_search="disabled"`로 기본 cached 검색 도구까지 제거
 - 스키마 옵션: `--output-schema <file_path>` (파일 경로를 전달)
 - 표준입력(stdin) 주의점: 헤드리스 환경에서 stdin을 `ignore`로 설정하면 tty 부재로 인해 `os error 2`가 발생합니다. child process 생성 즉시 stdin 파이프를 열고 `child.stdin.end()`로 EOF를 명시적으로 보내야 정상 동작합니다.
 - 스키마 제약: 모든 object 타입에 `additionalProperties: false`가 선언되어 있지 않으면 OpenAI API 수준에서 `invalid_json_schema` 400 에러를 반환합니다.
-- 검색 완료 판정: 프롬프트의 주장이나 결과 개수만 믿지 않고 JSONL 스트림에 실제 `item.type = "web_search"` 이벤트가 있었는지 확인합니다. 검색 미호출·JSON 파싱 실패·저장 가능 결과 0건은 완료로 기록하지 않고 최대 한 번만 새 작업으로 재시도합니다. Codex 복구 재시도는 첫 실행과 같은 실패 조건을 반복하지 않도록 `--output-schema`를 제거해 검색을 먼저 마칩니다. 이 응답이 일반 문장이면 별도의 구조화 전용 실행이 조사 메모를 입력으로 받고 `--output-schema`를 적용합니다. 검색과 구조화를 분리하므로 어느 한쪽을 모델의 한 번의 도구 선택에 동시에 맡기지 않습니다.
+- 검색 완료 판정: 프롬프트의 주장이나 결과 개수만 믿지 않고 JSONL 스트림에 실제 `item.type = "web_search"` 이벤트가 있었는지 확인합니다. 검색 미호출·JSON 파싱 실패·저장 가능 결과 0건은 완료로 기록하지 않고 최대 한 번만 새 작업으로 재시도합니다. Codex 루미·모카는 첫 실행부터 조사·개인화·JSON 요구를 한 프롬프트에 섞지 않습니다. 짧은 검색 전용 실행은 `--search`만 적용해 원문 URL이 있는 조사 메모를 만들고, 실제 검색 이벤트가 확인된 뒤 별도의 구조화 전용 실행이 `--output-schema`로 JSON을 만듭니다.
 
 ### 2. Claude Code CLI (`runner/providers/claude.mjs`)
 - 실행 커맨드: `claude -p <prompt> --add-dir <context_dir> --permission-mode plan --restricted`

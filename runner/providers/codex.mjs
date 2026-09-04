@@ -11,6 +11,9 @@ import { childEnvironment } from '../safety.mjs';
 export function buildCodexArgs({ workspace, prompt, model, effort, outputSchema, sandbox = 'read-only', liveWebSearch = false }) {
   const args = liveWebSearch ? ['--search', 'exec'] : ['exec'];
   args.push('-C', workspace, '--skip-git-repo-check', '--ephemeral', '--ignore-user-config', '-s', sandbox);
+  // 최신 Codex는 --search가 없어도 캐시 검색을 기본 제공한다. 구조화·작성
+  // 단계가 검색 전용 단계 밖에서 새 웹 사실을 섞지 못하도록 도구를 제거한다.
+  if (!liveWebSearch) args.push('-c', 'web_search="disabled"');
   if (model) args.push('-m', model);
   if (effort) args.push('-c', `model_reasoning_effort="${effort}"`);
   if (outputSchema) args.push('--output-schema', outputSchema);
