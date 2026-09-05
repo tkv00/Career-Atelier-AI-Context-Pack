@@ -1,0 +1,17 @@
+Planet and sky textures for Career Atelier
+
+Source: Solar System Scope
+https://www.solarsystemscope.com/textures/
+License: Creative Commons Attribution 4.0 International (CC BY 4.0)
+https://creativecommons.org/licenses/by/4.0/
+
+Original maps: Mercury, Venus atmosphere, Earth daymap, Earth clouds,
+Mars, Jupiter, Saturn, Uranus, Neptune, Sun, and Stars + Milky Way.
+Downloaded from https://www.solarsystemscope.com/textures/download/.
+Changes: planet maps resized to 1024 x 512; Milky Way map retains its
+original 2048 x 1024 resolution. All maps converted to WebP.
+Lighting, animation, Saturn's rings, and the graph layout are rendered by Career Atelier.
+
+These textures are visualization maps, based partly on NASA observations
+and supplemented by Solar System Scope. The experience graph uses artistic
+positions and sizes; it is not an astronomical scale model.

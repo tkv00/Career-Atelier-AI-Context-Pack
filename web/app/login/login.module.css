@@ -1,0 +1,359 @@
+/* 입체 성운과 서로 다른 깊이의 별로 공간의 규모를 보여 주고,
+   조작부는 관제실의 앰버·시안과 명료한 위계를 유지한다. */
+.login {
+  --login-white: #f1f3f7;
+  --login-muted: #a5b2c4;
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  min-height: 100svh;
+  padding: 34px clamp(28px, 5.2vw, 100px) 32px;
+  overflow: clip;
+  background: #03060d;
+  color: var(--login-white);
+}
+
+.cosmos, .galaxyImage, .scrim, .spaceCanvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+.cosmos {
+  z-index: -1;
+  overflow: hidden;
+  background: radial-gradient(ellipse at 35% 55%, #30475c, transparent 65%), #03060d;
+}
+.galaxyImage {
+  transition: opacity 700ms ease;
+}
+.galaxyImage img {
+  object-fit: cover;
+  object-position: 42% center;
+}
+.cosmos:has(.spaceCanvas[data-ready='true']) .galaxyImage { opacity: 0; }
+.spaceCanvas { opacity: 0; transition: opacity 700ms ease; }
+.spaceCanvas[data-ready='true'] { opacity: 1; }
+.login:has(.spaceCanvas[data-renderer='fallback']) .motionToggle { display: none; }
+.scrim {
+  background:
+    linear-gradient(90deg, #03060d30 0%, transparent 49%, #03060d55 73%, #03060d8c 100%),
+    linear-gradient(180deg, #03060d59 0%, transparent 22%, transparent 65%, #03060de0 100%);
+}
+.masthead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+}
+.brand > div { display: grid; gap: 5px; }
+.brandName {
+  font-family: var(--font-space-grotesk), var(--font-sans);
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -.6px;
+}
+.brandCaption {
+  color: var(--login-muted);
+  font-family: var(--font-mono);
+  font-size: 8px;
+  letter-spacing: 1.65px;
+}
+.topNote {
+  color: var(--login-muted);
+  font-size: 12px;
+  letter-spacing: .02em;
+}
+.content {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 400px);
+  align-items: center;
+  flex: 1;
+  gap: clamp(40px, 6vw, 110px);
+  width: 100%;
+  max-width: 1600px;
+  margin: 0 auto;
+  padding: 72px 0 100px;
+}
+.story { align-self: start; padding-top: clamp(32px, 6vh, 88px); }
+.eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  margin: 0 0 25px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2.4px;
+  color: var(--amber-strong);
+}
+.eyebrow > span {
+  width: 22px;
+  height: 1px;
+  background: currentColor;
+}
+.story h1 {
+  margin: 0;
+  font-size: clamp(52px, 5.1vw, 80px);
+  font-weight: 600;
+  letter-spacing: -.055em;
+  line-height: 1.2;
+  text-shadow: 0 3px 32px #03060d80;
+}
+.story h1 > span { color: #ffcf9e; }
+.intro {
+  margin: 25px 0 0;
+  color: #d0d8e4;
+  font-size: 15px;
+  line-height: 1.9;
+  letter-spacing: -.02em;
+  text-shadow: 0 2px 16px #000;
+}
+.journey {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 38px;
+  color: #d0d8e4;
+  font-size: 11px;
+  text-shadow: 0 1px 8px #000;
+}
+.journey > i {
+  width: 27px;
+  height: 1px;
+  background: #b5c8dd70;
+  position: relative;
+}
+.journey > i::after {
+  position: absolute;
+  right: 0;
+  top: -2px;
+  width: 5px;
+  height: 5px;
+  border-top: 1px solid #b5c8dd;
+  border-right: 1px solid #b5c8dd;
+  transform: rotate(45deg);
+  content: '';
+}
+.dock { padding-top: 32px; min-width: 0; }
+.card {
+  position: relative;
+  display: grid;
+  gap: 26px;
+  padding: 36px 30px 28px;
+  border: 1px solid #99b7d433;
+  border-radius: 18px;
+  background: linear-gradient(145deg, #15202edb, #080f1aeb 65%);
+  box-shadow: 0 24px 80px #0005, inset 0 1px 0 #ffffff09;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+}
+.card::before {
+  position: absolute;
+  top: -1px;
+  left: 30px;
+  right: 30px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, #eac49b70, transparent);
+  content: '';
+}
+.loading { min-height: 447px; }
+.cardEyebrow {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  margin: 0 0 26px;
+  color: var(--amber-strong);
+  font-family: var(--font-mono);
+  font-size: 9px;
+  letter-spacing: 1.9px;
+}
+.cardEyebrow > span { font-size: 17px; }
+.cardHeader h2 {
+  font-size: 23px;
+  font-weight: 600;
+  letter-spacing: -.04em;
+}
+.cardHeader > p:last-child {
+  margin: 10px 0 0;
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--login-muted);
+  overflow-wrap: anywhere;
+}
+.card form { display: grid; gap: 18px; }
+.card label { display: grid; gap: 9px; min-width: 0; }
+.card label > span { color: #c1cbda; font-size: 12px; }
+.card label > div {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 48px;
+  padding: 0 14px;
+  border: 1px solid #90aac133;
+  border-radius: 8px;
+  background: #050b1485;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+.card label > div:focus-within {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px #58cfe41a;
+}
+.card label svg { width: 18px; height: 18px; flex: 0 0 auto; stroke: #8093aa; stroke-width: 1.25; }
+.card input {
+  width: 100%;
+  min-width: 0;
+  padding: 13px 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--login-white);
+  font-size: 14px;
+}
+.card input::placeholder { color: #8a9bb0; }
+.card form > button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 49px;
+  margin-top: 5px;
+  padding: 0 17px;
+  border: 1px solid #ffd3a0;
+  border-radius: 8px;
+  background: linear-gradient(110deg, #f6c593, #f2ac6c);
+  box-shadow: 0 4px 18px #f5a96210;
+  color: #25190e;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: filter var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.card form > button:hover:not(:disabled) { filter: brightness(1.08); transform: translateY(-1px); }
+.card form > button:disabled { opacity: .6; cursor: progress; }
+.card form > button i { font-size: 20px; font-weight: 400; font-style: normal; }
+.modeSwitch {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 6px 12px;
+  padding-top: 15px;
+  border-top: 1px solid #8fa6c11f;
+}
+.modeSwitch button {
+  min-height: 32px;
+  padding: 3px 0;
+  border: 0;
+  background: transparent;
+  color: #b2c1d1;
+  font-size: 11px;
+  cursor: pointer;
+  text-underline-offset: 4px;
+}
+.modeSwitch button:hover { color: var(--amber-strong); text-decoration: underline; }
+.privateNote {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin: 18px 0 0;
+  font-size: 11px;
+  color: var(--login-muted);
+}
+.privateNote svg { width: 14px; height: 14px; }
+.message { padding: 12px; border: 1px solid; border-radius: 8px; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
+.error { color: #f0a79c; background: var(--danger-bg); border-color: var(--danger-line); }
+.success { color: #8fdcb0; background: var(--ok-bg); border-color: var(--ok-line); }
+.footer { padding-right: 180px; }
+.crew { display: flex; align-items: center; gap: 18px; }
+.crewAvatars { display: flex; padding-left: 0; }
+.crewAvatars > span {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  overflow: hidden;
+  border: 1px solid #8dabc340;
+  border-radius: 50%;
+  background: #101a27;
+}
+.crewAvatars > span + span { margin-left: -9px; }
+/* 원본이 네 프레임의 스프라이트 시트라 첫 캐릭터만 원형 창으로 보여 준다. */
+.crewAvatars img { position: absolute; top: 0; left: 2px; width: 128px; max-width: none; height: 40px; }
+.crew p { display: grid; gap: 6px; margin: 0; }
+.crew strong { font-size: 12px; font-weight: 500; color: #d4deea; }
+.crew p > span { font-size: 11px; color: var(--login-muted); }
+.motionToggle {
+  position: absolute;
+  right: clamp(28px, 5.2vw, 100px);
+  bottom: 32px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+  padding: 8px 0 8px 10px;
+  border: 0;
+  background: transparent;
+  color: var(--login-muted);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  cursor: pointer;
+}
+.motionToggle svg { width: 14px; height: 14px; }
+.motionToggle:hover:not(:disabled) { color: var(--login-white); }
+.motionToggle:disabled { cursor: default; }
+
+@media (min-width: 1800px) {
+  .story { padding-top: 9vh; }
+  .content { grid-template-columns: minmax(0, 1fr) 440px; }
+}
+@media (max-width: 1050px) {
+  .content { gap: 32px; grid-template-columns: minmax(0, 1fr) 360px; }
+  .story h1 { font-size: clamp(42px, 5.2vw, 56px); }
+  .intro { font-size: 13px; }
+  .journey { gap: 8px; font-size: 10px; }
+  .journey > i { width: 18px; }
+  .card { padding: 30px 24px 24px; }
+}
+/* 폼을 문서 흐름에 두어 낮은 화면·확대·키보드 표시 때도 끝까지 스크롤할 수 있다. */
+@media (max-width: 800px) {
+  .login { padding: 24px 24px 76px; }
+  .topNote { display: none; }
+  .content { grid-template-columns: minmax(0, 1fr); gap: 42px; padding: 62px 0 36px; }
+  .story { padding: 0; text-align: center; }
+  .eyebrow { justify-content: center; margin-bottom: 22px; }
+  .story h1 { font-size: clamp(44px, 7vw, 62px); }
+  .intro { margin-top: 20px; font-size: 14px; }
+  .journey { justify-content: center; margin-top: 26px; font-size: 11px; }
+  .dock { width: 100%; max-width: 420px; margin: 0 auto; padding: 0; }
+  .galaxyImage { height: 780px; }
+  .galaxyImage img { object-position: 38% top; }
+  .scrim { background: linear-gradient(180deg, #03060d55, #03060d15 30%, #03060d85 54%, #03060d 76%); }
+  .footer { padding: 0; }
+  .crew { justify-content: center; flex-direction: column; gap: 14px; text-align: center; }
+  .motionToggle { bottom: 18px; right: 50%; transform: translateX(50%); white-space: nowrap; }
+}
+@media (max-width: 420px) {
+  .login { padding-left: 20px; padding-right: 20px; }
+  .brandName { font-size: 19px; }
+  .brandCaption { font-size: 7px; letter-spacing: 1.5px; }
+  .content { padding-top: 50px; gap: 34px; }
+  .story h1 { font-size: clamp(38px, 11vw, 46px); }
+  .eyebrow { font-size: 9px; }
+  .intro { font-size: 13px; }
+  .card { padding: 28px 22px 20px; gap: 23px; }
+  .cardHeader h2 { font-size: 22px; }
+  .card input { font-size: 16px; }
+  .cardEyebrow { margin-bottom: 22px; }
+  .modeSwitch { gap: 0; }
+  .modeSwitch button { min-height: 40px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .galaxyImage, .spaceCanvas { transition: none; }
+}

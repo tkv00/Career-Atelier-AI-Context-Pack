@@ -1,9 +1,12 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { deleteExperience, saveExperience } from './actions';
 import type { Database } from '@/lib/supabase/database.types';
+import { experienceTags, normalizeExperienceTag } from '@/lib/experience-tags';
+import { ExperienceUniverse } from './experience-universe';
+import styles from './universe.module.css';
 
 type Experience = Database['public']['Tables']['experience_cards']['Row'];
 type ExperienceField = 'context' | 'problem' | 'role_scope' | 'judgment' | 'action' | 'result' | 'trial_error' | 'reflection';
@@ -36,9 +39,26 @@ function toFormState(experience: Experience): ExperienceForm {
     result: experience.result || '',
     trial_error: experience.trial_error || '',
     reflection: experience.reflection || '',
-    metrics: ((experience.metrics as string[] | null) ?? []).join(', '),
-    tags: (experience.tags as string[] | null) ?? [],
+    metrics: (Array.isArray(experience.metrics) ? experience.metrics.filter(item => typeof item === 'string') : []).join(', '),
+    tags: experienceTags(experience.tags),
   };
+}
+
+function ExperienceModal({ label, onClose, children }: { label: string; onClose: () => void; children: ReactNode }) {
+  const dialog = useRef<HTMLDialogElement>(null);
+  useEffect(() => {
+    const element = dialog.current;
+    const opener = document.activeElement;
+    element?.showModal();
+    return () => {
+      element?.close();
+      // 조건부 렌더링으로 dialog가 제거된 뒤에도 원래 카드를 키보드로 이어서 탐색한다.
+      if (opener instanceof HTMLElement && opener.isConnected) opener.focus({ preventScroll: true });
+    };
+  }, []);
+  return <dialog ref={dialog} className={styles.dialog} aria-label={label}
+    onCancel={event => { event.preventDefault(); onClose(); }}
+    onClick={event => { if (event.target === event.currentTarget) onClose(); }}>{children}</dialog>;
 }
 
 export function ExperienceVault({ initialExperiences }: { initialExperiences: Experience[] }) {
@@ -48,20 +68,24 @@ export function ExperienceVault({ initialExperiences }: { initialExperiences: Ex
   const [form, setForm] = useState<ExperienceForm>({ ...EMPTY_FORM, tags: [] });
   const [customTag, setCustomTag] = useState('');
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+  const [deleting, setDeleting] = useState(false);
   const tagOptions = useMemo(() => Array.from(new Set([
     ...TAG_OPTIONS,
-    ...initialExperiences.flatMap((experience) => (experience.tags as string[] | null) ?? []),
+    ...initialExperiences.flatMap((experience) => experienceTags(experience.tags)),
   ])), [initialExperiences]);
   const previewExperience = useMemo(() => initialExperiences.find((experience) => experience.id === previewId) ?? null, [initialExperiences, previewId]);
   const previewForm = useMemo(() => (previewExperience ? toFormState(previewExperience) : null), [previewExperience]);
 
   function startNew() {
+    setError('');
     setForm({ ...EMPTY_FORM, tags: [] });
     setCustomTag('');
     setEditingId('new');
   }
 
   function startEdit(experience: Experience) {
+    setError('');
     setForm(toFormState(experience));
     setCustomTag('');
     setEditingId(experience.id);
@@ -88,7 +112,7 @@ export function ExperienceVault({ initialExperiences }: { initialExperiences: Ex
   }
 
   function addCustomTag() {
-    const value = customTag.trim();
+    const value = normalizeExperienceTag(customTag);
     if (!value) return;
     if (!form.tags.includes(value)) setForm((current) => ({ ...current, tags: [...current.tags, value] }));
     setCustomTag('');
@@ -97,42 +121,58 @@ export function ExperienceVault({ initialExperiences }: { initialExperiences: Ex
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setSaving(true);
+    setError('');
     try {
       await saveExperience(new FormData(event.currentTarget));
       cancelEdit();
       router.refresh();
+    } catch {
+      setError('경험을 저장하지 못했습니다. 연결 상태를 확인하고 다시 시도해 주세요.');
     } finally {
       setSaving(false);
     }
   }
 
   async function handleDelete(id: string) {
-    await deleteExperience(id);
-    if (editingId === id) cancelEdit();
-    if (previewId === id) closePreview();
-    router.refresh();
+    setDeleting(true);
+    setError('');
+    try {
+      await deleteExperience(id);
+      if (editingId === id) cancelEdit();
+      if (previewId === id) closePreview();
+      router.refresh();
+    } catch {
+      setError('경험을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    } finally {
+      setDeleting(false);
+    }
   }
 
   return (
     <>
       <div className="page-title">
         <div>
-          <h1>경험 카드</h1>
-          <p>맥락과 문제, 나의 판단부터 시행착오와 회고까지 자소서 근거로 구조화합니다.</p>
+          <p className="eyebrow">MY CAREER UNIVERSE</p>
+          <h2>나의 경험 은하계</h2>
+          <p>경험은 별이 되고, 해시태그는 서로 이어집니다. 나만의 가능성을 발견해 보세요.</p>
         </div>
         <div className="experience-muse-agent">
           <div className="cloud-space-agent frame-4" aria-label="경험을 정리하는 우주 에이전트"/>
           <button type="button" className="run-button" onClick={startNew}>+ 새 경험 정리</button>
         </div>
       </div>
-      <div className="web-experience-layout">
+
+      <ExperienceUniverse experiences={initialExperiences} onOpen={openPreview} onEdit={startEdit} onNew={startNew}/>
+      {error && !editingId && !previewId && <p role="alert" className={styles.error}>{error}</p>}
         {editingId && (
+          <ExperienceModal label={editingId === 'new' ? '새 경험 정리' : '경험 카드 편집'} onClose={cancelEdit}>
           <section className="card card-pad web-experience-editor">
             <div className="web-experience-heading">
-              <div><h3>{editingId === 'new' ? '새 경험 정리' : '경험 카드 편집'}</h3></div>
+              <div><p className="eyebrow">NINE-PART FRAMEWORK</p><h3>{editingId === 'new' ? '새 경험 정리' : '경험 카드 편집'}</h3></div>
               <button type="button" className="secondary-button" onClick={cancelEdit}>닫기</button>
             </div>
             <p className="web-experience-hint">모든 칸을 다 채우지 않아도 저장됩니다. 생각나는 것부터 적고, 나머지는 나중에 다시 돌아와 채우세요.</p>
+            {error && <p role="alert" className={styles.error}>{error}</p>}
             <form onSubmit={handleSubmit}>
               {editingId !== 'new' && <input type="hidden" name="id" value={editingId} />}
               <label className="web-experience-title">경험 제목<input type="text" name="title" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="예: 신규 사용자 이탈 구간 개선" className="field-input"/></label>
@@ -149,36 +189,23 @@ export function ExperienceVault({ initialExperiences }: { initialExperiences: Ex
                 <div className="web-tag-picker-heading"><span><b>09</b>활용 태그</span><small>자소서 문항에 맞춰 다시 찾을 수 있도록 복수 선택하세요.</small></div>
                 <input type="hidden" name="tags" value={form.tags.join(', ')} />
                 <div className="web-tag-picker">{tagOptions.map((item) => <button type="button" aria-pressed={form.tags.includes(item)} className={form.tags.includes(item) ? 'selected' : ''} key={item} onClick={() => toggleTag(item)}>{item}<i>{form.tags.includes(item) ? '✓' : '+'}</i></button>)}</div>
-                <div className="web-custom-tag"><input value={customTag} onChange={(event) => setCustomTag(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); addCustomTag(); } }} placeholder="직접 태그 입력" className="field-input"/><button type="button" onClick={addCustomTag}>태그 추가</button></div>
+                <div className="web-custom-tag"><input aria-label="직접 태그 입력" value={customTag} onChange={(event) => setCustomTag(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); addCustomTag(); } }} placeholder="직접 태그 입력" className="field-input"/><button type="button" onClick={addCustomTag}>태그 추가</button></div>
                 {form.tags.length > 0 && <div className="web-selected-tags"><span>선택됨</span>{form.tags.map((item) => <button type="button" key={item} onClick={() => toggleTag(item)}>{item} ×</button>)}</div>}
               </section>
               <div className="web-experience-actions"><button type="submit" className="run-button" disabled={saving}>{saving ? '저장 중…' : '경험 카드 저장'}</button><button type="button" className="secondary-button" onClick={cancelEdit}>취소</button></div>
             </form>
           </section>
+          </ExperienceModal>
         )}
-        <section className="card card-pad web-experience-list">
-          <div className="web-experience-heading"><div><h3>정리된 경험</h3></div><b>{initialExperiences.length}</b></div>
-          {initialExperiences.length === 0 ? <p className="web-experience-empty">아직 정리된 경험이 없습니다. 프로젝트 하나를 골라 상황과 문제부터 회고까지 기록해 보세요.</p> : (
-            <div className="web-experience-cards">{initialExperiences.map((experience) => {
-              const tags = (experience.tags as string[] | null) ?? [];
-              const metrics = (experience.metrics as string[] | null) ?? [];
-              return <article key={experience.id}>
-                <button type="button" className="web-experience-open" onClick={() => openPreview(experience)}><span>{experience.title.slice(0, 1)}</span><div><h4>{experience.title}</h4><p>{experience.result || experience.action || experience.context || experience.situation || '내용을 더 채워 주세요.'}</p></div></button>
-                <div className="web-experience-tags">{tags.map((item) => <span key={item}>{item}</span>)}{metrics.slice(0, 2).map((item) => <em key={item}>{item}</em>)}</div>
-                <div className="web-experience-card-actions"><button type="button" className="edit" onClick={() => startEdit(experience)}>9단계 편집</button><button type="button" className="delete" onClick={() => handleDelete(experience.id)}>삭제</button></div>
-              </article>;
-            })}</div>
-          )}
-        </section>
-      </div>
 
       {previewForm && previewExperience && (
-        <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="경험 카드 미리보기" onClick={closePreview}>
-          <section className="card card-pad web-experience-preview" onClick={(event) => event.stopPropagation()}>
+        <ExperienceModal label="경험 카드 미리보기" onClose={closePreview}>
+          <section className="card card-pad web-experience-preview">
             <div className="web-experience-heading">
-              <div><h3>{previewForm.title}</h3></div>
+              <div><p className="eyebrow">EXPERIENCE PREVIEW</p><h3>{previewForm.title}</h3></div>
               <button type="button" className="secondary-button" onClick={closePreview}>닫기</button>
             </div>
+            {error && <p role="alert" className={styles.error}>{error}</p>}
             {previewForm.tags.length > 0 && <div className="web-experience-tags">{previewForm.tags.map((item) => <span key={item}>{item}</span>)}</div>}
             <div className="web-experience-preview-body">
               {SECTIONS.map((section) => (
@@ -194,10 +221,10 @@ export function ExperienceVault({ initialExperiences }: { initialExperiences: Ex
             </div>
             <div className="web-experience-actions">
               <button type="button" className="run-button" onClick={() => { closePreview(); startEdit(previewExperience); }}>9단계 편집</button>
-              <button type="button" className="delete" onClick={() => handleDelete(previewExperience.id)}>삭제</button>
+              <button type="button" className="delete" disabled={deleting} onClick={() => handleDelete(previewExperience.id)}>{deleting ? '삭제 중…' : '삭제'}</button>
             </div>
           </section>
-        </div>
+        </ExperienceModal>
       )}
     </>
   );

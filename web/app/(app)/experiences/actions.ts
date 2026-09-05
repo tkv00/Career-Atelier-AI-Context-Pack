@@ -3,6 +3,7 @@
 import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
+import { experienceTags } from '@/lib/experience-tags';
 
 async function requireUser() {
   const supabase = await createClient();
@@ -40,7 +41,7 @@ export async function saveExperience(formData: FormData) {
     situation: context,
     task: problem,
     metrics: splitList((formData.get('metrics') as string) || ''),
-    tags: splitList((formData.get('tags') as string) || ''),
+    tags: experienceTags(splitList((formData.get('tags') as string) || '')),
     updated_at: new Date().toISOString(),
   };
 
