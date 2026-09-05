@@ -3,8 +3,6 @@ import { createClient } from '@/lib/supabase/server';
 import { isRunnerOnline } from '@/lib/runner-status';
 import { formatDateTime } from '@/lib/datetime';
 import { formatResetsAt, parseClaudeWindows, sumCodexTokens } from '@/lib/llm-usage';
-// 라벨을 여기 또 적어 두면 프롬프트 생성실과 어긋난다. 한 곳에서 가져온다.
-import { PROVIDER_META, isProvider } from '@/lib/agent-providers';
 import { createEssay, startEssayForJobPost } from '../essays/actions';
 import { approveRunner } from '../runners/actions';
 import { RunnerBackupForm } from './runner-backup-form';
@@ -14,63 +12,10 @@ import { JobSearchButton } from './job-search-button';
 import { QuestionImportButton } from './question-import';
 import { AgentLiveRefresh } from './agent-live-refresh';
 import { ProfileForm } from './profile-form';
+import { PilotBridge } from './pilot-bridge';
+import { ACTIVE_PILOT_STATUSES, type PilotId } from './pilot-state';
+import styles from './pilot-bridge.module.css';
 
-const ORBIT_AGENTS = [
-  { id: 'news', name: '루미', role: '통신·뉴스', frame: 1 },
-  { id: 'jobs', name: '모카', role: '항로·채용탐색', frame: 2 },
-  { id: 'company', name: '솔', role: '기업정보 해독', frame: 3 },
-  { id: 'writer', name: '뮤즈', role: '자소서 작성', frame: 4 },
-  { id: 'review', name: '렌즈', role: '근거 검수', frame: 5 },
-  { id: 'interview', name: '에코', role: '면접 코치', frame: 6 },
-  { id: 'subtitle', name: '콤마', role: '15자 소제목', frame: 7 },
-];
-
-
-function agentSpeech(agentId: string, status: string | null | undefined, runnerOnline: boolean, errorMessage?: string | null) {
-  if (!runnerOnline) return '로컬 러너의 연결을 기다리고 있어요.';
-  // CLI 미설치·미로그인으로 막힌 경우. 러너 터미널에만 찍히던 이유를 그대로
-  // 보여준다 — "codex CLI가 설치되어 있지 않습니다" 같은 메시지(safety.mjs).
-  if (status === 'blocked_auth') return errorMessage || '이 비서가 쓰는 CLI 로그인이 필요해요. 러너 컴퓨터를 확인해 주세요.';
-  // 프로필(목표 직무·관심 분야)이 비어 있어 막힌 경우 — runner/index.mjs
-  // blockOnEmptyProfile. 이 카드 바로 위 프로필 폼을 채우면 풀린다.
-  if (status === 'blocked_profile') return errorMessage || '프로필을 채우면 시작할 수 있어요.';
-  if (status === 'waiting_for_reset') return '구독 한도 초기화를 기다리고 있어요.';
-  if (status === 'failed') return errorMessage || '오류 기록을 확인하고 다시 실행해 주세요.';
-  if (status === 'retrying') return errorMessage || '결과를 검증하지 못해 한 번 더 검색하고 있어요.';
-  if (status === 'cancelled') return '중단된 임무를 정리하고 대기 중이에요.';
-  if (status === 'completed') return '결과물을 다음 에이전트에게 전달했어요.';
-  if (status === 'queued') return '입력 자료를 확인하며 제 차례를 기다리고 있어요.';
-  if (status === 'running') return ({
-    news: '산업 뉴스와 원문 출처를 수집 중이에요.',
-    jobs: '공고를 비교해 경험 적합도를 계산 중이에요.',
-    company: '위성 신호로 기업 근거를 수신 중이에요.',
-    writer: '경험 카드로 자소서 초안을 쓰고 있어요.',
-    review: '과장 표현과 근거 누락을 검수 중이에요.',
-    interview: 'JD와 경험을 대조해 예상 면접 질문을 설계 중이에요.',
-    subtitle: '본문의 핵심 근거를 15자 소제목으로 압축 중이에요.',
-  } as Record<string, string>)[agentId];
-  // 대기 중인 비서는 말이 없다. 예전에는 여기서 "다음 임무를 기다리며
-  // 작업함을 정리하고 있어요"를 돌려줬는데, 일곱 중 다섯이 같은 문장을 달고
-  // 있으니 말풍선이 있다는 사실 자체가 아무 신호도 주지 못했다. 지금은
-  // 말풍선이 보이면 읽을 거리가 있다는 뜻이다.
-  return null;
-}
-
-function statusLabel(status: string | null | undefined) {
-  if (status === 'blocked_auth') return 'CLI 인증 필요';
-  if (status === 'blocked_profile') return '프로필 필요';
-  if (status === 'retrying') return '자동 재시도';
-  if (status === 'running') return '실행 중';
-  if (status === 'queued') return '대기열';
-  if (status === 'completed') return '완료';
-  if (status === 'failed') return '실패';
-  if (status === 'cancelled') return '중단됨';
-  if (status === 'waiting_for_reset') return '한도 대기';
-  return '대기';
-}
-
-// 1단계(기반) 산출물: "다기기에서 읽기가 된다"를 눈으로 확인하기 위한 읽기 전용 화면.
-// 자소서 편집·자동저장·충돌 해결은 2단계에서 붙인다(§16).
 export default async function DashboardPage() {
   const supabase = await createClient();
 
@@ -115,22 +60,21 @@ export default async function DashboardPage() {
     if (!row.job_post_id) continue;
     questionCountByJobPost.set(row.job_post_id, (questionCountByJobPost.get(row.job_post_id) ?? 0) + 1);
   }
-  const activeAgentIds = new Set((agentRuns ?? []).filter((run) => ['queued', 'running'].includes(run.status)).map((run) => run.agent_id));
-  const researchActive = activeAgentIds.has('company');
+  const activeAgentIds = new Set((agentRuns ?? []).filter((run) => ACTIVE_PILOT_STATUSES.includes(run.status)).map((run) => run.agent_id));
   const codexRuns = (agentRuns ?? []).filter((run) => run.provider === 'codex').length;
   const claudeRuns = (agentRuns ?? []).filter((run) => run.provider === 'claude').length;
   const geminiRuns = (agentRuns ?? []).filter((run) => run.provider === 'gemini').length;
 
   // Claude만 실제 잔량(창별 사용률)을 스트림으로 준다. Codex는 토큰 수만 주고
   // 한도를 안 줘서 잔량 계산이 불가능하다 — 없는 값을 지어내지 않는다.
-  const providerByAgent = new Map((promptTemplates ?? []).map((row) => [row.agent_id, row.provider]));
+  const providerByAgent = Object.fromEntries((promptTemplates ?? []).map((row) => [row.agent_id, row.provider])) as Partial<Record<PilotId, string>>;
 
   const claudeWindows = parseClaudeWindows(claudeLimitEvents?.[0]?.payload ?? null);
   const codexTokens = sumCodexTokens((codexUsageEvents ?? []).map((row) => row.payload));
 
   return (
     <>
-      <AgentLiveRefresh enabled={activeAgentIds.size > 0}/>
+      <AgentLiveRefresh enabled={activeAgentIds.size > 0 || newsPending || jobsPending}/>
       <div className="page-title">
         <div>
           <h1>관제실</h1>
@@ -141,47 +85,21 @@ export default async function DashboardPage() {
           </p>
         </div>
       </div>
-      <ProfileForm
-        displayName={profile?.display_name ?? '사용자'}
-        targetRoles={(profile?.target_roles as string[] | null) ?? []}
-        interests={(profile?.interests as string[] | null) ?? []}
-        summary={profile?.summary ?? ''}
-      />
-      <section className="cloud-mission-deck">
-        <div className="cloud-orbit-scene">
-          <div className="cloud-space-window" aria-hidden="true">
-            <div className="cloud-stars"/><div className="cloud-planet"/>
-            <div className={researchActive ? 'cloud-satellite transmitting' : 'cloud-satellite'}><i/><b/></div>
-            <div className="cloud-signal signal-one"/><div className="cloud-signal signal-two"/>
-          </div>
-          {/* 예전에는 여기 "CA-04 / APPLICATION MISSION"이 붙어 있었다. 편명도
-              임무명도 어디에도 쓰이지 않는 장식이었고, 실제로 알아야 할 것은
-              러너가 붙어 있는지 하나뿐이다. */}
-          <div className="cloud-mission-label">
-            <b>{researchActive ? '기업 데이터 수신 중' : runnerOnline ? '러너 연결됨 · 임무 대기' : '러너 오프라인'}</b>
-            <small>{runnerOnline ? '지금 비서에게 임무를 내릴 수 있습니다' : '러너를 켜면 밀린 임무부터 처리합니다'}</small>
-          </div>
-          <div className="cloud-agent-line">
-            {ORBIT_AGENTS.map((agent) => {
-              const active = activeAgentIds.has(agent.id);
-              const latest = (agentRuns ?? []).find((run) => run.agent_id === agent.id);
-              const speech = agentSpeech(agent.id, latest?.status, runnerOnline, latest?.error);
-              const provider = providerByAgent.get(agent.id);
-              return <article className={active ? 'cloud-agent active' : 'cloud-agent'} key={agent.id}>
-                {/* 말풍선 자리는 비어 있어도 유지한다 — 안 그러면 말이 있는
-                    비서만 아래로 밀려 일곱 명의 발밑 선이 어긋난다. */}
-                {speech
-                  ? <div className={active ? 'cloud-agent-speech live' : 'cloud-agent-speech'}><span>{speech}</span></div>
-                  : <div className="cloud-agent-speech empty" aria-hidden="true" />}
-                <div className={`cloud-space-agent frame-${agent.frame}`} aria-label={`${agent.name} 픽셀 채용 에이전트`}/>
-                <div className="cloud-agent-id"><b>{agent.name}</b><span>{agent.role}</span><small>{provider && isProvider(provider) ? PROVIDER_META[provider].label : '미설정'} · {statusLabel(latest?.status)}</small></div>
-                {agent.id === 'news' && <NewsRunButton pending={newsPending} runnerOnline={runnerOnline} pendingJob={newsJob} />}
-                {agent.id === 'jobs' && <JobSearchButton pending={jobsPending} runnerOnline={runnerOnline} pendingJob={jobSearchJob} />}
-              </article>;
-            })}
-          </div>
-        </div>
-        <aside className="cloud-usage-panel">
+      <PilotBridge runs={agentRuns ?? []} runnerOnline={runnerOnline} providers={providerByAgent}
+        pending={{ news: newsJob, jobs: jobSearchJob }} actions={{
+          news: <NewsRunButton pending={newsPending} runnerOnline={runnerOnline} pendingJob={newsJob}/>,
+          jobs: <JobSearchButton pending={jobsPending} runnerOnline={runnerOnline} pendingJob={jobSearchJob}/>,
+        }}/>
+      <details className={styles.profilePanel} open={!profile || !(profile.target_roles as string[] | null)?.length || !(profile.interests as string[] | null)?.length}>
+        <summary>비행 목표와 프로필 <span>목표 직무 · 관심 분야 설정</span></summary>
+        <ProfileForm
+          displayName={profile?.display_name ?? '사용자'}
+          targetRoles={(profile?.target_roles as string[] | null) ?? []}
+          interests={(profile?.interests as string[] | null) ?? []}
+          summary={profile?.summary ?? ''}
+        />
+      </details>
+        <aside className={`cloud-usage-panel ${styles.usagePanel}`}>
           <div><h3>구독 잔량</h3></div>
           <article className="quota-block">
             <header><span className="cloud-provider-icon claude">CL</span><b>Claude Code</b></header>
@@ -218,7 +136,6 @@ export default async function DashboardPage() {
           <p>실행 {codexRuns + claudeRuns + geminiRuns}회 · 구독 인증은 로컬 기기에만 저장</p>
           <Link href="/activity" className="cloud-usage-link">전체 실행 기록 보기</Link>
         </aside>
-      </section>
       <div className="stat-grid">
         <article className="card stat-card">
           <span>경험 카드</span>
