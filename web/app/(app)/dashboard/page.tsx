@@ -10,6 +10,7 @@ import { NewsSection } from './news-section';
 import { NewsRunButton } from './news-run-button';
 import { JobSearchButton } from './job-search-button';
 import { QuestionImportButton } from './question-import';
+import { JobPostDeleteButton } from './job-post-delete-button';
 import { AgentLiveRefresh } from './agent-live-refresh';
 import { ProfileForm } from './profile-form';
 import { PilotBridge } from './pilot-bridge';
@@ -251,6 +252,7 @@ export default async function DashboardPage() {
                     </button>
                   </form>
                   <QuestionImportButton jobPostId={job.id} existingCount={questionCountByJobPost.get(job.id) ?? 0} />
+                  <JobPostDeleteButton jobPostId={job.id} company={job.company} role={job.role} />
                 </span>
               </li>
             ))}
