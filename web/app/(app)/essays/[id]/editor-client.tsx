@@ -529,8 +529,7 @@ export function EssayEditor({
     <div style={{ maxWidth: 760 }}>
       <div className="page-title">
         <div>
-          <p className="eyebrow">LOCAL DOCUMENT STUDIO</p>
-          <h2>{essay.title}</h2>
+          <h1>{essay.title}</h1>
           <p>
             <Link href="/dashboard" style={{ color: 'var(--text-3)' }}>
               ← 대시보드로
@@ -542,7 +541,6 @@ export function EssayEditor({
           {statusText}
         </span>
       </div>
-
       <div className="card card-pad" style={{ marginBottom: 14 }}>
         {showQuestionForm ? (
           <form onSubmit={handleSaveQuestionSettings} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -639,7 +637,6 @@ export function EssayEditor({
           </ul>
         </div>
       )}
-
       <div className="card card-pad" style={{ marginBottom: 14 }}>
         {showCompanyForm ? (
           <form onSubmit={handleRequestCompanyResearch} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -826,7 +823,6 @@ export function EssayEditor({
           </div>
         </div>
       )}
-
       <div className="card card-pad">
         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 10 }}>
           <input
@@ -855,7 +851,6 @@ export function EssayEditor({
           className="writing-area"
           placeholder="자소서 내용을 입력하세요…"
         />
-
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, flexWrap: 'wrap', gap: 10 }}>
           <div className="count-pills">
             <span>
@@ -932,7 +927,6 @@ export function EssayEditor({
           {revisionMessage && <p className="essay-revision-message">{revisionMessage}</p>}
         </form>
 
-
         <div className="inline-form" style={{ marginTop: 16, borderTop: '1px solid var(--line)', paddingTop: 16 }}>
           <input
             type="text"
@@ -949,7 +943,6 @@ export function EssayEditor({
 
       {companyResearch && (
         <section className="card card-pad" style={{ marginTop: 18 }}>
-          <p className="eyebrow">COMPANY RESEARCH</p>
           <h2 style={{ margin: 0, fontSize: 16 }}>솔의 기업 조사</h2>
           <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '4px 0 14px' }}>
             {formatDateTime(companyResearch.created_at)} · {PROVIDER_LABEL[companyResearch.provider] ?? companyResearch.provider}
@@ -960,7 +953,6 @@ export function EssayEditor({
 
       {latestSubtitle && (
         <section className="card card-pad" style={{ marginTop: 18 }}>
-          <p className="eyebrow">SUBTITLE</p>
           <h2 style={{ margin: 0, fontSize: 16 }}>소제목 제안</h2>
           <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '4px 0 14px' }}>
             {formatDateTime(latestSubtitle.created_at)} ·{' '}
@@ -972,7 +964,6 @@ export function EssayEditor({
 
       {latestDraft && (
         <section className="card card-pad" style={{ marginTop: 18 }}>
-          <p className="eyebrow">AI DRAFT</p>
           <h2 style={{ margin: 0, fontSize: 16 }}>뮤즈의 초안</h2>
           <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '4px 0 14px' }}>
             {formatDateTime(latestDraft.created_at)} ·{' '}
@@ -984,7 +975,6 @@ export function EssayEditor({
 
       {latestReview && (
         <section className="card card-pad" style={{ marginTop: 18 }}>
-          <p className="eyebrow">QUALITY CHECK</p>
           <h2 style={{ margin: 0, fontSize: 16 }}>렌즈의 검수 결과</h2>
           <p style={{ fontSize: 12, color: 'var(--text-dim)', margin: '4px 0 14px' }}>
             {formatDateTime(latestReview.created_at)} ·{' '}
@@ -996,7 +986,6 @@ export function EssayEditor({
 
       {initialVersions.length > 0 && (
         <section className="card card-pad" style={{ marginTop: 18 }}>
-          <p className="eyebrow">VERSION HISTORY</p>
           <h2 style={{ margin: 0, fontSize: 16 }}>버전 기록 ({initialVersions.length})</h2>
           <ul className="version-list">
             {initialVersions.map((version) => (

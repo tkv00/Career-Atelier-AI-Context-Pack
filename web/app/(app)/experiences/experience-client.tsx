@@ -117,8 +117,7 @@ export function ExperienceVault({ initialExperiences }: { initialExperiences: Ex
     <>
       <div className="page-title">
         <div>
-          <p className="eyebrow">EXPERIENCE MEMORY DECK</p>
-          <h2>경험 아카이브</h2>
+          <h1>경험 카드</h1>
           <p>맥락과 문제, 나의 판단부터 시행착오와 회고까지 자소서 근거로 구조화합니다.</p>
         </div>
         <div className="experience-muse-agent">
@@ -126,12 +125,11 @@ export function ExperienceVault({ initialExperiences }: { initialExperiences: Ex
           <button type="button" className="run-button" onClick={startNew}>+ 새 경험 정리</button>
         </div>
       </div>
-
       <div className="web-experience-layout">
         {editingId && (
           <section className="card card-pad web-experience-editor">
             <div className="web-experience-heading">
-              <div><p className="eyebrow">NINE-PART FRAMEWORK</p><h3>{editingId === 'new' ? '새 경험 정리' : '경험 카드 편집'}</h3></div>
+              <div><h3>{editingId === 'new' ? '새 경험 정리' : '경험 카드 편집'}</h3></div>
               <button type="button" className="secondary-button" onClick={cancelEdit}>닫기</button>
             </div>
             <p className="web-experience-hint">모든 칸을 다 채우지 않아도 저장됩니다. 생각나는 것부터 적고, 나머지는 나중에 다시 돌아와 채우세요.</p>
@@ -158,9 +156,8 @@ export function ExperienceVault({ initialExperiences }: { initialExperiences: Ex
             </form>
           </section>
         )}
-
         <section className="card card-pad web-experience-list">
-          <div className="web-experience-heading"><div><p className="eyebrow">EXPERIENCE CARDS</p><h3>정리된 경험</h3></div><b>{initialExperiences.length}</b></div>
+          <div className="web-experience-heading"><div><h3>정리된 경험</h3></div><b>{initialExperiences.length}</b></div>
           {initialExperiences.length === 0 ? <p className="web-experience-empty">아직 정리된 경험이 없습니다. 프로젝트 하나를 골라 상황과 문제부터 회고까지 기록해 보세요.</p> : (
             <div className="web-experience-cards">{initialExperiences.map((experience) => {
               const tags = (experience.tags as string[] | null) ?? [];
@@ -179,7 +176,7 @@ export function ExperienceVault({ initialExperiences }: { initialExperiences: Ex
         <div className="modal-backdrop" role="dialog" aria-modal="true" aria-label="경험 카드 미리보기" onClick={closePreview}>
           <section className="card card-pad web-experience-preview" onClick={(event) => event.stopPropagation()}>
             <div className="web-experience-heading">
-              <div><p className="eyebrow">EXPERIENCE PREVIEW</p><h3>{previewForm.title}</h3></div>
+              <div><h3>{previewForm.title}</h3></div>
               <button type="button" className="secondary-button" onClick={closePreview}>닫기</button>
             </div>
             {previewForm.tags.length > 0 && <div className="web-experience-tags">{previewForm.tags.map((item) => <span key={item}>{item}</span>)}</div>}

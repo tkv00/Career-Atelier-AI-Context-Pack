@@ -136,18 +136,15 @@ export function PromptLabClient({ templates, versions }: { templates: Template[]
           );
         })}
       </aside>
-
       <section className="prompt-lab-editor card card-pad">
         <div className="prompt-lab-editor-head">
           <div>
-            <p className="eyebrow">SYSTEM PROMPT</p>
             <h3>{selected.name}</h3>
           </div>
           <button type="button" className="run-button" onClick={handleSave} disabled={!dirty || saving}>
             {saving ? '저장 중…' : '새 버전 저장'}
           </button>
         </div>
-
         <div className="prompt-lab-provider">
           <label>
             <span>실행할 LLM</span>
@@ -161,14 +158,12 @@ export function PromptLabClient({ templates, versions }: { templates: Template[]
           </label>
           <small>{isProvider(selected.provider) ? PROVIDER_META[selected.provider].requires : ''}</small>
         </div>
-
         <textarea
           className="prompt-lab-body"
           value={body}
           onChange={(event) => setBody(event.target.value)}
           spellCheck={false}
         />
-
         <div className="prompt-lab-variables">
           <span>사용 변수</span>
           {(selected.variables as string[]).map((variable) => (
@@ -178,9 +173,7 @@ export function PromptLabClient({ templates, versions }: { templates: Template[]
 
         {message && <p className="prompt-lab-message">{message}</p>}
       </section>
-
       <aside className="prompt-lab-history card card-pad">
-        <p className="eyebrow">VERSION HISTORY</p>
         <h3 style={{ fontSize: 'var(--fs-lg)', margin: '0 0 4px' }}>현재 v{selected.version}</h3>
         {selectedVersions.length > 0 ? (
           <ul>

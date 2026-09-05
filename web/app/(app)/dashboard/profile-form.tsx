@@ -56,7 +56,6 @@ export function ProfileForm({
 
   return (
     <form action={saveProfile} className="card card-pad" style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 18 }}>
-      <p className="eyebrow">MY PROFILE</p>
       <label style={{ fontSize: 12, color: 'var(--text-3)' }}>
         이름
         <input

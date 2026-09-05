@@ -49,14 +49,24 @@ function agentSpeech(agentId: string, status: string | null | undefined, runnerO
     interview: 'JD와 경험을 대조해 예상 면접 질문을 설계 중이에요.',
     subtitle: '본문의 핵심 근거를 15자 소제목으로 압축 중이에요.',
   } as Record<string, string>)[agentId];
-  return '다음 임무를 기다리며 작업함을 정리하고 있어요.';
+  // 대기 중인 비서는 말이 없다. 예전에는 여기서 "다음 임무를 기다리며
+  // 작업함을 정리하고 있어요"를 돌려줬는데, 일곱 중 다섯이 같은 문장을 달고
+  // 있으니 말풍선이 있다는 사실 자체가 아무 신호도 주지 못했다. 지금은
+  // 말풍선이 보이면 읽을 거리가 있다는 뜻이다.
+  return null;
 }
 
 function statusLabel(status: string | null | undefined) {
   if (status === 'blocked_auth') return 'CLI 인증 필요';
   if (status === 'blocked_profile') return '프로필 필요';
   if (status === 'retrying') return '자동 재시도';
-  return status?.toUpperCase() || 'STANDBY';
+  if (status === 'running') return '실행 중';
+  if (status === 'queued') return '대기열';
+  if (status === 'completed') return '완료';
+  if (status === 'failed') return '실패';
+  if (status === 'cancelled') return '중단됨';
+  if (status === 'waiting_for_reset') return '한도 대기';
+  return '대기';
 }
 
 // 1단계(기반) 산출물: "다기기에서 읽기가 된다"를 눈으로 확인하기 위한 읽기 전용 화면.
@@ -123,8 +133,7 @@ export default async function DashboardPage() {
       <AgentLiveRefresh enabled={activeAgentIds.size > 0}/>
       <div className="page-title">
         <div>
-          <p className="eyebrow">ORBITAL CAREER COMMAND · CLOUD DECK</p>
-          <h2>오늘의 지원 작전실</h2>
+          <h1>관제실</h1>
           <p>
             {profile
               ? `${profile.display_name} · ${(profile.target_roles as string[] | null)?.join(', ') || '목표 직무 미설정'}`
@@ -132,14 +141,12 @@ export default async function DashboardPage() {
           </p>
         </div>
       </div>
-
       <ProfileForm
         displayName={profile?.display_name ?? '사용자'}
         targetRoles={(profile?.target_roles as string[] | null) ?? []}
         interests={(profile?.interests as string[] | null) ?? []}
         summary={profile?.summary ?? ''}
       />
-
       <section className="cloud-mission-deck">
         <div className="cloud-orbit-scene">
           <div className="cloud-space-window" aria-hidden="true">
@@ -147,15 +154,27 @@ export default async function DashboardPage() {
             <div className={researchActive ? 'cloud-satellite transmitting' : 'cloud-satellite'}><i/><b/></div>
             <div className="cloud-signal signal-one"/><div className="cloud-signal signal-two"/>
           </div>
-          <div className="cloud-mission-label"><span>CA-04</span><b>APPLICATION MISSION</b><small>{researchActive ? '기업 데이터 수신 중' : runnerOnline ? '러너 연결 · 임무 대기' : '러너 오프라인 · 큐 보존'}</small></div>
+          {/* 예전에는 여기 "CA-04 / APPLICATION MISSION"이 붙어 있었다. 편명도
+              임무명도 어디에도 쓰이지 않는 장식이었고, 실제로 알아야 할 것은
+              러너가 붙어 있는지 하나뿐이다. */}
+          <div className="cloud-mission-label">
+            <b>{researchActive ? '기업 데이터 수신 중' : runnerOnline ? '러너 연결됨 · 임무 대기' : '러너 오프라인'}</b>
+            <small>{runnerOnline ? '지금 비서에게 임무를 내릴 수 있습니다' : '러너를 켜면 밀린 임무부터 처리합니다'}</small>
+          </div>
           <div className="cloud-agent-line">
             {ORBIT_AGENTS.map((agent) => {
               const active = activeAgentIds.has(agent.id);
               const latest = (agentRuns ?? []).find((run) => run.agent_id === agent.id);
+              const speech = agentSpeech(agent.id, latest?.status, runnerOnline, latest?.error);
+              const provider = providerByAgent.get(agent.id);
               return <article className={active ? 'cloud-agent active' : 'cloud-agent'} key={agent.id}>
-                <div className={active ? 'cloud-agent-speech live' : 'cloud-agent-speech'}><b>{agent.name}</b><span>{agentSpeech(agent.id, latest?.status, runnerOnline, latest?.error)}</span></div>
+                {/* 말풍선 자리는 비어 있어도 유지한다 — 안 그러면 말이 있는
+                    비서만 아래로 밀려 일곱 명의 발밑 선이 어긋난다. */}
+                {speech
+                  ? <div className={active ? 'cloud-agent-speech live' : 'cloud-agent-speech'}><span>{speech}</span></div>
+                  : <div className="cloud-agent-speech empty" aria-hidden="true" />}
                 <div className={`cloud-space-agent frame-${agent.frame}`} aria-label={`${agent.name} 픽셀 채용 에이전트`}/>
-                <div><b>{agent.name}</b><span>{agent.role}</span><small>{(() => { const p = providerByAgent.get(agent.id); return p && isProvider(p) ? PROVIDER_META[p].label : '미설정'; })()} · {active ? 'RUNNING' : statusLabel(latest?.status)}</small></div>
+                <div className="cloud-agent-id"><b>{agent.name}</b><span>{agent.role}</span><small>{provider && isProvider(provider) ? PROVIDER_META[provider].label : '미설정'} · {statusLabel(latest?.status)}</small></div>
                 {agent.id === 'news' && <NewsRunButton pending={newsPending} runnerOnline={runnerOnline} pendingJob={newsJob} />}
                 {agent.id === 'jobs' && <JobSearchButton pending={jobsPending} runnerOnline={runnerOnline} pendingJob={jobSearchJob} />}
               </article>;
@@ -163,8 +182,7 @@ export default async function DashboardPage() {
           </div>
         </div>
         <aside className="cloud-usage-panel">
-          <div><p className="eyebrow">SUBSCRIPTION QUOTA</p><h3>구독 잔량</h3></div>
-
+          <div><h3>구독 잔량</h3></div>
           <article className="quota-block">
             <header><span className="cloud-provider-icon claude">CL</span><b>Claude Code</b></header>
             {claudeWindows.length ? (
@@ -183,7 +201,6 @@ export default async function DashboardPage() {
               <p className="quota-empty">아직 측정된 값이 없습니다. 솔이나 렌즈를 한 번 실행하면 잔량이 표시됩니다.</p>
             )}
           </article>
-
           <article className="quota-block">
             <header><span className="cloud-provider-icon codex">OX</span><b>Codex · ChatGPT</b></header>
             <div className="quota-window">
@@ -191,7 +208,6 @@ export default async function DashboardPage() {
               <small>ChatGPT는 남은 한도를 알려주지 않습니다. 실제 사용량만 표시합니다.</small>
             </div>
           </article>
-
           <article className="quota-block locked">
             <header><span className="cloud-provider-icon">00</span><b>API Fallback</b></header>
             <div className="quota-window">
@@ -199,12 +215,10 @@ export default async function DashboardPage() {
               <small>한도에 닿아도 API로 넘어가지 않습니다.</small>
             </div>
           </article>
-
           <p>실행 {codexRuns + claudeRuns + geminiRuns}회 · 구독 인증은 로컬 기기에만 저장</p>
-          <Link href="/activity" className="cloud-usage-link">전체 실행 기록 보기 →</Link>
+          <Link href="/activity" className="cloud-usage-link">전체 실행 기록 보기</Link>
         </aside>
       </section>
-
       <div className="stat-grid">
         <article className="card stat-card">
           <span>경험 카드</span>
@@ -219,13 +233,10 @@ export default async function DashboardPage() {
           <b>{essays?.length ?? 0}</b>
         </article>
       </div>
-
       <NewsSection latestNews={newsNotes?.[0] ?? null} />
-
       <section className="card card-pad" style={{ marginTop: 18 }}>
         <div className="section-heading" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <p className="eyebrow">LATEST DRAFTS</p>
             <h2 style={{ margin: 0, fontSize: 18 }}>자소서</h2>
           </div>
         </div>
@@ -241,7 +252,6 @@ export default async function DashboardPage() {
         ) : (
           <p style={{ color: 'var(--text-dim)', fontSize: 13, marginTop: 12 }}>아직 자소서가 없습니다.</p>
         )}
-
         <form action={createEssay} className="inline-form">
           <input type="text" name="title" placeholder="새 자소서 제목" className="field-input" />
           <button type="submit" className="run-button">
@@ -252,7 +262,6 @@ export default async function DashboardPage() {
 
       {runners && runners.length > 0 && (
         <section className="card card-pad" style={{ marginTop: 18 }}>
-          <p className="eyebrow">LOCAL RUNNER</p>
           <h2 style={{ margin: 0, fontSize: 18 }}>러너</h2>
           <ul className="essay-list">
             {runners.map((runner) => {
@@ -298,11 +307,9 @@ export default async function DashboardPage() {
           </ul>
         </section>
       )}
-
       <section className="card card-pad" style={{ marginTop: 18 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
           <div>
-            <p className="eyebrow">ROLE INTELLIGENCE</p>
             <h2 style={{ margin: 0, fontSize: 18 }}>채용공고</h2>
             <p style={{ margin: '4px 0 0', color: 'var(--text-dim)', fontSize: 12 }}>관제실의 모카 카드에서 새 탐색을 시작할 수 있습니다.</p>
           </div>
@@ -335,11 +342,9 @@ export default async function DashboardPage() {
           <p style={{ color: 'var(--text-dim)', fontSize: 13, marginTop: 12 }}>아직 탐색한 채용공고가 없습니다.</p>
         )}
       </section>
-
       <section className="card card-pad" style={{ marginTop: 18 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <p className="eyebrow">EXPERIENCE VAULT</p>
             <h2 style={{ margin: 0, fontSize: 18 }}>경험 카드</h2>
           </div>
           <Link href="/experiences" className="secondary-button">

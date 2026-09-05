@@ -27,15 +27,17 @@ export default async function RecordsPage() {
 
   return (
     <>
-      <div className="section-heading">
-        <p className="eyebrow">PERSONAL DOSSIER</p>
-        <h2>나의 정보</h2>
-        <p>
-          학력·자격증·활동·경력을 한곳에 모아 둡니다. 지원서를 쓸 때마다 다시 찾지 않아도 되고, 증명서 파일도 함께
-          보관합니다.
-        </p>
+      {/* 다른 화면과 같은 제목 블록을 쓴다. .section-heading은 가로 flex라
+          제목과 설명이 옆으로 붙어 이 화면만 다르게 보였다. */}
+      <div className="page-title">
+        <div>
+          <h1>이력 정보</h1>
+          <p>
+            학력·자격증·활동·경력을 한곳에 모아 둡니다. 지원서를 쓸 때마다 다시 찾지 않아도 되고, 증명서 파일도 함께
+            보관합니다.
+          </p>
+        </div>
       </div>
-
       <RecordsClient
         sections={SECTIONS}
         rowsBySection={rowsBySection}

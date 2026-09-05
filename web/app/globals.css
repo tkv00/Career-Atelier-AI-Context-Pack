@@ -111,7 +111,7 @@
   --ease: cubic-bezier(0.4, 0, 0.2, 1);
 
   /* 레이아웃 */
-  --rail-w: 84px;
+  --rail-w: 116px;
   --z-rail: 20;
   --z-float: 40;
   --z-modal: 60;
@@ -175,15 +175,15 @@ h4 {
   color: var(--text-1);
 }
 
-/* HUD 라벨 — 화면마다 반복되는 모노 대문자 소제목. */
+/* 제목 위 보조 라벨. 예전에는 10px 모노 대문자로 화면마다 영어 한 줄을
+   깔았는데(ROLE INTELLIGENCE, EXPERIENCE VAULT …), 바로 아래 한글 제목이
+   같은 말을 하고 있어 정보가 0이었다. 남은 자리는 실제로 읽을 내용이
+   있을 때만 쓴다 — 그래서 평범한 한글 캡션이다. */
 .eyebrow {
-  margin: 0 0 var(--s2);
+  margin: 0 0 var(--s1);
   color: var(--text-3);
-  font-family: var(--font-mono);
-  font-size: var(--fs-hud);
+  font-size: var(--fs-sm);
   font-weight: 600;
-  letter-spacing: var(--tracking-hud);
-  text-transform: uppercase;
 }
 
 /* ── 3. 우주 배경 시스템 ──────────────────────────────────────────────
@@ -279,7 +279,7 @@ body::after {
   position: sticky;
   top: 0;
   height: 100vh;
-  padding: var(--s5) var(--s2) var(--s4);
+  padding: var(--s5) var(--s3) var(--s4);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -315,30 +315,25 @@ body::after {
   margin-top: var(--s8);
 }
 
+/* 아이콘 없이 한국어 라벨만 쓴다. 예전에는 ⌂ ◷ ✦ ▦ ◎ ◇ ▤ 일곱 글리프에
+   9px 라벨을 달았는데, 원과 마름모가 서로 구별되지 않는 데다 9px 한글은
+   읽히지 않아 "여기가 어느 화면인지" 아이콘이 알려주는 게 없었다. 라벨을
+   본문 크기로 올리고 글리프를 빼는 쪽이 훨씬 빨리 읽힌다. */
 .nav-button {
   position: relative;
   width: 100%;
-  padding: var(--s2) var(--s1);
+  padding: var(--s2) var(--s3);
   border: 0;
   border-radius: var(--r-control);
   background: transparent;
   color: var(--text-3);
-  display: grid;
-  justify-items: center;
-  gap: 3px;
-  cursor: pointer;
-  text-decoration: none;
-  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
-}
-.nav-button > span {
-  font-size: var(--fs-lg);
-  line-height: 1;
-}
-.nav-button small {
-  font-size: 9px;
+  font-size: var(--fs-base);
   font-weight: 600;
   letter-spacing: -0.01em;
   white-space: nowrap;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background var(--dur) var(--ease), color var(--dur) var(--ease);
 }
 .nav-button:hover {
   background: var(--surface-1);
@@ -351,11 +346,13 @@ body::after {
 .nav-button.active::before {
   content: '';
   position: absolute;
-  left: -8px;
+  left: 0;
+  top: 50%;
   width: 2px;
-  height: 20px;
+  height: 16px;
   border-radius: 0 2px 2px 0;
   background: var(--amber);
+  transform: translateY(-50%);
 }
 
 .workspace {
@@ -364,28 +361,12 @@ body::after {
 }
 
 .topbar {
-  min-height: 76px;
-  padding: var(--s5) 0 var(--s4);
+  padding: var(--s3) 0;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: var(--s3);
-  flex-wrap: wrap;
   border-bottom: 1px solid var(--line-soft);
-}
-.topbar h1 {
-  font-size: var(--fs-xl);
-  display: flex;
-  align-items: baseline;
-  gap: var(--s3);
-  flex-wrap: wrap;
-}
-.topbar h1 span {
-  color: var(--text-3);
-  font-family: var(--font-mono);
-  font-size: var(--fs-xs);
-  font-weight: 500;
-  letter-spacing: 0.04em;
 }
 
 .top-actions {
@@ -421,8 +402,13 @@ body::after {
   gap: var(--s5);
   flex-wrap: wrap;
 }
+/* 상단바가 계정만 맡게 되면서 화면의 첫 제목은 여기다 — 그래서 h1이다. */
+.page-title h1,
 .page-title h2 {
   font-size: var(--fs-2xl);
+  font-weight: 640;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
 }
 .page-title p:not(.eyebrow) {
   margin: var(--s2) 0 0;
@@ -579,15 +565,14 @@ option {
 }
 
 /* 상태 표시 — 색 + 점 + 텍스트를 항상 함께 쓴다(색만으로 구분하지 않는다). */
+/* 내용이 전부 한글이라 모노 대문자·자간은 읽기만 나빠졌다(대문자 변환은
+   한글에 아무 일도 하지 않는다). 본문 글꼴로 되돌린다. */
 .status-pill {
   padding: 3px var(--s2);
   border-radius: var(--r-chip);
   border: 1px solid transparent;
-  font-family: var(--font-mono);
-  font-size: var(--fs-hud);
+  font-size: var(--fs-xs);
   font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
   display: inline-flex;
   align-items: center;
   gap: 5px;
@@ -671,11 +656,8 @@ option {
 .stat-card span {
   display: block;
   color: var(--text-3);
-  font-family: var(--font-mono);
-  font-size: var(--fs-hud);
+  font-size: var(--fs-sm);
   font-weight: 600;
-  letter-spacing: var(--tracking-hud);
-  text-transform: uppercase;
 }
 .stat-card b {
   display: block;
@@ -900,18 +882,10 @@ option {
   display: grid;
   gap: 1px;
 }
-.cloud-mission-label span {
-  color: var(--amber);
-  font-family: var(--font-mono);
-  font-size: var(--fs-hud);
-  letter-spacing: var(--tracking-hud);
-}
 .cloud-mission-label b {
-  font-family: var(--font-mono);
-  font-size: var(--fs-xs);
-  font-weight: 600;
-  letter-spacing: 0.1em;
-  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-weight: 700;
+  color: var(--text-1);
 }
 .cloud-mission-label small {
   color: var(--text-3);
@@ -965,17 +939,19 @@ option {
   border-bottom: 1px solid var(--line-soft);
   transform: rotate(45deg);
 }
-.cloud-agent-speech b {
-  color: var(--text-3);
-  font-family: var(--font-mono);
-  font-size: var(--fs-hud);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
 .cloud-agent-speech span {
   color: var(--text-2);
-  font-size: var(--fs-xs);
-  line-height: 1.45;
+  font-size: var(--fs-sm);
+  line-height: 1.5;
+}
+/* 할 말이 없는 비서의 빈 자리. 테두리까지 지워야 "비어 있음"이 아니라
+   "아무 일 없음"으로 읽힌다. 자리는 남겨 발밑 선을 맞춘다. */
+.cloud-agent-speech.empty {
+  border-color: transparent;
+  background: transparent;
+}
+.cloud-agent-speech.empty::after {
+  display: none;
 }
 .cloud-agent-speech.live {
   border-color: #24505f;
@@ -989,29 +965,31 @@ option {
   color: var(--cyan);
 }
 
-/* 이름표 — 캐릭터 아래 */
-.cloud-agent > div:last-child {
+/* 이름표 — 캐릭터 아래.
+   예전에는 `.cloud-agent > div:last-child`로 잡았는데, 루미·모카처럼 카드
+   맨 끝에 실행 버튼이 붙는 비서는 마지막 자식이 button이라 이 규칙이 통째로
+   빗나갔다. 그래서 그 두 명만 "루미통신·뉴스Codex · 대기"처럼 한 줄로
+   뭉쳐 나왔다. 클래스로 직접 가리킨다. */
+.cloud-agent-id {
   display: grid;
   justify-items: center;
   gap: 1px;
   text-align: center;
 }
-.cloud-agent > div:last-child b {
+.cloud-agent-id b {
   font-size: var(--fs-base);
   font-weight: 700;
 }
-.cloud-agent > div:last-child span {
+.cloud-agent-id span {
   color: var(--text-3);
   font-size: var(--fs-xs);
 }
-.cloud-agent > div:last-child small {
+.cloud-agent-id small {
   margin-top: 2px;
   color: var(--text-dim);
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.06em;
+  font-size: var(--fs-xs);
 }
-.cloud-agent.active > div:last-child small {
+.cloud-agent.active .cloud-agent-id small {
   color: var(--cyan);
 }
 
@@ -1213,12 +1191,6 @@ option {
   gap: var(--s3);
   margin-bottom: var(--s4);
 }
-.calendar-head span {
-  color: var(--text-3);
-  font-family: var(--font-mono);
-  font-size: var(--fs-hud);
-  letter-spacing: var(--tracking-hud);
-}
 .calendar-head h3 {
   font-size: var(--fs-xl);
 }
@@ -1250,10 +1222,9 @@ option {
 }
 .calendar-weekdays span {
   text-align: center;
-  color: var(--text-dim);
-  font-family: var(--font-mono);
-  font-size: var(--fs-hud);
-  letter-spacing: 0.1em;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 600;
 }
 
 .calendar-grid {
@@ -1329,10 +1300,9 @@ option {
 }
 .calendar-day-preview > p {
   margin: 0 0 var(--s2);
-  color: var(--text-dim);
-  font-family: var(--font-mono);
-  font-size: var(--fs-hud);
-  letter-spacing: var(--tracking-hud);
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 600;
 }
 .calendar-day-preview ul {
   margin: 0;
@@ -1551,8 +1521,8 @@ option {
   border-radius: var(--r-control);
   background: transparent;
   color: var(--amber);
-  font-family: var(--font-mono);
   font-size: var(--fs-xs);
+  font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
   transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
@@ -1571,8 +1541,8 @@ option {
   border-radius: var(--r-control);
   background: transparent;
   color: var(--danger);
-  font-family: var(--font-mono);
   font-size: var(--fs-xs);
+  font-weight: 600;
   white-space: nowrap;
   cursor: pointer;
   transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
@@ -1587,13 +1557,10 @@ option {
 .application-status-scroll th {
   padding: var(--s2) var(--s3);
   border-bottom: 1px solid var(--line);
-  color: var(--text-dim);
-  font-family: var(--font-mono);
-  font-size: var(--fs-hud);
+  color: var(--text-3);
+  font-size: var(--fs-xs);
   font-weight: 600;
-  letter-spacing: 0.08em;
   text-align: left;
-  text-transform: uppercase;
   white-space: nowrap;
 }
 .application-status-scroll td {
@@ -2194,8 +2161,7 @@ option {
   background: var(--surface-3);
   border: 1px solid var(--line);
   color: var(--text-3);
-  font-family: var(--font-mono);
-  font-size: 10px;
+  font-size: var(--fs-xs);
   font-style: normal;
   font-weight: 700;
 }
@@ -2235,9 +2201,8 @@ option {
 }
 .interview-library-label span {
   color: var(--text-3);
-  font-family: var(--font-mono);
-  font-size: var(--fs-hud);
-  letter-spacing: var(--tracking-hud);
+  font-size: var(--fs-sm);
+  font-weight: 600;
 }
 .interview-library-label small {
   color: var(--text-dim);
@@ -2354,10 +2319,8 @@ option {
   padding: 2px var(--s2);
   border: 1px solid var(--line);
   border-radius: var(--r-chip);
-  font-family: var(--font-mono);
-  font-size: var(--fs-hud);
+  font-size: var(--fs-xs);
   font-weight: 600;
-  letter-spacing: 0.06em;
   color: var(--text-3);
 }
 .question-source.agent {
@@ -2738,10 +2701,9 @@ input.interview-question-title:focus {
   gap: var(--s2);
 }
 .prompt-lab-variables > span {
-  color: var(--text-dim);
-  font-family: var(--font-mono);
-  font-size: var(--fs-hud);
-  letter-spacing: var(--tracking-hud);
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 600;
 }
 .prompt-lab-variables code {
   padding: 2px 6px;
@@ -3187,11 +3149,9 @@ input.interview-question-title:focus {
 
 .records-sub-label {
   margin: 0 0 var(--s2);
-  color: var(--text-dim);
-  font-family: var(--font-mono);
-  font-size: var(--fs-hud);
-  letter-spacing: var(--tracking-hud);
-  text-transform: uppercase;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 600;
 }
 .records-courses,
 .records-files {
@@ -3295,10 +3255,9 @@ input.interview-question-title:focus {
   display: inline-flex;
   align-items: center;
   gap: var(--s2);
-  font-family: var(--font-mono);
   font-size: var(--fs-xs);
   font-weight: 600;
-  letter-spacing: 0.08em;
+  font-variant-numeric: tabular-nums;
   cursor: pointer;
   box-shadow: var(--shadow-float);
   transition: border-color var(--dur) var(--ease), color var(--dur) var(--ease);
@@ -3611,23 +3570,15 @@ input.interview-question-title:focus {
   text-align: center;
   transform: translateX(-50%);
 }
-.galaxy-login-copy > p {
-  margin: 0 0 var(--s2);
-  color: var(--text-3);
-  font-family: var(--font-mono);
-  font-size: var(--fs-hud);
-  letter-spacing: var(--tracking-hud);
-}
+/* Space Grotesk는 한글 글립이 없어서 이 한글 헤드라인에 걸어 봐야 시스템
+   글꼴로 떨어졌다 — 폰트만 내려받고 쓰이지 않았다. 라틴 워드마크(로그인 카드
+   헤더의 "Career Atelier")로 옮기고, 여기는 크기와 자간으로만 세운다. */
 .galaxy-login-copy h1 {
   margin: 0;
-  font-family: var(--font-space-grotesk), var(--font-sans);
   font-size: clamp(38px, 4.4vw, 64px);
   font-weight: 600;
   letter-spacing: -0.04em;
   line-height: 1.08;
-}
-.galaxy-login-copy h1 span {
-  color: var(--amber-strong);
 }
 
 .galaxy-login-card {
@@ -3670,8 +3621,9 @@ input.interview-question-title:focus {
 }
 .galaxy-login-card header h2 {
   margin: 0;
+  font-family: var(--font-space-grotesk), var(--font-sans);
   font-size: var(--fs-lg);
-  letter-spacing: -0.02em;
+  letter-spacing: -0.01em;
 }
 .galaxy-login-card header p {
   margin: 0;
@@ -3736,7 +3688,7 @@ input.interview-question-title:focus {
   cursor: pointer;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   padding: 0 var(--s4);
   transition: filter var(--dur) var(--ease);
 }
@@ -3875,16 +3827,11 @@ input.interview-question-title:focus {
   }
   .nav-button {
     padding: var(--s1) var(--s2);
-    grid-auto-flow: column;
-    align-items: center;
-    gap: var(--s1);
-  }
-  .nav-button > span {
-    font-size: var(--fs-md);
   }
   .nav-button.active::before {
     left: 50%;
-    bottom: -6px;
+    top: auto;
+    bottom: -4px;
     width: 16px;
     height: 2px;
     transform: translateX(-50%);

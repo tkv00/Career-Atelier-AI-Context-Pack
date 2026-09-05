@@ -237,9 +237,10 @@ export default function LoginPage() {
   return <main className="galaxy-login">
     <StarfieldCanvas/>
     <div className="galaxy-nebula nebula-one" aria-hidden="true"/><div className="galaxy-nebula nebula-two" aria-hidden="true"/>
+    {/* 워드마크는 바로 아래 로그인 카드 헤더에 이미 있다. 여기서 한 번 더
+        찍으면 첫 화면에서 같은 이름을 두 번 읽게 된다. 헤드라인 한 줄만 둔다. */}
     <section className="galaxy-login-copy">
-      <p>CAREER ATELIER</p>
-      <h1>당신의 경험을 <span>다음 궤도로.</span></h1>
+      <h1>당신의 경험을 다음 궤도로.</h1>
     </section>
     <SpiralGalaxyHero/>
     <Suspense fallback={<div className="galaxy-login-card loading"/>}>
@@ -328,7 +329,7 @@ function LoginForm() {
     {mode === 'forgot' ? (
       <form onSubmit={handleForgot}>
         <label><span>이메일</span><div><i>@</i><input type="email" required autoComplete="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com"/></div></label>
-        <button type="submit" disabled={status === 'sending'}><span>{status === 'sending' ? '전송 중…' : '재설정 메일 받기'}</span><i>→</i></button>
+        <button type="submit" disabled={status === 'sending'}>{status === 'sending' ? '전송 중…' : '재설정 메일 받기'}</button>
       </form>
     ) : (
       <form onSubmit={mode === 'signup' ? handleSignup : handleLogin}>
@@ -349,8 +350,7 @@ function LoginForm() {
           </div>
         </label>
         <button type="submit" disabled={status === 'sending'}>
-          <span>{status === 'sending' ? (mode === 'signup' ? '만드는 중…' : '로그인 중…') : mode === 'signup' ? '계정 만들기' : '로그인'}</span>
-          <i>→</i>
+          {status === 'sending' ? (mode === 'signup' ? '만드는 중…' : '로그인 중…') : mode === 'signup' ? '계정 만들기' : '로그인'}
         </button>
       </form>
     )}

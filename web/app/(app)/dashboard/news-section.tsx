@@ -17,7 +17,6 @@ export function NewsSection({ latestNews }: { latestNews: ResearchNote | null })
   return (
     <section className="card card-pad" style={{ marginTop: 18 }}>
       <div>
-        <p className="eyebrow">TODAY&apos;S SIGNAL</p>
         <h2 style={{ margin: 0, fontSize: 18 }}>루미의 뉴스 조사</h2>
       </div>
 

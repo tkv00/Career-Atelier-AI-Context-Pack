@@ -3,16 +3,17 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
-// 현재 위치 표시가 없으면 어느 구역에 있는지 알 수 없어 관제실 은유가 깨진다.
-// aria-current까지 함께 붙여 스크린리더에도 현재 위치를 알린다.
+// 라벨은 각 페이지가 스스로를 부르는 이름과 한 글자도 다르지 않아야 한다.
+// 예전에는 "데이터고"를 눌러 "데이터 저장고"에 도착했고, "항해 일정"을 눌러
+// "채용 캘린더"에 도착했다 — 7개 중 5개가 어긋나 있었다.
 const NAV = [
-  { id: '관제실', href: '/dashboard', icon: '⌂' },
-  { id: '항해 일정', href: '/calendar', icon: '◷' },
-  { id: '기억 아카이브', href: '/experiences', icon: '✦', agent: true },
-  { id: '나의 정보', href: '/records', icon: '▦' },
-  { id: '면접 훈련실', href: '/interviews', icon: '◎' },
-  { id: '프롬프트 생성실', href: '/prompts', icon: '◇' },
-  { id: '데이터고', href: '/activity', icon: '▤' },
+  { id: '관제실', href: '/dashboard' },
+  { id: '지원 일정', href: '/calendar' },
+  { id: '경험 카드', href: '/experiences' },
+  { id: '이력 정보', href: '/records' },
+  { id: '면접 준비', href: '/interviews' },
+  { id: '프롬프트', href: '/prompts' },
+  { id: '실행 기록', href: '/activity' },
 ];
 
 export function NavRail() {
@@ -26,11 +27,9 @@ export function NavRail() {
             key={item.id}
             href={item.href}
             className={active ? 'nav-button active' : 'nav-button'}
-            title={item.id}
             aria-current={active ? 'page' : undefined}
           >
-            {item.agent ? <span className="nav-muse-agent" aria-hidden="true" /> : <span aria-hidden="true">{item.icon}</span>}
-            <small>{item.id}</small>
+            {item.id}
           </Link>
         );
       })}

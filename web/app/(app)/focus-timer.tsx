@@ -71,7 +71,7 @@ export function FocusTimer() {
   return (
     <>
       <button className={running ? 'focus-launcher running' : 'focus-launcher'} onClick={() => setOpen((current) => !current)} aria-label="집중 타이머 열기">
-        <i/><span>{running ? clock : 'FOCUS'}</span>
+        <i/><span>{running ? clock : '집중'}</span>
       </button>
       {open && (
         <section
@@ -82,7 +82,7 @@ export function FocusTimer() {
           style={dragPos ? { top: dragPos.top, left: dragPos.left, right: 'auto', bottom: 'auto' } : undefined}
         >
           <div className="focus-modal-head" onMouseDown={handleDragStart}>
-            <div><p className="eyebrow">ORBITAL FOCUS PROTOCOL</p><h2>집중 항해 타이머</h2></div>
+            <div><h2>집중 항해 타이머</h2></div>
             <button onMouseDown={(event) => event.stopPropagation()} onClick={() => setOpen(false)} aria-label="닫기">×</button>
           </div>
           <div className="focus-mode-tabs">

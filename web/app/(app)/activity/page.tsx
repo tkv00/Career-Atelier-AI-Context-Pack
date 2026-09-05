@@ -74,15 +74,13 @@ export default async function ActivityPage() {
     <>
       <div className="page-title">
         <div>
-          <p className="eyebrow">AGENT ACTIVITY</p>
-          <h2>데이터 저장고</h2>
+          <h1>실행 기록</h1>
           <p>
             승무원이 어떤 LLM 구독으로 실행됐는지 한눈에 봅니다. 최근 100건 · 실제 토큰이 아니라 실행 횟수·상태·소요 시간
             기준입니다.
           </p>
         </div>
       </div>
-
       <div className="stat-grid">
         {providerOrder.map((provider) => {
           const meta = PROVIDER_META[provider] ?? { label: provider, icon: '??', tone: '' };
@@ -101,7 +99,6 @@ export default async function ActivityPage() {
           );
         })}
       </div>
-
       <section className="card card-pad" style={{ marginTop: 18 }}>
         {rows.length > 0 ? (
           <ul className="essay-list">

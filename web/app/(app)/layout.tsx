@@ -21,13 +21,10 @@ export default async function AppLayout({ children }: { children: ReactNode }) {
           <NavRail />
         </aside>
         <section className="workspace">
+          {/* 예전에는 여기서 브랜드명과 "ORBITAL CAREER COMMAND"를 반복하고,
+              바로 40px 아래 페이지 제목이 같은 문장을 또 한 번 찍었다. 지금
+              화면이 어디인지는 페이지 제목이 말하므로 상단바는 계정만 맡는다. */}
           <header className="topbar">
-            <div>
-              <p className="eyebrow">ORBITAL CAREER COMMAND</p>
-              <h1>
-                Career Atelier <span>AI 채용 작전선 · CLOUD</span>
-              </h1>
-            </div>
             <div className="top-actions">
               <div className="avatar">{user?.email?.[0]?.toUpperCase() ?? '?'}</div>
               <span className="user-email">{user?.email}</span>
