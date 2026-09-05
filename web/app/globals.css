@@ -2679,7 +2679,8 @@ input.interview-question-title:focus {
   font-size: var(--fs-xs);
   white-space: nowrap;
 }
-.prompt-lab-provider select {
+.prompt-lab-provider select,
+.prompt-lab-provider input[type='text'] {
   min-height: 30px;
   padding: 0 var(--s2);
   border: 1px solid var(--line);
@@ -2688,7 +2689,16 @@ input.interview-question-title:focus {
   color: var(--text-1);
   font-size: var(--fs-sm);
 }
+/* 모델명은 gpt-5.1-codex-mini처럼 길어질 수 있는 고유명사라 select와 같은
+   너비를 주면 잘린다. LLM select보다 넓게, 그래도 한 줄을 다 차지하지는
+   않게 고정폭을 준다. */
+.prompt-lab-model-input {
+  width: 190px;
+}
+/* 세 필드(LLM·모델·사용량)를 넣고 나니 로그인 안내가 같은 줄에서 밀려
+   붙었다 — 필드가 몇 개든 항상 새 줄에서 시작하게 폭 100%를 준다. */
 .prompt-lab-provider small {
+  flex-basis: 100%;
   color: var(--text-dim);
   font-family: var(--font-mono);
   font-size: var(--fs-xs);

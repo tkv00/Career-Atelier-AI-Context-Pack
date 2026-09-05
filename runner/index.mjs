@@ -50,6 +50,20 @@ function providerFor(template, fallback = 'codex') {
   return KNOWN_PROVIDERS.has(chosen) ? chosen : fallback;
 }
 
+// 모델명·추론 사용량(effort)도 provider와 같은 자리(prompt_templates,
+// 0027)에서 온다. 값을 검증하지 않는다 — providers/*.mjs가 이미 빈 값이면
+// --model/--effort 플래그를 아예 안 넘기므로(§ 각 spawn* 함수), 잘못된
+// 문자열이 와도 CLI 자체가 거부할 뿐 러너가 죽거나 다른 비서에 영향을 주지
+// 않는다. fallback은 값이 비었을 때만 쓰는 비서별 기본값이다(예: 소제목).
+function modelFor(template, fallback = '') {
+  const value = typeof template?.model === 'string' ? template.model.trim() : '';
+  return value || fallback;
+}
+function effortFor(template, fallback = '') {
+  const value = typeof template?.effort === 'string' ? template.effort.trim() : '';
+  return value || fallback;
+}
+
 // schemaArgsFor가 정규화한 스키마를 Codex용 파일에 다시 쓸 때 쓴다.
 function writeSchema(path, schema) {
   writeFileSync(path, JSON.stringify(schema, null, 2));
@@ -315,6 +329,8 @@ async function processReviewJob(supabase, ownerId, job) {
   }
 
   const provider = providerFor(template);
+  const model = modelFor(template);
+  const effort = effortFor(template);
 
   let jobPost = null;
   if (essay.job_id) {
@@ -338,6 +354,8 @@ async function processReviewJob(supabase, ownerId, job) {
 
   await recordAndRun(supabase, ownerId, job, {
     provider,
+    model,
+    effort,
     prompt,
     workspace,
     contextDir,
@@ -400,6 +418,8 @@ async function processWriterJob(supabase, ownerId, job) {
   }
 
   const provider = providerFor(template);
+  const model = modelFor(template);
+  const effort = effortFor(template);
 
   // §14 1겹 — 경험 카드가 하나도 없으면 실행 자체를 거부한다. UI에서 끌 수 없다.
   if (!experiences || experiences.length === 0) {
@@ -437,6 +457,8 @@ async function processWriterJob(supabase, ownerId, job) {
 
   await recordAndRun(supabase, ownerId, job, {
     provider,
+    model,
+    effort,
     prompt,
     workspace,
     contextDir,
@@ -495,6 +517,8 @@ async function processNewsJob(supabase, ownerId, job) {
   }
 
   const provider = providerFor(template);
+  const model = modelFor(template);
+  const effort = effortFor(template);
 
   const interests = (profile?.interests ?? []);
   if (interests.length === 0) {
@@ -516,6 +540,8 @@ async function processNewsJob(supabase, ownerId, job) {
 
   await recordAndRun(supabase, ownerId, job, {
     provider,
+    model,
+    effort,
     prompt,
     workspace,
     contextDir,
@@ -598,6 +624,8 @@ async function processCompanyJob(supabase, ownerId, job) {
   }
 
   const provider = providerFor(template);
+  const model = modelFor(template);
+  const effort = effortFor(template);
 
   const runIdForWorkspace = randomUUID();
   const { workspace, contextDir, schemaPath, hasAttachments } = await createCompanyContextPack(runIdForWorkspace, {
@@ -615,6 +643,8 @@ async function processCompanyJob(supabase, ownerId, job) {
 
   await recordAndRun(supabase, ownerId, job, {
     provider,
+    model,
+    effort,
     prompt,
     workspace,
     contextDir,
@@ -657,6 +687,8 @@ async function processJobSearchJob(supabase, ownerId, job) {
   }
 
   const provider = providerFor(template);
+  const model = modelFor(template);
+  const effort = effortFor(template);
 
   const targetRoles = profile?.target_roles ?? [];
   const interests = profile?.interests ?? [];
@@ -676,6 +708,8 @@ async function processJobSearchJob(supabase, ownerId, job) {
 
   await recordAndRun(supabase, ownerId, job, {
     provider,
+    model,
+    effort,
     prompt,
     workspace,
     contextDir,
@@ -803,6 +837,8 @@ async function processInterviewJob(supabase, ownerId, job) {
   }
 
   const provider = providerFor(template);
+  const model = modelFor(template);
+  const effort = effortFor(template);
 
   const runIdForWorkspace = randomUUID();
   const { workspace, contextDir, schemaPath } = createInterviewContextPack(runIdForWorkspace, {
@@ -815,6 +851,8 @@ async function processInterviewJob(supabase, ownerId, job) {
 
   await recordAndRun(supabase, ownerId, job, {
     provider,
+    model,
+    effort,
     prompt,
     workspace,
     contextDir,
@@ -887,6 +925,12 @@ async function processSubtitleJob(supabase, ownerId, job) {
   }
 
   const provider = providerFor(template);
+  // §13 effort 계층화 — 소제목은 짧은 카피라이팅이라 flash-medium이면
+  // 충분하다. 사용자가 프롬프트 랩에서 모델을 직접 지정하지 않았을 때만 이
+  // 기본값을 쓴다. 명시하지 않으면 agy가 멀티 모델(Claude/GPT 포함)이라
+  // 기본값이 무엇이든 Gemini로 고정한다(사용자 요청).
+  const model = modelFor(template, 'gemini-3.7-flash-medium');
+  const effort = effortFor(template);
 
   // 파이프라인으로 왔으면 뮤즈가 쓴 초안을 그대로 받는다 — 사용자가 아직
   // [반영]을 안 눌러 essay_projects.draft가 비어 있어도 소제목을 지을 수
@@ -906,10 +950,8 @@ async function processSubtitleJob(supabase, ownerId, job) {
 
   await recordAndRun(supabase, ownerId, job, {
     provider,
-    // §13 effort 계층화 — 소제목은 짧은 카피라이팅이라 flash-medium이면
-    // 충분하다. 명시하지 않으면 agy가 멀티 모델(Claude/GPT 포함)이라
-    // 기본값이 무엇이든 Gemini로 고정한다(사용자 요청).
-    model: 'gemini-3.7-flash-medium',
+    model,
+    effort,
     prompt,
     workspace,
     contextDir,

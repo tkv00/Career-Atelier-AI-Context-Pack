@@ -997,8 +997,10 @@ export type Database = {
         Row: {
           agent_id: string
           body: string
+          effort: string
           id: string
           is_active: boolean
+          model: string
           name: string
           owner_id: string
           provider: string
@@ -1009,8 +1011,10 @@ export type Database = {
         Insert: {
           agent_id: string
           body: string
+          effort?: string
           id?: string
           is_active?: boolean
+          model?: string
           name: string
           owner_id: string
           provider?: string
@@ -1021,8 +1025,10 @@ export type Database = {
         Update: {
           agent_id?: string
           body?: string
+          effort?: string
           id?: string
           is_active?: boolean
+          model?: string
           name?: string
           owner_id?: string
           provider?: string

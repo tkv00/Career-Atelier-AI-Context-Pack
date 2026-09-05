@@ -4,8 +4,8 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Database } from '@/lib/supabase/database.types';
 import { formatDateTime } from '@/lib/datetime';
-import { restorePromptVersion, savePromptVersion, setAgentProvider } from './actions';
-import { PROVIDERS, PROVIDER_META, isProvider } from '@/lib/agent-providers';
+import { restorePromptVersion, savePromptVersion, setAgentEffort, setAgentModel, setAgentProvider } from './actions';
+import { EFFORT_OPTIONS, MODEL_SUGGESTIONS, PROVIDERS, PROVIDER_META, isProvider } from '@/lib/agent-providers';
 
 type Template = Database['public']['Tables']['prompt_templates']['Row'];
 type Version = Database['public']['Tables']['prompt_versions']['Row'];
@@ -32,13 +32,17 @@ export function PromptLabClient({ templates, versions }: { templates: Template[]
   );
   const [selectedId, setSelectedId] = useState(ordered[0]?.id ?? '');
   const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const [modelDrafts, setModelDrafts] = useState<Record<string, string>>({});
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState('');
 
   const selected = ordered.find((item) => item.id === selectedId) ?? null;
   const body = selected ? (drafts[selected.id] ?? selected.body) : '';
   const dirty = selected ? body !== selected.body : false;
+  const modelDraft = selected ? (modelDrafts[selected.id] ?? selected.model) : '';
+  const modelDirty = selected ? modelDraft !== selected.model : false;
   const selectedVersions = selected ? versions.filter((item) => item.template_id === selected.id) : [];
+  const provider = selected && isProvider(selected.provider) ? selected.provider : 'codex';
 
   function selectAgent(id: string) {
     setSelectedId(id);
@@ -76,10 +80,52 @@ export function PromptLabClient({ templates, versions }: { templates: Template[]
     setMessage('');
     try {
       await setAgentProvider(selected.id, next);
+      // LLM을 바꾸면 서버가 모델·사용량을 함께 비운다(actions.ts) — 화면의
+      // 남은 입력 초안도 같이 지워야 새로고침 전까지 안 맞는 값이 안 보인다.
+      setModelDrafts((prev) => {
+        const draft = { ...prev };
+        delete draft[selected.id];
+        return draft;
+      });
       setMessage(`${isProvider(next) ? PROVIDER_META[next].label : next}(으)로 바꿨습니다. 다음 실행부터 적용됩니다.`);
       router.refresh();
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'LLM을 바꾸지 못했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function setModelDraft(next: string) {
+    if (!selected) return;
+    setModelDrafts((prev) => ({ ...prev, [selected.id]: next }));
+  }
+
+  async function handleModelSave() {
+    if (!selected || !modelDirty) return;
+    setSaving(true);
+    setMessage('');
+    try {
+      await setAgentModel(selected.id, modelDraft);
+      setMessage(modelDraft.trim() ? `모델을 ${modelDraft.trim()}(으)로 바꿨습니다.` : '모델 지정을 지웠습니다 — CLI 기본 모델을 씁니다.');
+      router.refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '모델을 바꾸지 못했습니다.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleEffortChange(next: string) {
+    if (!selected) return;
+    setSaving(true);
+    setMessage('');
+    try {
+      await setAgentEffort(selected.id, next);
+      setMessage(next ? `사용량을 ${EFFORT_OPTIONS[provider].find((option) => option.value === next)?.label ?? next}(으)로 바꿨습니다.` : '사용량 지정을 지웠습니다 — CLI 기본값을 씁니다.');
+      router.refresh();
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : '사용량을 바꾸지 못했습니다.');
     } finally {
       setSaving(false);
     }
@@ -152,6 +198,35 @@ export function PromptLabClient({ templates, versions }: { templates: Template[]
               {PROVIDERS.map((item) => (
                 <option key={item} value={item}>
                   {PROVIDER_META[item]?.label ?? item}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label>
+            <span>모델</span>
+            <input
+              type="text"
+              list="prompt-lab-model-suggestions"
+              value={modelDraft}
+              onChange={(event) => setModelDraft(event.target.value)}
+              onBlur={handleModelSave}
+              placeholder="비워두면 CLI 기본 모델"
+              disabled={saving}
+              className="prompt-lab-model-input"
+            />
+            <datalist id="prompt-lab-model-suggestions">
+              {MODEL_SUGGESTIONS[provider].map((name) => (
+                <option key={name} value={name} />
+              ))}
+            </datalist>
+          </label>
+          <label>
+            <span>사용량</span>
+            <select value={selected.effort} onChange={(event) => handleEffortChange(event.target.value)} disabled={saving}>
+              <option value="">기본값</option>
+              {EFFORT_OPTIONS[provider].map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
                 </option>
               ))}
             </select>

@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
-import { isProvider } from '@/lib/agent-providers';
+import { EFFORT_OPTIONS, isProvider } from '@/lib/agent-providers';
 
 async function requireUser() {
   const supabase = await createClient();
@@ -77,9 +77,58 @@ export async function setAgentProvider(templateId: string, provider: string) {
 
   const { supabase } = await requireUser();
 
+  // 모델명·사용량은 CLI마다 표기가 다르다(agent-providers.ts) — LLM을
+  // 바꾸면서 이전 값을 그대로 두면, 예를 들어 provider=codex인데
+  // model=claude-opus-5가 남아 다음 실행이 codex CLI에 `-m claude-opus-5`를
+  // 그대로 넘겨 깨진다. LLM을 바꿀 때마다 함께 비운다.
   const { error } = await supabase
     .from('prompt_templates')
-    .update({ provider })
+    .update({ provider, model: '', effort: '' })
+    .eq('id', templateId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/prompts');
+}
+
+// 비서가 쓸 구체적인 모델(요청 2026-09-05) — 같은 Claude 안에서도
+// Opus/Sonnet/Haiku 중 뭘 쓸지 등. 직접 입력이라 값 자체는 검증하지 않는다
+// (CLI 버전마다 유효한 이름이 달라 여기서 화이트리스트를 걸면 새 모델이
+// 나올 때마다 이 코드를 고쳐야 한다). 빈 문자열은 "CLI 기본값 사용".
+export async function setAgentModel(templateId: string, model: string) {
+  const trimmed = model.trim();
+  if (trimmed.length > 200) throw new Error('모델 이름이 너무 깁니다.');
+
+  const { supabase } = await requireUser();
+
+  const { error } = await supabase
+    .from('prompt_templates')
+    .update({ model: trimmed })
+    .eq('id', templateId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/prompts');
+}
+
+// 비서의 추론 사용량(effort) — 프로바이더별 유효값이 다르므로 저장 전에
+// 지금 이 비서의 provider를 다시 읽어 그 provider가 아는 값인지 확인한다.
+export async function setAgentEffort(templateId: string, effort: string) {
+  const { supabase } = await requireUser();
+
+  const { data: current, error: fetchError } = await supabase
+    .from('prompt_templates')
+    .select('provider')
+    .eq('id', templateId)
+    .single();
+  if (fetchError || !current) throw new Error(fetchError?.message ?? '프롬프트를 찾을 수 없습니다.');
+
+  const provider = isProvider(current.provider) ? current.provider : 'codex';
+  const trimmed = effort.trim();
+  const known = trimmed === '' || EFFORT_OPTIONS[provider].some((option) => option.value === trimmed);
+  if (!known) throw new Error('이 LLM에서 지원하지 않는 사용량입니다.');
+
+  const { error } = await supabase
+    .from('prompt_templates')
+    .update({ effort: trimmed })
     .eq('id', templateId);
   if (error) throw new Error(error.message);
 
