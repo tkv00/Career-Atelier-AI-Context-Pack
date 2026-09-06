@@ -1,15 +1,17 @@
 'use client';
 
-import { useState, useTransition } from 'react';
+import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Database } from '@/lib/supabase/database.types';
 import { startEssayForJobPost } from '../essays/actions';
-import { cycleStageResult, deleteJobPost, saveCalendarJob, updateJobProgress } from './actions';
+import { cycleStageResult, saveCalendarJob, updateJobProgress } from './actions';
+import { JobPostDeleteButton } from './job-post-delete-button';
 import { formatDate } from '@/lib/datetime';
 import { parseStageResults, STAGES, type Stage } from '@/lib/stage-results';
 
 type CalendarEvent = Database['public']['Tables']['calendar_events']['Row'];
 type JobPost = Database['public']['Tables']['job_posts']['Row'];
+type EssayLink = { job_id: string | null; title: string };
 type CalendarItem = { id: string; jobPostId: string | null; title: string; company: string; startsAt: string; sourceUrl: string; memo: string };
 
 const APPLICATION_TYPES = ['서류접수', '시험 응시', '과제 전형', '1차 면접', '2차 면접', '최종 면접'];
@@ -58,9 +60,19 @@ function StageToggleRow({ job, disabled, onToggle }: { job: JobPost; disabled: b
   );
 }
 
-export function CalendarClient({ events, jobs }: { events: CalendarEvent[]; jobs: JobPost[] }) {
+export function CalendarClient({ events, jobs, essays }: { events: CalendarEvent[]; jobs: JobPost[]; essays: EssayLink[] }) {
   const router = useRouter();
   const now = new Date();
+  const essayTitlesByJobPost = useMemo(() => {
+    const map = new Map<string, string[]>();
+    for (const essay of essays) {
+      if (!essay.job_id) continue;
+      const list = map.get(essay.job_id) ?? [];
+      list.push(essay.title);
+      map.set(essay.job_id, list);
+    }
+    return map;
+  }, [essays]);
   const [pending, startTransition] = useTransition();
   const [month, setMonth] = useState(new Date(now.getFullYear(), now.getMonth(), 1));
   const [form, setForm] = useState({ jobPostId: '', company: '', role: '', url: '', jd: '', deadline: '', applicationType: '서류접수', companyType: '미분류', submissionStatus: '미제출' });
@@ -105,19 +117,6 @@ export function CalendarClient({ events, jobs }: { events: CalendarEvent[]; jobs
 
   function toggleStage(jobId: string, stage: Stage) {
     startTransition(async () => { await cycleStageResult(jobId, stage); router.refresh(); });
-  }
-
-  function remove(job: JobPost) {
-    startTransition(async () => {
-      try {
-        await deleteJobPost(job.id);
-        if (form.jobPostId === job.id) chooseJob('');
-        setMessage(`${job.company} · ${job.role} 지원 기록을 삭제했습니다.`);
-        router.refresh();
-      } catch (error) {
-        setMessage(error instanceof Error ? error.message : '삭제에 실패했습니다.');
-      }
-    });
   }
 
   return <>
@@ -187,7 +186,16 @@ export function CalendarClient({ events, jobs }: { events: CalendarEvent[]; jobs
                 <td><select disabled={pending} className={`status-select ${progressTone({ ...job, result_status: '아직' })}`} value={job.submission_status} onChange={(event) => update(job.id, 'submission_status', event.target.value)}>{SUBMISSION_STATUSES.map((item) => <option key={item}>{item}</option>)}</select></td>
                 <td><StageToggleRow job={job} disabled={pending} onToggle={(stage) => toggleStage(job.id, stage)} /></td>
                 <td><button type="button" className="essay-link-button" disabled={pending} onClick={() => startTransition(() => startEssayForJobPost(job.id))}>자소서 쓰기</button></td>
-                <td><button type="button" className="inline-danger-button" disabled={pending} onClick={() => remove(job)} title="이 지원 기록과 캘린더 일정을 삭제합니다. 이미 작성한 자소서는 남습니다.">삭제</button></td>
+                <td>
+                  <JobPostDeleteButton
+                    jobPostId={job.id}
+                    company={job.company}
+                    role={job.role}
+                    linkedEssayTitles={essayTitlesByJobPost.get(job.id) ?? []}
+                    submissionComplete={job.submission_status === '제출 완료'}
+                    onDeleted={() => { if (form.jobPostId === job.id) chooseJob(''); }}
+                  />
+                </td>
               </tr>
             ))}
           </tbody>

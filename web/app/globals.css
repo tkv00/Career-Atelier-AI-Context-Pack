@@ -1554,6 +1554,43 @@ option {
   opacity: 0.5;
   cursor: not-allowed;
 }
+.job-delete-error {
+  display: block;
+  margin-top: var(--s1);
+  color: var(--danger);
+  font-size: var(--fs-xs);
+}
+/* 자소서가 걸려 있거나 이미 제출 완료한 공고를 지우기 전 한 번 더 묻는
+   확인창. 흔한 삭제(관심 없어진 공고 정리)는 이 창을 거치지 않는다 —
+   조건이 있을 때만 뜨므로 폭은 좁게, 내용은 왜 다시 물었는지부터 읽힌다. */
+.job-delete-confirm {
+  width: min(420px, 100%);
+  display: grid;
+  gap: var(--s3);
+}
+.job-delete-confirm h3 {
+  margin: 0;
+  font-size: var(--fs-lg);
+}
+.job-delete-confirm ul {
+  margin: 0;
+  padding-left: 1.2em;
+  display: grid;
+  gap: var(--s1);
+  color: var(--warn);
+  font-size: var(--fs-sm);
+}
+.job-delete-confirm > p {
+  margin: 0;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+  line-height: 1.6;
+}
+.job-delete-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--s2);
+}
 .application-status-scroll th {
   padding: var(--s2) var(--s3);
   border-bottom: 1px solid var(--line);

@@ -10,7 +10,7 @@ import { NewsSection } from './news-section';
 import { NewsRunButton } from './news-run-button';
 import { JobSearchButton } from './job-search-button';
 import { QuestionImportButton } from './question-import';
-import { JobPostDeleteButton } from './job-post-delete-button';
+import { JobPostDeleteButton } from '../calendar/job-post-delete-button';
 import { AgentLiveRefresh } from './agent-live-refresh';
 import { ProfileForm } from './profile-form';
 import { PilotBridge } from './pilot-bridge';
@@ -60,6 +60,14 @@ export default async function DashboardPage() {
   for (const row of questionCounts ?? []) {
     if (!row.job_post_id) continue;
     questionCountByJobPost.set(row.job_post_id, (questionCountByJobPost.get(row.job_post_id) ?? 0) + 1);
+  }
+  // 삭제 확인창에 "이 공고로 시작한 자소서가 있다"를 보여주기 위한 역인덱스.
+  const essayTitlesByJobPost = new Map<string, string[]>();
+  for (const essay of essays ?? []) {
+    if (!essay.job_id) continue;
+    const list = essayTitlesByJobPost.get(essay.job_id) ?? [];
+    list.push(essay.title);
+    essayTitlesByJobPost.set(essay.job_id, list);
   }
   const activeAgentIds = new Set((agentRuns ?? []).filter((run) => ACTIVE_PILOT_STATUSES.includes(run.status)).map((run) => run.agent_id));
   const codexRuns = (agentRuns ?? []).filter((run) => run.provider === 'codex').length;
@@ -252,7 +260,13 @@ export default async function DashboardPage() {
                     </button>
                   </form>
                   <QuestionImportButton jobPostId={job.id} existingCount={questionCountByJobPost.get(job.id) ?? 0} />
-                  <JobPostDeleteButton jobPostId={job.id} company={job.company} role={job.role} />
+                  <JobPostDeleteButton
+                    jobPostId={job.id}
+                    company={job.company}
+                    role={job.role}
+                    linkedEssayTitles={essayTitlesByJobPost.get(job.id) ?? []}
+                    submissionComplete={job.submission_status === '제출 완료'}
+                  />
                 </span>
               </li>
             ))}
