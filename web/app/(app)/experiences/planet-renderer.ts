@@ -169,9 +169,6 @@ export function createPlanetRenderer(canvas: HTMLCanvasElement, onProject: (poin
     gl.disable(gl.DEPTH_TEST);gl.disable(gl.BLEND);setProgram(skyProgram);gl.uniform1i(skyProgram.locations.u_sky,1);gl.uniform1f(skyProgram.locations.u_loaded,skyLoaded?1:0);
     gl.bindVertexArray(sky.vao);gl.drawArrays(gl.TRIANGLES,0,3);
     gl.enable(gl.DEPTH_TEST);gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.depthMask(false);
-    const guide:number[]=[];
-    for(const r of [5.2,10.5,16.2])for(let i=0;i<160;i++){const a=i/160*Math.PI*2,b=(i+1)/160*Math.PI*2;guide.push(Math.cos(a)*r,Math.sin(a)*r,-4,Math.cos(b)*r,Math.sin(b)*r,-4);}
-    drawLine(guide,[.33,.46,.62,.13]);
     if(connections) {
       const lookup=new Map(graph.planets.map(p=>[p.id,p]));
       const normal:number[]=[],active:number[]=[];

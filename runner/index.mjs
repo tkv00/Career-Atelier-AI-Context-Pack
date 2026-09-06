@@ -1053,8 +1053,12 @@ async function startLoop() {
     console.log(message);
   }
 
-  const heartbeat = setInterval(() => {
-    void supabase.from('runners').update({ last_seen_at: new Date().toISOString() }).eq('id', runner.id);
+  async function sendHeartbeat() {
+    const { error } = await supabase
+      .from('runners')
+      .update({ last_seen_at: new Date().toISOString() })
+      .eq('id', runner.id);
+    if (error) console.error(`러너 하트비트 전송 실패: ${error.message}`);
 
     // §12 매일 15시 자동 채용 탐색. 승인된 러너에서만, 하루 한 번만.
     if (runner.approved && shouldRunDailySearch()) {
@@ -1064,6 +1068,13 @@ async function startLoop() {
     }
 
     if (!backingUp) void maybeBackup(supabase, runner.id);
+  }
+
+  // 첫 15초 동안 last_seen_at이 비어 있으면 이미 켜진 러너도 관제실에는
+  // 오프라인으로 보인다. 시작 직후 갱신해 연결 상태와 실제 프로세스를 맞춘다.
+  void sendHeartbeat();
+  const heartbeatTimer = setInterval(() => {
+    void sendHeartbeat();
   }, HEARTBEAT_INTERVAL_MS);
 
   // 백업 설정은 웹에서 언제든 바뀌므로 매번 러너 행을 다시 읽는다. 시작 시점 값을
@@ -1145,7 +1156,7 @@ async function startLoop() {
   for (const signal of ['SIGINT', 'SIGTERM']) {
     process.on(signal, () => {
       stopped = true;
-      clearInterval(heartbeat);
+      clearInterval(heartbeatTimer);
       clearInterval(poll);
       console.log('\n러너를 종료합니다.');
       process.exit(0);

@@ -48,7 +48,7 @@
 .station[aria-pressed=true] .stationHalo { border-color: var(--pilot-color); box-shadow: 0 0 24px color-mix(in srgb, var(--pilot-color) 22%, transparent); }
 .holoScreen { position: absolute; width: 82px; height: 52px; top: -38px; left: 11px; padding: 7px; transform: rotateX(-9deg) translateZ(-10px); border: 1px solid color-mix(in srgb, var(--pilot-color) 40%, transparent); border-radius: 5px; background: linear-gradient(135deg, #122337e3, #102333bb); box-shadow: 0 0 18px color-mix(in srgb, var(--pilot-color) 9%, transparent); transition: opacity .4s; }
 .holoScreen > span { position: absolute; top: -14px; left: 0; right: 0; font: 8px sans-serif; letter-spacing: .03em; color: var(--pilot-color); }
-.pilotRig { position: absolute; bottom: 19px; left: 8px; width: 88px; height: 110px; transform-origin: center bottom; animation: pilotIdle 7s ease-in-out infinite; animation-delay: var(--delay); }
+.pilotRig { position: absolute; bottom: 19px; left: 8px; width: 88px; height: 110px; transform-origin: center bottom; }
 .sprite { width: 88px; height: 110px; filter: drop-shadow(0 7px 6px #000b); animation-duration: 3.8s; animation-delay: var(--delay); }
 .console { position: absolute; left: 4px; right: 4px; bottom: 0; height: 43px; border-radius: 7px 7px 5px 5px; border: 1px solid #647b9547; border-bottom: 7px solid #0c1521; transform: rotateX(29deg); background: linear-gradient(180deg, #2b4052, #122237); box-shadow: 0 7px 0 #080f1a, 0 12px 15px #0008; }
 .console::before { content: ''; position: absolute; top: 9px; left: 11px; right: 25px; height: 12px; background: repeating-linear-gradient(90deg, #86b0c744 0 4px, transparent 4px 7px), repeating-linear-gradient(0deg, #7a94b126 0 3px, transparent 3px 5px); border-radius: 2px; }
@@ -63,6 +63,7 @@
 .nameplate i, .stateLabel i, .roster > button > i { width: 4px; height: 4px; border-radius: 50%; background: #7e94ac; flex-shrink: 0; }
 .station[data-state=working] .pilotRig { animation: pilotWork 2.2s ease-in-out infinite; animation-delay: var(--delay); }
 .station[data-state=working] .sprite { animation-duration: .8s; }
+.station:not([data-state=working]) .sprite { animation-play-state: paused; }
 .station[data-state=working] .handLeft, .station[data-state=working] .handRight { animation: pilotType .32s ease-in-out infinite alternate; }
 .station[data-state=working] .handRight { animation-delay: -.16s; }
 .station[data-state=working] .console b { opacity: .9; box-shadow: 0 0 9px var(--pilot-color); }
@@ -113,7 +114,6 @@
 @keyframes orbitRing { to { rotate: 360deg; } }
 @keyframes holoFloat { 50% { transform: translateZ(62px) rotateZ(135deg); } }
 @keyframes transmit { to { stroke-dashoffset: -102; } }
-@keyframes pilotIdle { 0%, 100% { transform: translateY(0) rotate(0); } 30% { transform: translateY(-2px) rotate(-2deg); } 65% { transform: translateY(0) rotate(2deg); } }
 @keyframes pilotWork { 0%, 100% { transform: translateY(0) rotate(-2deg); } 25% { transform: translateY(2px) rotate(1deg); } 60% { transform: translateY(-2px) rotate(3deg); } }
 @keyframes pilotType { to { transform: translateY(-5px) rotate(8deg); } }
 @keyframes screenHover { 50% { transform: rotateX(-9deg) translateZ(-10px) translateY(-4px); } }
