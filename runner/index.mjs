@@ -35,6 +35,7 @@ import {
   searchQualityError,
 } from './search-quality.mjs';
 import { schemaArgsFor } from './schema-compat.mjs';
+import { systemRulesFor } from './system-prompts.mjs';
 import { CONCURRENT_RUN_LIMIT, HEARTBEAT_INTERVAL_MS, assertSubscriptionProvider } from './safety.mjs';
 
 const POLL_INTERVAL_MS = 5_000;
@@ -350,7 +351,7 @@ async function processReviewJob(supabase, ownerId, job) {
     jobPost,
   });
 
-  const prompt = `${template.body}\n\n[검수 대상]\ncontext/01-essay-draft.md, context/02-experiences.md, context/03-job-description.md를 읽고 스키마에 맞는 JSON으로만 답하라.`;
+  const prompt = `${template.body}\n\n${systemRulesFor('review')}\n\n[검수 대상]\ncontext/01-essay-draft.md, context/02-experiences.md, context/03-job-description.md를 읽고 스키마에 맞는 JSON으로만 답하라.`;
 
   await recordAndRun(supabase, ownerId, job, {
     provider,
@@ -452,8 +453,8 @@ async function processWriterJob(supabase, ownerId, job) {
   });
 
   const prompt = revising
-    ? `${template.body}\n\n[수정 대상]\ncontext/07-current-draft.md가 지금 본문이다. context/08-revision-requests.md의 요청을 반영해 **고쳐 쓴다**. 백지에서 새로 쓰지 말고, 요청과 무관한 문장은 그대로 둔다.\ncontext/01-questions.md, context/02-job-description.md, context/04-experiences.md, context/06-style-guide.md도 함께 읽고 스키마에 맞는 JSON으로만 답하라.`
-    : `${template.body}\n\n[작성 대상]\ncontext/01-questions.md, context/02-job-description.md, context/04-experiences.md, context/06-style-guide.md를 읽고 스키마에 맞는 JSON으로만 답하라.`;
+    ? `${template.body}\n\n${systemRulesFor('writer')}\n\n[수정 대상]\ncontext/07-current-draft.md가 지금 본문이다. context/08-revision-requests.md의 요청을 반영해 **고쳐 쓴다**. 백지에서 새로 쓰지 말고, 요청과 무관한 문장은 그대로 둔다.\ncontext/01-questions.md, context/02-job-description.md, context/04-experiences.md, context/06-style-guide.md도 함께 읽고 스키마에 맞는 JSON으로만 답하라.`
+    : `${template.body}\n\n${systemRulesFor('writer')}\n\n[작성 대상]\ncontext/01-questions.md, context/02-job-description.md, context/04-experiences.md, context/06-style-guide.md를 읽고 스키마에 맞는 JSON으로만 답하라.`;
 
   await recordAndRun(supabase, ownerId, job, {
     provider,
@@ -535,7 +536,7 @@ async function processNewsJob(supabase, ownerId, job) {
   // 조합을 되풀이하지 않는다. 다른 공급자는 기존 단일 호출을 유지한다.
   const prompt = provider === 'codex'
     ? buildNewsDiscoveryPrompt({ interests })
-    : `${template.body}\n\n[대상]\ncontext/01-interests.md를 읽고 스키마에 맞는 JSON으로만 답하라.`;
+    : `${template.body}\n\n${systemRulesFor('news')}\n\n[대상]\ncontext/01-interests.md를 읽고 스키마에 맞는 JSON으로만 답하라.`;
   const schemaOptions = provider === 'codex' ? {} : schemaArgsFor(provider, NEWS_OUTPUT_SCHEMA, schemaPath, writeSchema);
 
   await recordAndRun(supabase, ownerId, job, {
@@ -561,7 +562,7 @@ async function processNewsJob(supabase, ownerId, job) {
           schema: NEWS_OUTPUT_SCHEMA,
           schemaFile: 'news.json',
           discovery: result.output,
-          instructions: `${template.body}\n\n[대상]\ncontext/01-interests.md와 검색 메모를 사용하라.`,
+          instructions: `${template.body}\n\n${systemRulesFor('news')}\n\n[대상]\ncontext/01-interests.md와 검색 메모를 사용하라.`,
         });
         if (formatted.status !== 'completed') {
           return { status: formatted.status, error: `검색 메모를 JSON으로 구조화하지 못했습니다: ${formatted.error}` };
@@ -639,7 +640,7 @@ async function processCompanyJob(supabase, ownerId, job) {
   const attachmentInstruction = hasAttachments
     ? ' context/04-attachment-*로 시작하는 파일(PDF 원문 포함)이 있으면 사용자가 올린 원문 자료(예: DART 공시자료)이니 직접 열어서 읽고 근거로 활용하라.'
     : '';
-  const prompt = `${template.body}\n\n[조사 대상]\ncontext/01-company.md, context/02-job-description.md를 읽어라. context/03-user-instruction.md에 사용자가 추가로 지시한 조사 방향이 있으면 그것도 반드시 반영하라.${attachmentInstruction} 스키마에 맞는 JSON으로만 답하라.`;
+  const prompt = `${template.body}\n\n${systemRulesFor('company')}\n\n[조사 대상]\ncontext/01-company.md, context/02-job-description.md를 읽어라. context/03-user-instruction.md에 사용자가 추가로 지시한 조사 방향이 있으면 그것도 반드시 반영하라.${attachmentInstruction} 스키마에 맞는 JSON으로만 답하라.`;
 
   await recordAndRun(supabase, ownerId, job, {
     provider,
@@ -703,7 +704,7 @@ async function processJobSearchJob(supabase, ownerId, job) {
   const { workspace, contextDir, schemaPath } = createJobsContextPack(runIdForWorkspace, { targetRoles, interests, experiences: experiences ?? [] });
   const prompt = provider === 'codex'
     ? buildJobsDiscoveryPrompt({ targetRoles, interests })
-    : `${template.body}\n\n[대상]\ncontext/01-profile.md, context/02-experiences.md를 읽고 스키마에 맞는 JSON으로만 답하라.`;
+    : `${template.body}\n\n${systemRulesFor('jobs')}\n\n[대상]\ncontext/01-profile.md, context/02-experiences.md를 읽고 스키마에 맞는 JSON으로만 답하라.`;
   const schemaOptions = provider === 'codex' ? {} : schemaArgsFor(provider, JOBS_OUTPUT_SCHEMA, schemaPath, writeSchema);
 
   await recordAndRun(supabase, ownerId, job, {
@@ -729,7 +730,7 @@ async function processJobSearchJob(supabase, ownerId, job) {
           schema: JOBS_OUTPUT_SCHEMA,
           schemaFile: 'jobs.json',
           discovery: result.output,
-          instructions: `${template.body}\n\n[대상]\ncontext/01-profile.md, context/02-experiences.md와 검색 메모를 사용하라.`,
+          instructions: `${template.body}\n\n${systemRulesFor('jobs')}\n\n[대상]\ncontext/01-profile.md, context/02-experiences.md와 검색 메모를 사용하라.`,
         });
         if (formatted.status !== 'completed') {
           return { status: formatted.status, error: `검색 메모를 JSON으로 구조화하지 못했습니다: ${formatted.error}` };
@@ -847,7 +848,7 @@ async function processInterviewJob(supabase, ownerId, job) {
     experiences: experiences ?? [],
     existingQuestions: existingQuestions ?? [],
   });
-  const prompt = `${template.body}\n\n[작성 대상]\ncontext/01-job-description.md, context/02-company-research.md, context/03-experiences.md, context/04-existing-questions.md를 읽고 스키마에 맞는 JSON으로만 답하라. 답안은 Markdown이며 경험 카드에 없는 사실은 만들지 않는다.`;
+  const prompt = `${template.body}\n\n${systemRulesFor('interview')}\n\n[작성 대상]\ncontext/01-job-description.md, context/02-company-research.md, context/03-experiences.md, context/04-existing-questions.md를 읽고 스키마에 맞는 JSON으로만 답하라. 답안은 Markdown이다.`;
 
   await recordAndRun(supabase, ownerId, job, {
     provider,
@@ -946,7 +947,7 @@ async function processSubtitleJob(supabase, ownerId, job) {
 
   const runIdForWorkspace = randomUUID();
   const { workspace, contextDir, schemaPath } = createSubtitleContextPack(runIdForWorkspace, { essay: effectiveEssay, existingSubtitle: essay.subtitle });
-  const prompt = `${template.body}\n\n[대상]\ncontext/01-essay-draft.md, context/02-question.md, context/03-existing-subtitle.md를 읽고 스키마에 맞는 JSON으로만 답하라. 파일을 새로 만들거나 수정하지 말고 답변만 하라.`;
+  const prompt = `${template.body}\n\n${systemRulesFor('subtitle')}\n\n[대상]\ncontext/01-essay-draft.md, context/02-question.md, context/03-existing-subtitle.md를 읽고 스키마에 맞는 JSON으로만 답하라. 파일을 새로 만들거나 수정하지 말고 답변만 하라.`;
 
   await recordAndRun(supabase, ownerId, job, {
     provider,
