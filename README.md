@@ -195,7 +195,7 @@ All seven agents at a glance: which one is running, how the last run ended, whet
 
 Lumi and Moka launch directly from their own cards.
 
-<img src="docs/images/screens/01-dashboard.png" alt="Dashboard" width="100%">
+<img src="docs/images/screens/01-dashboard.png?v=0750026" alt="Dashboard" width="100%">
 
 <br>
 
@@ -234,7 +234,7 @@ Seven sections — education, certifications, activities, training, projects, wo
 You stop re-finding your GPA or a certificate registration number for every application. Supporting documents such as transcripts live here too — files go to a private bucket, and opening one mints a 60-second signed link rather than exposing a public URL.
 
 <!-- PLACEHOLDER — replace this file with a real capture. Spec: docs/images/screens/README.md -->
-<img src="docs/images/screens/07-records.png" alt="Personal dossier" width="100%">
+<img src="docs/images/screens/07-records.png?v=0750026" alt="Personal dossier" width="100%">
 
 <br>
 
@@ -245,7 +245,7 @@ Record project experience broken into context, problem, your role, judgement, ac
 Only what you record here can be used as evidence by Muse.
 
 <!-- PLACEHOLDER — replace this file with a real capture. Spec: docs/images/screens/README.md -->
-<img src="docs/images/screens/05-experiences.png" alt="Experience archive" width="100%">
+<img src="docs/images/screens/05-experiences.png?v=0750026" alt="Experience archive" width="100%">
 
 <br>
 
@@ -254,7 +254,7 @@ Only what you record here can be used as evidence by Muse.
 Draft and refine answers to the questions Echo generated.
 
 <!-- PLACEHOLDER — replace this file with a real capture. Spec: docs/images/screens/README.md -->
-<img src="docs/images/screens/06-interviews.png" alt="Interview practice room" width="100%">
+<img src="docs/images/screens/06-interviews.png?v=0750026" alt="Interview practice room" width="100%">
 
 <br>
 

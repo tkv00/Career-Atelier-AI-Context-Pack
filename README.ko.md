@@ -195,7 +195,7 @@ Career Atelier는 세 번째 방법입니다. **이미 구독 중인 CLI 도구*
 루미와 모카는 각자의 카드에서 바로 실행할 수 있습니다.
 
 <!-- 자리표시자 — 이 파일을 실제 캡처로 덮어쓰세요. 규격: docs/images/screens/README.md -->
-<img src="docs/images/screens/01-dashboard.png" alt="관제실" width="100%">
+<img src="docs/images/screens/01-dashboard.png?v=0750026" alt="관제실" width="100%">
 
 <br>
 
@@ -237,7 +237,7 @@ Career Atelier는 세 번째 방법입니다. **이미 구독 중인 CLI 도구*
 지원서를 쓸 때마다 학점이나 자격증 등록번호를 다시 찾지 않아도 됩니다. 성적증명서·졸업증명서 같은 파일도 함께 보관하며, 파일은 비공개 저장소에 올라가고 열람할 때만 60초짜리 링크가 만들어집니다.
 
 <!-- 자리표시자 — 이 파일을 실제 캡처로 덮어쓰세요. 규격: docs/images/screens/README.md -->
-<img src="docs/images/screens/07-records.png" alt="나의 정보" width="100%">
+<img src="docs/images/screens/07-records.png?v=0750026" alt="나의 정보" width="100%">
 
 <br>
 
@@ -248,7 +248,7 @@ Career Atelier는 세 번째 방법입니다. **이미 구독 중인 CLI 도구*
 여기 적은 것만 뮤즈가 근거로 쓸 수 있습니다.
 
 <!-- 자리표시자 — 이 파일을 실제 캡처로 덮어쓰세요. 규격: docs/images/screens/README.md -->
-<img src="docs/images/screens/05-experiences.png" alt="경험 아카이브" width="100%">
+<img src="docs/images/screens/05-experiences.png?v=0750026" alt="경험 아카이브" width="100%">
 
 <br>
 
@@ -257,7 +257,7 @@ Career Atelier는 세 번째 방법입니다. **이미 구독 중인 CLI 도구*
 에코가 만든 질문에 답을 적고 다듬습니다.
 
 <!-- 자리표시자 — 이 파일을 실제 캡처로 덮어쓰세요. 규격: docs/images/screens/README.md -->
-<img src="docs/images/screens/06-interviews.png" alt="면접 훈련실" width="100%">
+<img src="docs/images/screens/06-interviews.png?v=0750026" alt="면접 훈련실" width="100%">
 
 <br>
 
