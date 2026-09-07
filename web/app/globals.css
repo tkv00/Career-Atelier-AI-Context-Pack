@@ -2693,14 +2693,6 @@ input.interview-question-title:focus {
   border-color: var(--cyan-dim);
   box-shadow: 0 0 0 3px #58cfe41f;
 }
-/* 이 화면이 프롬프트 전체가 아니라는 것 — 근거 강제 같은 규칙은 여기 없이도
-   실행 시 항상 붙는다는 것 — 을 편집 시작 전에 알려준다. */
-.prompt-lab-hint {
-  margin: 0 0 var(--s2);
-  color: var(--text-dim);
-  font-size: var(--fs-xs);
-  line-height: 1.6;
-}
 /* 비서별 실행 LLM 선택. 프롬프트 본문 바로 위에 둔다 — "이 프롬프트가 어디서
    도는가"는 본문을 고칠 때 같이 보이는 게 맞다. */
 .prompt-lab-provider {

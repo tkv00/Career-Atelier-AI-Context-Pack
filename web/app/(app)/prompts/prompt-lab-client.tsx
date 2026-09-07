@@ -233,9 +233,6 @@ export function PromptLabClient({ templates, versions }: { templates: Template[]
           </label>
           <small>{isProvider(selected.provider) ? PROVIDER_META[selected.provider].requires : ''}</small>
         </div>
-        <p className="prompt-lab-hint">
-          여기서는 이 비서의 성격과 조사 방식만 고칩니다. 근거 인용·출력 형식처럼 서비스가 반드시 지켜야 하는 규칙은 시스템에 고정되어 있어 이 화면에 나오지 않고, 실행할 때 자동으로 함께 적용됩니다.
-        </p>
         <textarea
           className="prompt-lab-body"
           value={body}
