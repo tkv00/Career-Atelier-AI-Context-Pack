@@ -29,5 +29,16 @@
     "eslint-config-next": "16.2.6",
     "typescript": "5.9.3"
   },
-  "type": "module"
+  "type": "module",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tkv00/Career-Atelier-AI-Context-Pack.git",
+    "directory": "web"
+  },
+  "bugs": {
+    "url": "https://github.com/tkv00/Career-Atelier-AI-Context-Pack/issues"
+  },
+  "homepage": "https://github.com/tkv00/Career-Atelier-AI-Context-Pack#readme",
+  "packageManager": "npm@10.9.2"
 }

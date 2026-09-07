@@ -2,20 +2,9 @@ import { appendFileSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 
-// 토큰 계측 — 이 서버를 만든 이유(요구사항 3번)가 토큰 절감이라, 절감했다는
-// 주장을 숫자로 뒷받침하지 못하면 만든 의미가 절반이다.
-//
-// 공식 토크나이저를 부르지 않는다. 이 프로젝트엔 API 키가 없고(§19.2 #11),
-// 토큰 수를 재겠다고 키를 들이는 건 앞뒤가 안 맞는다. 대신 **정확히 잴 수
-// 있는 것(문자 수)을 1차 지표로 삼고**, 공개된 환산식으로 토큰을 2차
-// 추정치로 낸다. 검증자가 같은 입력으로 같은 숫자를 재현할 수 있어야 한다.
-
-// 문자 클래스별 "토큰 하나가 삼키는 평균 문자 수".
-//
-// 한글이 ASCII보다 훨씬 나쁜 게 이 계산의 핵심이다 — BPE 사전이 영어
-// 중심이라 한글은 음절 하나가 토큰 1개를 넘기기도 한다. 한 덩어리 평균값
-// (흔히 쓰는 "4자 = 1토큰")을 한글 문서에 그대로 적용하면 절감량을 3배쯤
-// 부풀리게 된다. 그래서 클래스를 나눈다.
+// 바이트·문자 수는 직접 측정하고 토큰은 아래 가정으로 추정한다. 이 계수는
+// 특정 제공자 토크나이저에 교정한 값이 아니므로 실제 사용량으로 인용하지 않는다.
+// 공식 토크나이저를 로컬에서 사용하는 확장도 가능하지만 현재 실험과는 구분해야 한다.
 const CHARS_PER_TOKEN = {
   hangul: 1.5,   // 가-힣 음절
   cjk: 1.0,      // 한자·가나
@@ -57,9 +46,10 @@ export function measure(text) {
 const metricsDir = resolve(homedir(), '.career-atelier');
 const metricsPath = resolve(metricsDir, 'mcp-metrics.jsonl');
 
-// 한 줄에 한 호출. 나중에 벤치마크 스크립트가 이 파일만 읽고 집계한다.
+// 일반 호출의 추정값을 남긴다. 연구 벤치마크는 별도 원시 전송량을 기록한다.
 // 실패해도 서버를 죽이지 않는다 — 계측 때문에 임포트가 막히면 본말전도다.
 export function record(entry) {
+  if (process.env.CAREER_MCP_METRICS_DISABLED === '1') return;
   try {
     mkdirSync(metricsDir, { recursive: true });
     appendFileSync(metricsPath, `${JSON.stringify({ at: new Date().toISOString(), ...entry })}\n`);

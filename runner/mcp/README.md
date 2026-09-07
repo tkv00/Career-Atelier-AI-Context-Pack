@@ -1,202 +1,140 @@
-# runner/mcp/ — Career Atelier MCP 서버
+# Career Atelier 경험 가져오기 MCP
 
-외부에 흩어져 있는 경험 정리본·기본정보를 **한 번에** 읽어 Career Atelier의
-각 표에 바로 저장한다. MCP 클라이언트(Claude Code 등)가 stdio로 붙는다.
+Excel·Markdown·JSON·Notion의 구조화된 정리본을 기존 이력정보·경험 카드 저장 파이프라인으로 연결하는 로컬 서버다. 모델이 원문을 다시 작성하지 않아도 되도록 소스를 직접 파싱한다. MCP는 도구 발견·호출의 공통 인터페이스이며 파싱이나 토큰 압축 알고리즘 자체는 아니다.
 
-`runner/README.md`와 같은 규칙으로 쓴다 — **무엇이 실제로 검증됐고 무엇이
-아직인지**를 분명히 적는다.
+## 시작하기
 
-<br>
+Node 22.13 이상에서 `cd runner && npm ci`를 실행한다. DB에 쓰려면 프로젝트 설치와 본인 계정의 `npm run login`을 먼저 완료한다. 파일 미리보기에는 DB 로그인이 필요 없다. 일반 작업 큐 러너를 계속 켜 둘 필요도 없다.
 
-## 왜 만들었나
+저장소 루트의 `.mcp.json`을 지원하는 클라이언트에서 열거나, MCP 서버 실행 명령을 `node`, 인자를 `<저장소 절대경로>/runner/mcp/server.mjs`로 등록한다. 클라이언트의 승인·재연결 절차를 완료하면 아래 세 도구를 사용할 수 있다.
 
-에이전트에게 "이 정리본 읽고 DB에 넣어 줘"라고 시키면 원문이 컨텍스트로
-들어오고, 모델이 그걸 다시 구조화해 INSERT 인자로 뱉는다. **원문이 두 번,
-정확히는 2.5배로 토큰이 된다.**
-
-이 서버는 소스를 직접 읽고 DB에 직접 쓴다. 모델은 "어디서 가져와라"와 압축된
-영수증만 주고받는다. 원문은 모델 컨텍스트를 **한 번도 통과하지 않는다.**
-
-실제 측정 결과 동일한 입력에서 3,006 -> 114 토큰으로 약 96.2%의 토큰 소비를 절감합니다.
-
-<br>
-
-## 파일
-
-| 파일 | 역할 |
+| 도구 | 하는 일 |
 |---|---|
-| `server.mjs` | MCP JSON-RPC(stdio) 서버 + 툴 3종. CLI 모드도 겸한다 |
-| `sources.mjs` | 소스 어댑터 — 로컬 파일 / Notion 페이지 · 데이터베이스 |
-| `parse.mjs` | Markdown → 구조화 항목. 정규식만 쓴다(LLM 미사용) |
-| `store.mjs` | 항목 → 표별 행 매핑·검증, Supabase 연결과 저장 |
-| `metrics.mjs` | 토큰 계측 |
-| `bench.mjs` | before/after 벤치마크 |
-| `fixtures/sample-notes.md` | 표본 정리본. **입력 형식 문서 역할도 겸한다** |
+| `preview_import` | 제목 예시·테이블별 건수·진단·소스 해시를 반환. DB에 쓰지 않음 |
+| `import_records` | 기본 `dry_run=true`. 명시적으로 `false`를 전달하면 저장 |
+| `db_snapshot` | 사용자 세션으로 테이블별 행 수 조회 |
 
-<br>
+`source`는 로컬 파일 경로 또는 Notion 소스 URI다. `section`은 종류, `sheet`는 엑셀 시트, `column_map`은 원래 열 이름 → 지원 필드 이름이다. 저장에는 `only`로 종류를 제한하고, 미리보기의 `source_digest`를 `expected_digest`로 전달할 수 있다. 해시는 읽은 내용과 section·sheet·column_map에 적용되며, only나 현재 DB 상태를 고정하지 않는다.
 
-## 툴 3종
+## Excel 가져오기
 
-| 툴 | 하는 일 |
+[합성 예제 XLSX](../../docs/research/mcp-import/examples/ko-2.xlsx)를 복사해 가상 경험을 실제 내용으로 바꾼다. 첫 행은 열 제목, 이후 한 행은 경험 하나다. 시트 이름을 `Experience` 또는 `경험`으로 두거나 `section`을 전달한다.
+
+| 열 | 의미 |
 |---|---|
-| `preview_import` | 무엇이 저장될지 미리 보여준다. **DB에 쓰지 않는다** |
-| `import_records` | 실제 저장. 기본값이 `dry_run=true`라 쓰려면 `dry_run=false` 명시 필요 |
-| `db_snapshot` | 표별 현재 행 수. 임포트 전후 비교용 |
-
-**기본값이 dry-run인 이유**: 이 DB에는 실제 지원 데이터가 들어간다. 툴은
-모델이 자동으로 부를 수 있는 표면이라, 기본값이 쓰기면 오호출 한 번이 곧
-오염이다. 보고 → 승인 → 쓰기 순서를 기본값으로 강제한다.
-
-<br>
-
-## 쓰는 법
-
-### 1. MCP 클라이언트에 붙이기
-
-리포 루트의 `.mcp.json`에 이미 등록돼 있다. Claude Code를 프로젝트 폴더에서
-실행하면 잡히고, **최초 1회 승인**이 필요하다(`claude mcp list`에서
-`[Pending approval]`로 보인다).
-
-### 2. 정리본 형식
-
-`fixtures/sample-notes.md`가 그대로 예시다. 규칙은 셋뿐이다.
-
-```markdown
-# 경험          ← 1단계 제목이 "어느 표에 넣을지"를 정한다
-## 교내 스터디 운영진   ← 2단계 제목이 항목 하나(제목이 된다)
-- 상황: ...            ← "- 키: 값"이 필드
-- 결과: ...
-- 수치: 출석률 40%→85%, 인원 12명   ← 쉼표로 나뉘어 배열이 된다
-```
-
-인식하는 섹션: `기본정보` · `경험` · `학력` · `자격증` · `대외활동` ·
-`교육활동` · `프로젝트` · `경력사항` · `수상내역`
-
-필드 이름은 별칭을 여럿 받는다(`상황`/`맥락`/`배경`, `결과`/`성과` 등).
-**못 알아본 키는 버리지 않고** `detail`/`memo`로 흘려 넣는다 — 사용자가 쓴
-내용이 조용히 사라지는 게 제일 나쁘다. 섹션 자체를 못 알아보면 `skipped`에
-이유와 함께 담아 돌려준다.
-
-### 3. 손으로 돌려보기
+| title / 제목 | 경험명, 필수 |
+| context / 상황 | 배경 |
+| problem / 문제 | 해결 대상 |
+| role_scope / 역할 | 자신의 역할 |
+| judgment / 판단 | 선택한 이유 |
+| action / 행동 | 수행 내용 |
+| result / 결과 | 결과 |
+| trial_error / 시행착오 | 실패와 수정 |
+| reflection / 회고 | 배운 점 |
+| metrics / 수치 | 쉼표로 나눈 수치 목록 |
+| tags / 태그 | 쉼표로 나눈 태그 목록 |
 
 ```bash
 cd runner
-npm run mcp:preview -- /절대경로/정리본.md   # 미리보기(안 씀)
-node mcp/server.mjs import --source /절대경로/정리본.md          # dry-run
-node mcp/server.mjs import --source /절대경로/정리본.md --write  # 실제 저장
-npm run mcp:snapshot                          # 표별 행 수
-npm run mcp:bench                             # 토큰 before/after
+node mcp/server.mjs preview --source /절대경로/경험.xlsx --sheet Experience --section 경험
+node mcp/server.mjs import --source /절대경로/경험.xlsx --sheet Experience --section 경험
 ```
 
-### 4. Notion 연결 (아직 안 해 둔 상태)
+위 두 명령은 저장하지 않는다. 미리보기를 확인한 후 같은 import 명령에 `--only experience --expected-digest <미리보기 해시> --write`를 추가하면 쓴다.
 
-1. https://www.notion.so/my-integrations 에서 내부 통합 생성
-2. 가져올 페이지·DB를 그 통합과 **공유**(Notion은 공유 안 하면 API에 안 보인다)
-3. `runner/.env`에 `NOTION_TOKEN=secret_...` 추가
-4. `source`를 `notion://page/<id>` 또는 `notion://database/<id>`로 지정
+기존 열 이름은 도구 인자 `column_map: {"경험 이름":"title","성과 요약":"result"}`로 연결한다. CLI에서는 `--column-map '{"경험 이름":"title","성과 요약":"result"}'`를 사용한다. 기본적으로 보이는 모든 시트를 읽고, `sheet`를 지정하면 그 시트만 읽는다.
 
-<br>
+- 지원: .xlsx, 날짜의 ISO 변환, 여러 시트, 셀 내부 줄바꿈·# 문자, rich text의 텍스트.
+- 제한: 파일 10 MiB, 시트당 데이터 10,000행·100열. 압축 해제 후 메모리의 엄격한 격리 한도는 아니다.
+- 수식·병합 셀은 거부한다. 일반 값으로 정리해야 한다. 숫자로 저장된 등록번호의 앞자리 0은 복원하지 못하므로 텍스트 셀을 사용한다.
+- 제목 누락은 skipped, 알 수 없는 열은 warnings로 보고하며 **그 열의 값은 저장하지 않는다**. 중복 열·중복 필드 매핑은 오류다.
+- 구형 .xls·CSV·OCR·자유 서술의 AI 추출은 지원하지 않는다.
 
-## 다른 LLM에서도 쓸 수 있는가 — 쓸 수 있다
+## Markdown과 JSON
 
-**Claude 전용이 아니다.** Anthropic SDK를 안 쓰고 MCP 규약(JSON-RPC 2.0 over
-stdio)만 구현했으므로, MCP를 지원하는 클라이언트면 무엇이든 붙는다.
+[Markdown 예제](fixtures/sample-notes.md)의 형식을 따른다.
 
-이 기기에 설치된 세 CLI가 전부 MCP 서버를 붙일 수 있다는 걸 확인했다.
-
-| CLI | 버전 | MCP 지원 | 등록 명령 |
-|---|---|---|---|
-| Codex (OpenAI) | 0.149.1 | `codex mcp` | `codex mcp add career-atelier -- node <경로>/server.mjs` |
-| Claude Code (Anthropic) | 2.1.259 | `.mcp.json` · `--mcp-config` | 리포 루트 `.mcp.json`에 등록됨 |
-| Antigravity (Google) | 1.1.24 | `agy mcp` | `agy mcp add career-atelier -- node <경로>/server.mjs` |
-
-즉 **이 프로젝트가 쓰는 GPT · Claude · Gemini 세 구독 모두에서 같은 서버를
-그대로 쓴다.** Cursor · Windsurf · Cline · Zed 등 MCP를 지원하는 다른 클라이언트도
-같은 방식이다.
-
-클라이언트마다 요청 습관이 달라서, 실제로 다양한 패턴을 넣어 확인했다.
-
-- 구버전 프로토콜(`2024-11-05`)과 신버전(`2025-06-18`) 모두 협상 성공
-- 지원하지 않는 버전을 요청하면 서버 지원 버전으로 폴백
-- `clientInfo`·`capabilities.roots`·`capabilities.sampling`을 함께 보내도 정상
-- `ping`, `tools/list {cursor:null}`, `arguments` 생략한 `tools/call` 모두 정상
-- `notifications/cancelled` 같은 알림은 응답하지 않음(규약대로)
-- `resources/list`·`prompts/list`는 빈 목록으로 답한다. 규약상 이 서버는
-  tools만 선언하므로 클라이언트가 안 물어봐야 맞지만, 그냥 물어보는 구현이
-  있어서 오류 대신 빈 목록으로 돌려준다 — 클라이언트 로그에 오류가 쌓여
-  사용자가 고장으로 오해하는 걸 막는다.
-
-**의존성이 0개**라는 점도 이식성에 그대로 기여한다. `node`만 있으면 돈다.
-
-<br>
-
-## 안전장치
-
-러너와 같은 원칙을 그대로 따른다.
-
-- **`service_role` 키를 쓰지 않는다.** 러너의 사용자 세션
-  (`~/.career-atelier/session.json`)으로 로그인해 **RLS를 그대로 적용받는다.**
-  남의 행은 애초에 안 보인다.
-- **`runner/` 안에 있어 Vercel에 올라가지 않는다**(루트 `.vercelignore`).
-- **쓰기 기본값은 dry-run.**
-- **지우지 않는다.** 자연키가 같으면 갱신하고, 없으면 추가한다.
-- **LLM을 부르지 않는다.** 파싱은 전부 정규식이다.
-- **새 의존성 0개.** MCP 프로토콜을 직접 구현했고, Supabase 클라이언트는
-  러너 것을 그대로 쓴다.
-
-<br>
-
-## 검증 상태
-
-이 프로젝트의 기준("typecheck는 검증이 아니다")대로, 실제로 돌려 본 것과
-아닌 것을 나눠 적는다. 전부 2026-09-03.
-
-### 실제로 확인한 것
-
-- **MCP 프로토콜 전 구간** — `initialize`(프로토콜 협상 포함) → `tools/list`
-  → `tools/call` → 오류 경로(`isError:true`)까지 stdio로 직접 주고받아 확인.
-  로그가 stdout을 오염시키지 않는 것도 확인(전부 stderr).
-- **파싱·매핑** — 표본 12항목이 9개 표로 정확히 갈렸고, 학점 `3.82 / 4.5` →
-  `gpa=3.82, gpa_scale=4.5`, 기간 `2020-03 ~ 2024-02` → 시작·종료일,
-  `복수전공` → `secondary_major_type='복수전공'`, 수치·태그 배열 분리까지
-  값 단위로 대조했다.
-- **실제 Supabase 쓰기** — `[MCP-TEST]` 표식을 붙인 행 3건을 실제로 INSERT해
-  `created:3, failed:0`을 확인하고, 저장된 값을 되읽어 대조한 뒤 **전부 삭제해
-  원상복구**했다(검증 전후 행 수 동일).
-- **멱등성** — 같은 소스로 재실행 시 `created:0, updated:3`. 중복이 쌓이지 않는다.
-- **Claude Code 등록** — `claude mcp list`에 `career-atelier`로 잡히는 것 확인.
-
-### 확인하지 못한 것
-
-- **Notion 실호출.** 자격증명이 없어 **한 번도 호출하지 못했다.**
-  `sources.mjs`의 Notion 코드는 API v1 문서 형태에 맞춰 썼을 뿐 실제 응답으로
-  대조하지 않았다. 첫 호출 때 속성 이름이 어긋날 수 있다.
-- **사용자의 실제 정리본 형식.** 표본은 내가 만든 것이다. 실제 정리본이 다른
-  형식이면 `parse.mjs`의 별칭 표를 늘려야 한다.
-- **Windows·Linux 실행.** macOS에서만 돌렸다. 경로 처리는 `fileURLToPath`로
-  고쳐 뒀지만(`URL.pathname`은 Windows에서 `/C:/...`가 된다) 실제로 돌려보진 않았다.
-
-<br>
-
-## 작업 중 발견한 기존 결함
-
-MCP와 무관하게 **원래 있던 문제**다. 여기서 걸려서 기록해 둔다.
-
-**`education_records.gpa_scale`이 `numeric(4,2)`라 만점 100을 못 담는다.**
-마이그레이션 `0020_personal_records.sql:27`의 주석은 만점 예시로
-"4.5 / 4.3 / **100** 등"을 들고 있지만, `numeric(4,2)`의 상한은 99.99다.
-실제로 `gpa_scale: 100`을 넣어 보면 `numeric field overflow`로 INSERT가 깨진다
-(직접 확인).
-
-백분위 학점을 쓰는 학교 출신이면 학력 저장이 실패한다. 이 서버는
-`store.mjs`의 `safeNumeric()`으로 막고 경고로 올리지만(임포트 전체가 깨지지
-않게), **근본 해결은 컬럼을 넓히는 마이그레이션**이다.
-
-```sql
--- supabase/migrations/0023_widen_gpa_scale.sql (아직 만들지 않음)
-alter table education_records alter column gpa_scale type numeric(5, 2);
+```markdown
+# 경험
+## 스터디 운영
+- 상황: 참여자 출석률 하락
+- 행동: 난이도별 문제 분리
+- 결과: 다음 학기 운영 지속
+- 태그: 협업, 문제해결
 ```
 
-마이그레이션은 append-only이고 스키마 변경에는 타입 재생성이 따라야 해서
-(`supabase gen types typescript --linked`), 자는 사이에 임의로 추가하지 않고
-판단을 남겨 둔다.
+1단계 제목은 종류, 2단계 제목은 항목, 목록의 키는 필드다. 지원 종류는 `profile / education / certification / activity / training / project / work / award / experience`이며 한글 별칭도 받는다. Markdown의 일부 미인식 키는 상세 내용·메모에 남지만, 엑셀의 미인식 열 보존 정책과 같지는 않다.
+
+JSON은 `[{"kind":"experience","title":"경험명","fields":{"action":"행동","result":"결과"}}]` 또는 `{"items":[...]}` 형식이다. 잘못된 항목은 skipped로 보고한다. DB 백업 JSON을 그대로 가져오는 기능은 아니다.
+
+## Notion 연결
+
+1. [내부 통합](https://www.notion.so/my-integrations)을 만들고 해당 페이지·DB 읽기 권한을 부여한다.
+2. 로컬 `runner/.env`에 `NOTION_TOKEN=<발급 토큰>`을 저장한다. 서버가 실행 위치와 관계없이 읽으며 기존 프로세스 변수가 우선한다.
+3. MCP 서버를 재시작한다. 토큰을 웹 환경변수에 넣거나 Git에 커밋하지 않는다.
+
+| URI | 입력 |
+|---|---|
+| `notion://page/<ID>` | 본문의 제목·목록을 Markdown 규칙으로 해석 |
+| `notion://database/<ID>` | `section` 필수. 소스가 하나면 자동 선택 |
+| `notion://data-source/<ID>` | `section` 필수. 여러 소스 중 하나를 명시 |
+
+```bash
+cd runner
+node mcp/server.mjs preview --source "notion://database/<DB-ID>" --section 경험
+```
+
+일반 공유 URL이나 보기 ID 대신 32자리 페이지·DB·데이터 소스 ID를 사용한다. Notion API `2025-09-03`의 data_sources 조회와 페이지네이션을 사용한다. DB의 제목 속성은 자동으로 title에 매핑하며, 나머지 이름은 `column_map`으로 연결할 수 있다. 행 본문·첨부파일·지원하지 않는 속성은 가져오지 않는다. 페이지 중첩은 8단계, 블록/DB 행은 10,000개, 요청은 200회, HTTP 요청별 시간 제한은 20초다. 429 재시도나 자동 양방향 동기화는 없다.
+
+## 저장과 진단
+
+러너의 사용자 세션과 기존 Supabase 클라이언트를 사용한다. service_role 키를 요구하지 않고 기존 RLS의 적용을 받는다. 경험 제목 같은 자연키가 같으면 갱신하고, 없으면 추가한다. 삭제·일괄 롤백은 없다. 일부 행이 성공하고 일부가 실패할 수 있으므로 `written.created / updated / failed`와 `failures`를 확인한다. 제목 충돌이나 동시 가져오기의 경쟁 조건까지 막는 DB 유니크 제약은 이번 변경에 포함하지 않았다.
+
+미리보기와 import의 `diagnostic_counts`는 전체 건수이며, skipped·rejected·warnings와 테이블별 제목 예시는 각 20개까지 반환한다. `expected_digest`는 선택적 변경 감지다. 검토·동의 여부를 서버가 판정하거나 트랜잭션으로 보장하지 않는다.
+
+## 원리·코드 위치
+
+초기화(`initialize → notifications/initialized`) 이후 `tools/list`로 스키마를 찾고 `tools/call`로 호출한다. stdin/stdout의 한 줄 JSON-RPC를 쓰며 로그는 stderr에 남긴다. MCP 서버는 로컬 파일·Notion을 읽고 검증한 뒤 사용자의 DB 세션으로 저장한다. AI 자격증명을 웹에 전달하지 않는다.
+
+| 파일 | 책임 |
+|---|---|
+| server.mjs | 도구 스키마, 파이프라인, stdio/CLI, digest |
+| sources.mjs / env.mjs | 파일·Notion 소스와 로컬 환경변수 |
+| excel.mjs / tabular.mjs | XLSX 해석, 열 매핑, 표의 행 경계 보존 |
+| parse.mjs / store.mjs | Markdown·필드 별칭, 행 검증과 기존 저장 로직 |
+| metrics.mjs | 문자 종류별 토큰 추정, 로컬 기록 |
+| research/benchmark.mjs | 실제 직접 호출 대 MCP 호출, 원시 데이터 |
+| research/client.mjs | 별도 프로세스 stdio 측정 클라이언트 |
+| test/mcp-import.test.mjs (runner 기준) | 소스·프로토콜·저장 함수 실행 테스트 |
+
+새 직접 의존성 ExcelJS 4.4.0은 표준 라이브러리에 없는 OOXML ZIP/XML·공유 문자열·날짜 처리를 맡는다. 간접 uuid는 11.1.1로 제한했다. MCP SDK는 추가하지 않았으므로 프로토콜 변경의 유지보수는 이 구현이 담당한다. 현재 tools 중심의 stdio 구현이며 모든 MCP 기능의 완전한 적합성 검증을 주장하지 않는다.
+
+## 정량 평가와 발표 자료
+
+설계 이유, 구현 단계, 비정형 입력의 예외와 한계, 실제 에이전트 usage 측정 절차는 [상세 기술 블로그 초안](../../docs/research/mcp-import/BLOG.ko.md)에 정리했다. 실제 에이전트 실행은 아직 수행하지 않았으며, 로그 추출기는 사용자가 실행한 결과만 읽는다.
+
+```bash
+cd runner
+npm test
+npm run mcp:research
+cd ..
+python3 scripts/render-mcp-research.py
+```
+
+`npm run mcp:bench`도 동일한 재현 실험을 실행한다. 렌더러에는 matplotlib·numpy·Pillow와 Graphviz, 한국어 글꼴이 필요하다. 서비스 런타임 의존성은 아니다.
+
+- A: 원문 + DB 인자 재서술 문자열의 **가정 기준선**. 실제 모델 실행 없음.
+- B: 같은 파서를 직접 호출하는 dry-run. 실제 시간 측정.
+- C: 같은 파서를 별도 MCP stdio 프로세스로 호출하는 dry-run. 실제 시간·요청/응답 바이트 측정.
+- 한글/영문 × MD/XLSX × 10/100/1,000건, 각 B·C 20회 = 480회. 합성 입력 48,840개 필드 일치.
+- 실제 DB 쓰기·Notion 네트워크·LLM 실행 시간·사용자 입력 시간·제공자 토큰은 이 벤치마크에서 측정하지 않았다.
+
+`token_metrics`는 과거 형식과의 호환을 위한 문자 기반 추정이다. 도구 스키마·요청·프로토콜 외피·metrics 필드를 제외하므로 자체 절감률을 실제 비용 절감으로 인용하면 안 된다. 연구 벤치마크는 이들과 미리보기 왕복을 별도로 포함해 기록한다. 일반 호출의 로컬 메트릭 로그도 성능에 영향을 줄 수 있어 실험에서는 `CAREER_MCP_METRICS_DISABLED=1`로 끈다.
+
+[한국어 보고서](../../docs/research/mcp-import/REPORT.ko.md) · [SVG/PDF/PNG 갤러리](../../docs/research/mcp-import/index.html) · [측정 결과](../../docs/research/mcp-import/data/results.json) · [480회 원시 기록](../../docs/research/mcp-import/data/trials.csv)
+
+## 이번 변경에서 실제로 검증한 범위
+
+2026-09-06 macOS에서 실제 XLSX 생성·파싱, 한글·영문 필드값, 수식·병합 셀 거부, 날짜, 열 매핑, JSON 진단, 변경 해시를 검사했다. 별도 Node 프로세스로 MCP 초기화·발견·미리보기·dry-run·오류 응답을 주고받았다.
+
+Notion은 고정 HTTP 응답으로 데이터 소스 탐색·페이지네이션·중첩·권한 오류를 검사했다. 저장 함수는 메모리 DB 대역으로 생성·갱신·소유자 필터·일부 실패를 검사했다. **실 Notion 계정, 운영 Supabase 쓰기, 실제 LLM 호출과 Windows/Linux는 이번 검증에 포함하지 않았다.** 기존 실데이터는 변경하지 않았다. 합성 템플릿의 일치율을 임의 사용자 문서의 정확도로 일반화할 수 없다.

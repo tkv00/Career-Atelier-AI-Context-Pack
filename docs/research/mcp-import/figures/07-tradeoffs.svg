@@ -1,0 +1,306 @@
+<?xml version="1.0" encoding="utf-8" standalone="no"?>
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN"
+  "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg xmlns:xlink="http://www.w3.org/1999/xlink" width="774.72pt" height="414.928312pt" viewBox="0 0 774.72 414.928312" xmlns="http://www.w3.org/2000/svg" version="1.1">
+ <metadata>
+  <rdf:RDF xmlns:dc="http://purl.org/dc/elements/1.1/" xmlns:cc="http://creativecommons.org/ns#" xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#">
+   <cc:Work>
+    <dc:type rdf:resource="http://purl.org/dc/dcmitype/StillImage"/>
+    <dc:date>2026-09-06T16:03:15.731723</dc:date>
+    <dc:format>image/svg+xml</dc:format>
+    <dc:creator>
+     <cc:Agent>
+      <dc:title>Matplotlib v3.8.3, https://matplotlib.org/</dc:title>
+     </cc:Agent>
+    </dc:creator>
+   </cc:Work>
+  </rdf:RDF>
+ </metadata>
+ <defs>
+  <style type="text/css">*{stroke-linejoin: round; stroke-linecap: butt}</style>
+ </defs>
+ <g id="figure_1">
+  <g id="patch_1">
+   <path d="M 0 414.928312
+L 774.72 414.928312
+L 774.72 0
+L 0 0
+z
+" style="fill: #ffffff"/>
+  </g>
+  <g id="axes_1">
+   <g id="table_1">
+    <g id="patch_2">
+     <path d="M 97.92 117.2898
+L 231.84 117.2898
+L 231.84 84.33072
+L 97.92 84.33072
+z
+" style="fill: #d9e8f1; stroke: #d1dce5; stroke-linejoin: miter"/>
+    </g>
+    <g id="text_1">
+     <text style="font: 10px 'AppleGothic'; text-anchor: middle" x="164.88" y="103.870416" transform="rotate(-0 164.88 103.870416)">설계 선택</text>
+    </g>
+    <g id="patch_3">
+     <path d="M 231.84 117.2898
+L 459.504 117.2898
+L 459.504 84.33072
+L 231.84 84.33072
+z
+" style="fill: #d9e8f1; stroke: #d1dce5; stroke-linejoin: miter"/>
+    </g>
+    <g id="text_2">
+     <text style="font: 10px 'AppleGothic'; text-anchor: middle" x="345.672" y="103.870416" transform="rotate(-0 345.672 103.870416)">얻는 것</text>
+    </g>
+    <g id="patch_4">
+     <path d="M 459.504 117.2898
+L 767.52 117.2898
+L 767.52 84.33072
+L 459.504 84.33072
+z
+" style="fill: #d9e8f1; stroke: #d1dce5; stroke-linejoin: miter"/>
+    </g>
+    <g id="text_3">
+     <text style="font: 10px 'AppleGothic'; text-anchor: middle" x="613.512" y="103.870416" transform="rotate(-0 613.512 103.870416)">지불하는 비용</text>
+    </g>
+    <g id="patch_5">
+     <path d="M 97.92 150.24888
+L 231.84 150.24888
+L 231.84 117.2898
+L 97.92 117.2898
+z
+" style="fill: #f6f9fb; stroke: #d1dce5; stroke-linejoin: miter"/>
+    </g>
+    <g id="text_4">
+     <text style="font: 10px 'AppleGothic'; text-anchor: start" x="111.312" y="136.829496" transform="rotate(-0 111.312 136.829496)">정해진 표 형식</text>
+    </g>
+    <g id="patch_6">
+     <path d="M 231.84 150.24888
+L 459.504 150.24888
+L 459.504 117.2898
+L 231.84 117.2898
+z
+" style="fill: #f6f9fb; stroke: #d1dce5; stroke-linejoin: miter"/>
+    </g>
+    <g id="text_5">
+     <text style="font: 10px 'AppleGothic'; text-anchor: start" x="254.6064" y="136.829496" transform="rotate(-0 254.6064 136.829496)">예측 가능한 필드 변환</text>
+    </g>
+    <g id="patch_7">
+     <path d="M 459.504 150.24888
+L 767.52 150.24888
+L 767.52 117.2898
+L 459.504 117.2898
+z
+" style="fill: #f6f9fb; stroke: #d1dce5; stroke-linejoin: miter"/>
+    </g>
+    <g id="text_6">
+     <text style="font: 10px 'AppleGothic'; text-anchor: start" x="490.3056" y="136.829496" transform="rotate(-0 490.3056 136.829496)">자유 서술·복잡한 병합 셀은 정리 필요</text>
+    </g>
+    <g id="patch_8">
+     <path d="M 97.92 183.20796
+L 231.84 183.20796
+L 231.84 150.24888
+L 97.92 150.24888
+z
+" style="fill: #ffffff; stroke: #d1dce5; stroke-linejoin: miter"/>
+    </g>
+    <g id="text_7">
+     <text style="font: 10px 'AppleGothic'; text-anchor: start" x="111.312" y="169.788576" transform="rotate(-0 111.312 169.788576)">로컬 stdio MCP</text>
+    </g>
+    <g id="patch_9">
+     <path d="M 231.84 183.20796
+L 459.504 183.20796
+L 459.504 150.24888
+L 231.84 150.24888
+z
+" style="fill: #ffffff; stroke: #d1dce5; stroke-linejoin: miter"/>
+    </g>
+    <g id="text_8">
+     <text style="font: 10px 'AppleGothic'; text-anchor: start" x="254.6064" y="169.788576" transform="rotate(-0 254.6064 169.788576)">여러 AI 클라이언트에서 같은 도구 재사용</text>
+    </g>
+    <g id="patch_10">
+     <path d="M 459.504 183.20796
+L 767.52 183.20796
+L 767.52 150.24888
+L 459.504 150.24888
+z
+" style="fill: #ffffff; stroke: #d1dce5; stroke-linejoin: miter"/>
+    </g>
+    <g id="text_9">
+     <text style="font: 10px 'AppleGothic'; text-anchor: start" x="490.3056" y="169.788576" transform="rotate(-0 490.3056 169.788576)">프로세스·설정·직렬화 비용</text>
+    </g>
+    <g id="patch_11">
+     <path d="M 97.92 216.16704
+L 231.84 216.16704
+L 231.84 183.20796
+L 97.92 183.20796
+z
+" style="fill: #f6f9fb; stroke: #d1dce5; stroke-linejoin: miter"/>
+    </g>
+    <g id="text_10">
+     <text style="font: 10px 'AppleGothic'; text-anchor: start" x="111.312" y="202.747656" transform="rotate(-0 111.312 202.747656)">결정론적 파싱</text>
+    </g>
+    <g id="patch_12">
+     <path d="M 231.84 216.16704
+L 459.504 216.16704
+L 459.504 183.20796
+L 231.84 183.20796
+z
+" style="fill: #f6f9fb; stroke: #d1dce5; stroke-linejoin: miter"/>
+    </g>
+    <g id="text_11">
+     <text style="font: 10px 'AppleGothic'; text-anchor: start" x="254.6064" y="202.747656" transform="rotate(-0 254.6064 202.747656)">파싱 단계 LLM 호출 0회</text>
+    </g>
+    <g id="patch_13">
+     <path d="M 459.504 216.16704
+L 767.52 216.16704
+L 767.52 183.20796
+L 459.504 183.20796
+z
+" style="fill: #f6f9fb; stroke: #d1dce5; stroke-linejoin: miter"/>
+    </g>
+    <g id="text_12">
+     <text style="font: 10px 'AppleGothic'; text-anchor: start" x="490.3056" y="202.747656" transform="rotate(-0 490.3056 202.747656)">유연한 의미 추론·OCR 없음</text>
+    </g>
+    <g id="patch_14">
+     <path d="M 97.92 249.12612
+L 231.84 249.12612
+L 231.84 216.16704
+L 97.92 216.16704
+z
+" style="fill: #ffffff; stroke: #d1dce5; stroke-linejoin: miter"/>
+    </g>
+    <g id="text_13">
+     <text style="font: 10px 'AppleGothic'; text-anchor: start" x="111.312" y="235.706736" transform="rotate(-0 111.312 235.706736)">자연키로 갱신</text>
+    </g>
+    <g id="patch_15">
+     <path d="M 231.84 249.12612
+L 459.504 249.12612
+L 459.504 216.16704
+L 231.84 216.16704
+z
+" style="fill: #ffffff; stroke: #d1dce5; stroke-linejoin: miter"/>
+    </g>
+    <g id="text_14">
+     <text style="font: 10px 'AppleGothic'; text-anchor: start" x="254.6064" y="235.706736" transform="rotate(-0 254.6064 235.706736)">같은 제목 재가져오기 편리</text>
+    </g>
+    <g id="patch_16">
+     <path d="M 459.504 249.12612
+L 767.52 249.12612
+L 767.52 216.16704
+L 459.504 216.16704
+z
+" style="fill: #ffffff; stroke: #d1dce5; stroke-linejoin: miter"/>
+    </g>
+    <g id="text_15">
+     <text style="font: 10px 'AppleGothic'; text-anchor: start" x="490.3056" y="235.706736" transform="rotate(-0 490.3056 235.706736)">동명이력 충돌·기존 값 덮어쓰기 가능</text>
+    </g>
+    <g id="patch_17">
+     <path d="M 97.92 282.0852
+L 231.84 282.0852
+L 231.84 249.12612
+L 97.92 249.12612
+z
+" style="fill: #f6f9fb; stroke: #d1dce5; stroke-linejoin: miter"/>
+    </g>
+    <g id="text_16">
+     <text style="font: 10px 'AppleGothic'; text-anchor: start" x="111.312" y="268.50566" transform="rotate(-0 111.312 268.50566)">dry-run + digest</text>
+    </g>
+    <g id="patch_18">
+     <path d="M 231.84 282.0852
+L 459.504 282.0852
+L 459.504 249.12612
+L 231.84 249.12612
+z
+" style="fill: #f6f9fb; stroke: #d1dce5; stroke-linejoin: miter"/>
+    </g>
+    <g id="text_17">
+     <text style="font: 10px 'AppleGothic'; text-anchor: start" x="254.6064" y="268.665816" transform="rotate(-0 254.6064 268.665816)">쓰기 명시·미리보기 이후 변경 감지</text>
+    </g>
+    <g id="patch_19">
+     <path d="M 459.504 282.0852
+L 767.52 282.0852
+L 767.52 249.12612
+L 459.504 249.12612
+z
+" style="fill: #f6f9fb; stroke: #d1dce5; stroke-linejoin: miter"/>
+    </g>
+    <g id="text_18">
+     <text style="font: 10px 'AppleGothic'; text-anchor: start" x="490.3056" y="268.665816" transform="rotate(-0 490.3056 268.665816)">두 번 읽기·해시 인자 전달 필요</text>
+    </g>
+    <g id="patch_20">
+     <path d="M 97.92 315.04428
+L 231.84 315.04428
+L 231.84 282.0852
+L 97.92 282.0852
+z
+" style="fill: #ffffff; stroke: #d1dce5; stroke-linejoin: miter"/>
+    </g>
+    <g id="text_19">
+     <text style="font: 10px 'AppleGothic'; text-anchor: start" x="111.312" y="301.624896" transform="rotate(-0 111.312 301.624896)">개인 세션 + RLS</text>
+    </g>
+    <g id="patch_21">
+     <path d="M 231.84 315.04428
+L 459.504 315.04428
+L 459.504 282.0852
+L 231.84 282.0852
+z
+" style="fill: #ffffff; stroke: #d1dce5; stroke-linejoin: miter"/>
+    </g>
+    <g id="text_20">
+     <text style="font: 10px 'AppleGothic'; text-anchor: start" x="254.6064" y="301.624896" transform="rotate(-0 254.6064 301.624896)">DB 소유자 권한으로 저장</text>
+    </g>
+    <g id="patch_22">
+     <path d="M 459.504 315.04428
+L 767.52 315.04428
+L 767.52 282.0852
+L 459.504 282.0852
+z
+" style="fill: #ffffff; stroke: #d1dce5; stroke-linejoin: miter"/>
+    </g>
+    <g id="text_21">
+     <text style="font: 10px 'AppleGothic'; text-anchor: start" x="490.3056" y="301.624896" transform="rotate(-0 490.3056 301.624896)">기기·토큰 관리와 로그인 필요</text>
+    </g>
+    <g id="patch_23">
+     <path d="M 97.92 348.00336
+L 231.84 348.00336
+L 231.84 315.04428
+L 97.92 315.04428
+z
+" style="fill: #f6f9fb; stroke: #d1dce5; stroke-linejoin: miter"/>
+    </g>
+    <g id="text_22">
+     <text style="font: 10px 'AppleGothic'; text-anchor: start" x="111.312" y="334.583976" transform="rotate(-0 111.312 334.583976)">ExcelJS + Notion API</text>
+    </g>
+    <g id="patch_24">
+     <path d="M 231.84 348.00336
+L 459.504 348.00336
+L 459.504 315.04428
+L 231.84 315.04428
+z
+" style="fill: #f6f9fb; stroke: #d1dce5; stroke-linejoin: miter"/>
+    </g>
+    <g id="text_23">
+     <text style="font: 10px 'AppleGothic'; text-anchor: start" x="254.6064" y="334.583976" transform="rotate(-0 254.6064 334.583976)">OOXML 파싱과 데이터 소스 지원</text>
+    </g>
+    <g id="patch_25">
+     <path d="M 459.504 348.00336
+L 767.52 348.00336
+L 767.52 315.04428
+L 459.504 315.04428
+z
+" style="fill: #f6f9fb; stroke: #d1dce5; stroke-linejoin: miter"/>
+    </g>
+    <g id="text_24">
+     <text style="font: 10px 'AppleGothic'; text-anchor: start" x="490.3056" y="334.583976" transform="rotate(-0 490.3056 334.583976)">외부 의존성·API 버전 유지보수</text>
+    </g>
+   </g>
+  </g>
+  <g id="text_25">
+   <text style="fill: #172b45; font: 17px 'AppleGothic'; text-anchor: middle" x="421.92" y="20.529062" transform="rotate(-0 421.92 20.529062)">07  설계 트레이드오프 — 정성 비교</text>
+  </g>
+  <g id="text_26">
+   <text style="font: 10px 'AppleGothic'; text-anchor: start" x="7.2" y="406.008" transform="rotate(-0 7.2 406.008)">수치화된 성능 순위가 아닌 설계 판단표. 용도와 문서 형식에 따라 선택이 달라짐.</text>
+  </g>
+ </g>
+</svg>

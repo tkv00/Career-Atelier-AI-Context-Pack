@@ -18,15 +18,23 @@ import { buildRows, connect, countRows, writeRows } from './store.mjs';
 import { loadSource, notionConfigured } from './sources.mjs';
 import { measure, record } from './metrics.mjs';
 import { parseMarkdown } from './parse.mjs';
+import { createHash } from 'node:crypto';
+import { pathToFileURL } from 'node:url';
+import { performance } from 'node:perf_hooks';
 
 const SERVER_NAME = 'career-atelier';
-const SERVER_VERSION = '0.1.0';
+const SERVER_VERSION = '0.2.0';
 const SUPPORTED_PROTOCOLS = ['2025-06-18', '2024-11-05'];
 
 const log = (message) => process.stderr.write(`[mcp] ${message}\n`);
 
 // 툴 정의 ------------------------------------------------------------------
-const TOOLS = [
+const sourceOptions = {
+  sheet: { type: 'string', description: '엑셀 시트 이름. 생략하면 보이는 시트를 모두 읽는다.' },
+  column_map: { type: 'object', additionalProperties: { type: 'string' }, description: '엑셀·Notion 열 이름 → title 또는 지원 필드 이름. 예: {"경험 이름":"title","성과":"result"}' },
+};
+
+export const TOOLS = [
   {
     name: 'preview_import',
     description:
@@ -37,13 +45,14 @@ const TOOLS = [
       required: ['source'],
       additionalProperties: false,
       properties: {
+        ...sourceOptions,
         source: {
           type: 'string',
-          description: '로컬 파일 절대경로(.md/.json), 또는 notion://page/<id> · notion://database/<id>',
+          description: '로컬 .xlsx/.md/.json 절대경로 또는 notion://page/<id>, notion://database/<id>, notion://data-source/<id>',
         },
         section: {
           type: 'string',
-          description: 'Notion 데이터베이스를 읽을 때 어느 종류로 볼지(예: 경험, 학력, 자격증). 파일 소스에서는 무시된다.',
+          description: 'Notion DB 필수, 엑셀 선택: 경험·학력·자격증 등. 엑셀에서 생략하면 시트명으로 판단한다.',
         },
       },
     },
@@ -58,11 +67,13 @@ const TOOLS = [
       required: ['source'],
       additionalProperties: false,
       properties: {
+        ...sourceOptions,
+        expected_digest: { type: 'string', description: '미리보기의 source_digest. 소스·매핑이 달라지면 저장을 거부한다.' },
         source: {
           type: 'string',
-          description: '로컬 파일 절대경로(.md/.json), 또는 notion://page/<id> · notion://database/<id>',
+          description: '로컬 .xlsx/.md/.json 절대경로 또는 notion://page/<id>, notion://database/<id>, notion://data-source/<id>',
         },
-        section: { type: 'string', description: 'Notion 데이터베이스용 종류 지정. 파일 소스에서는 무시된다.' },
+        section: { type: 'string', description: 'Notion DB 필수, 엑셀 선택: 경험·학력·자격증 등.' },
         dry_run: {
           type: 'boolean',
           description: 'true(기본)면 계산만 하고 저장하지 않는다. 실제 저장하려면 false를 명시한다.',
@@ -84,29 +95,39 @@ const TOOLS = [
 
 // 파이프라인 ---------------------------------------------------------------
 // 소스를 읽고 파싱해 저장할 행까지 만든다. 저장은 하지 않는다.
-async function planImport({ source, section, only }) {
-  const loaded = await loadSource(source, { section });
+export async function planImport({ source, section, only, sheet, column_map, expected_digest }) {
+  const started = performance.now();
+  const loaded = await loadSource(source, { section, sheet, column_map });
 
   const parsed = loaded.json
-    ? { items: normalizeJsonItems(loaded.json), skipped: [] }
+    ? normalizeJsonItems(loaded.json)
     : parseMarkdown(loaded.markdown);
+  parsed.skipped.push(...(loaded.skipped ?? []));
 
   const filtered = Array.isArray(only) && only.length
     ? parsed.items.filter((item) => only.includes(item.kind))
     : parsed.items;
 
   const { rows, rejected, warnings } = buildRows(filtered);
+  warnings.push(...(loaded.warnings ?? []));
   const sourceText = loaded.markdown ?? JSON.stringify(loaded.json);
+  const digest = createHash('sha256').update(JSON.stringify({ sourceText, section, sheet, column_map })).digest('hex');
+  if (expected_digest && digest !== expected_digest) throw new Error('미리보기 이후 소스 또는 매핑이 변경되었습니다. 다시 미리보기 하세요.');
 
-  return { loaded, parsed, rows, rejected, warnings, sourceText };
+  return { loaded, parsed, rows, rejected, warnings, sourceText, digest, processing_ms: performance.now() - started };
 }
 
 // JSON 소스는 [{kind, title, fields}] 형태를 그대로 받는다.
 function normalizeJsonItems(json) {
-  const list = Array.isArray(json) ? json : Array.isArray(json?.items) ? json.items : [];
-  return list
-    .filter((item) => item && item.kind && item.title)
-    .map((item) => ({ kind: String(item.kind), title: String(item.title), fields: item.fields ?? {}, line: 0 }));
+  const list = Array.isArray(json) ? json : json?.items;
+  if (!Array.isArray(list)) throw new Error('JSON은 [{kind,title,fields}] 또는 {items:[...]} 형식이어야 합니다.');
+  const items = [], skipped = [];
+  list.forEach((item, i) => {
+    if (!item || typeof item.kind !== 'string' || typeof item.title !== 'string' || !item.title.trim() || !item.fields || typeof item.fields !== 'object' || Array.isArray(item.fields)) {
+      skipped.push({ line: i + 1, reason: 'JSON 항목에 kind·title·fields가 필요합니다.' });
+    } else items.push({ kind: item.kind, title: item.title, fields: item.fields, line: i + 1 });
+  });
+  return { items, skipped };
 }
 
 function summarize(rows) {
@@ -121,9 +142,8 @@ function summarize(rows) {
   return byTable;
 }
 
-// 에이전트 방식이었다면 모델이 뱉어야 했을 INSERT 인자를 실제로 직렬화한다.
-// before 수치를 상상으로 적지 않기 위한 장치다 — 같은 입력에서 파생된 실제
-// 문자열이라 재현 가능하다(docs/MCP-DECISION-LOG.md D8).
+// 같은 행을 재서술하는 가정 기준선을 직렬화한다. 재현 가능한 문자열이지만
+// 실제 모델 실행이나 제공자의 토큰 사용량을 측정한 값은 아니다.
 function agentEquivalentPayload(rows) {
   return JSON.stringify(
     rows.map((row) => ({ tool: `insert_${row.table}`, arguments: row.data })),
@@ -133,16 +153,20 @@ function agentEquivalentPayload(rows) {
 }
 
 async function handlePreview(args) {
-  const { loaded, parsed, rows, rejected, warnings, sourceText } = await planImport(args);
+  const { loaded, parsed, rows, rejected, warnings, sourceText, digest, processing_ms } = await planImport(args);
 
   const result = {
     source: loaded.origin,
     source_kind: loaded.kind,
     parsed_items: parsed.items.length,
+    source_digest: digest,
+    processing_ms: Number(processing_ms.toFixed(3)),
+    source_requests: loaded.requests ?? 0,
+    diagnostic_counts: { skipped: parsed.skipped.length, rejected: rejected.length, warnings: warnings.length },
     would_write: summarize(rows),
     skipped: parsed.skipped.slice(0, 20),
-    rejected,
-    warnings,
+    rejected: rejected.slice(0, 20),
+    warnings: warnings.slice(0, 20),
     note: 'DB에 아무것도 쓰지 않았습니다. 실제 저장은 import_records(dry_run=false)로 하세요.',
   };
 
@@ -151,15 +175,18 @@ async function handlePreview(args) {
 
 async function handleImport(args) {
   const dryRun = args.dry_run !== false;
-  const { loaded, parsed, rows, rejected, warnings, sourceText } = await planImport(args);
+  const { loaded, parsed, rows, rejected, warnings, sourceText, digest, processing_ms } = await planImport(args);
 
   const result = {
     source: loaded.origin,
     dry_run: dryRun,
     parsed_items: parsed.items.length,
+    source_digest: digest,
+    processing_ms: Number(processing_ms.toFixed(3)),
+    diagnostic_counts: { skipped: parsed.skipped.length, rejected: rejected.length, warnings: warnings.length },
     skipped: parsed.skipped.slice(0, 20),
-    rejected,
-    warnings,
+    rejected: rejected.slice(0, 20),
+    warnings: warnings.slice(0, 20),
   };
 
   if (dryRun) {
@@ -189,8 +216,8 @@ async function handleSnapshot() {
   return { result: { row_counts: counts }, metrics: null };
 }
 
-// 계측 — 이 호출이 토큰을 얼마나 아꼈는지 같이 돌려준다. 포트폴리오 지표가
-// 사후 추정이 아니라 호출 시점 실측이 되도록 서버가 직접 남긴다(요구사항 6번).
+// 기존 응답 형식은 유지하되 추정의 경계를 명시한다. 전체 전송량·스키마 비용은
+// research/benchmark.mjs에서 실제 stdio 문자열을 별도로 캡처한다.
 function attachMetrics(tool, { sourceText, rows, result }) {
   const source = measure(sourceText);
   const agentPayload = measure(agentEquivalentPayload(rows));
@@ -198,11 +225,12 @@ function attachMetrics(tool, { sourceText, rows, result }) {
   const mcpResult = measure(resultText);
 
   // before: 원문을 읽고(=source) 구조화해 INSERT 인자로 다시 뱉는(=agentPayload) 양.
-  // after: 모델이 실제로 받는 영수증(=mcpResult)뿐.
+  // after: metrics가 추가되기 전 영수증 본문만 센다. 실제 모델 컨텍스트는 아니다.
   const beforeTokens = source.tokens_est + agentPayload.tokens_est;
   const afterTokens = mcpResult.tokens_est;
 
   const metrics = {
+    method: 'character-class estimate; modeled relay baseline; excludes tool schemas, request arguments, metrics and protocol envelope',
     tool,
     rows: rows.length,
     source_chars: source.chars,
@@ -221,7 +249,19 @@ function attachMetrics(tool, { sourceText, rows, result }) {
   return { result: { ...result, token_metrics: metrics }, metrics };
 }
 
-async function callTool(name, args) {
+export async function callTool(name, args) {
+  const tool = TOOLS.find(t => t.name === name);
+  if (!tool) throw new Error(`알 수 없는 툴: ${name}`);
+  args ??= {};
+  if (typeof args !== 'object' || Array.isArray(args)) throw new Error('도구 인자는 객체여야 합니다.');
+  for (const [key, value] of Object.entries(args)) {
+    const schema = tool.inputSchema.properties[key];
+    if (!schema) throw new Error(`지원하지 않는 인자: ${key}`);
+    if (schema.type === 'array' ? !Array.isArray(value) : typeof value !== schema.type || value === null) throw new Error(`인자 형식 오류: ${key}`);
+  }
+  if (name !== 'db_snapshot' && (typeof args.source !== 'string' || !args.source.trim())) throw new Error('source가 필요합니다.');
+  if (args.only && args.only.some(kind => !['profile','education','certification','activity','training','project','work','award','experience'].includes(kind))) throw new Error('only에 지원하지 않는 종류가 있습니다.');
+  if (args.column_map && (Array.isArray(args.column_map) || Object.values(args.column_map).some(v => typeof v !== 'string'))) throw new Error('column_map은 문자열 값의 객체여야 합니다.');
   if (name === 'preview_import') return (await handlePreview(args ?? {})).result;
   if (name === 'import_records') return (await handleImport(args ?? {})).result;
   if (name === 'db_snapshot') return (await handleSnapshot()).result;
@@ -238,11 +278,15 @@ function replyError(id, code, message) {
 }
 
 async function handleMessage(message) {
+  if (!message || typeof message !== 'object' || Array.isArray(message) || message.jsonrpc !== '2.0' || typeof message.method !== 'string') {
+    replyError(null, -32600, '유효한 JSON-RPC 요청이 필요합니다.');
+    return;
+  }
   const { id, method, params } = message;
   const isNotification = id === undefined || id === null;
 
   try {
-    if (method === 'initialize') {
+    if (method === 'initialize' && !isNotification) {
       const requested = params?.protocolVersion;
       reply(id, {
         protocolVersion: SUPPORTED_PROTOCOLS.includes(requested) ? requested : SUPPORTED_PROTOCOLS[0],
@@ -256,6 +300,7 @@ async function handleMessage(message) {
     if (method === 'notifications/initialized') return;
     if (method === 'ping') { if (!isNotification) reply(id, {}); return; }
 
+    if (isNotification) return;
     if (method === 'tools/list') { reply(id, { tools: TOOLS }); return; }
 
     // 이 서버는 tools만 제공한다. 규약대로면 클라이언트가 initialize의
@@ -312,7 +357,7 @@ function serve() {
       try {
         message = JSON.parse(line);
       } catch {
-        log(`JSON 파싱 실패, 건너뜀: ${line.slice(0, 120)}`);
+        replyError(null, -32700, 'JSON 파싱 실패');
         continue;
       }
       const task = handleMessage(message).finally(() => {
@@ -337,14 +382,19 @@ async function cli() {
     const at = rest.indexOf(flag);
     return at >= 0 ? rest[at + 1] : undefined;
   };
+  const options = { source: argOf('--source'), section: argOf('--section'), sheet: argOf('--sheet'),
+    column_map: argOf('--column-map') ? JSON.parse(argOf('--column-map')) : undefined,
+    only: argOf('--only')?.split(','), expected_digest: argOf('--expected-digest') };
+  const clean = Object.fromEntries(Object.entries(options).filter(([, value]) => value !== undefined));
 
   if (command === 'preview') {
-    console.log(JSON.stringify(await callTool('preview_import', { source: argOf('--source') }), null, 2));
+    delete clean.only; delete clean.expected_digest;
+    console.log(JSON.stringify(await callTool('preview_import', clean), null, 2));
     return;
   }
   if (command === 'import') {
     console.log(JSON.stringify(await callTool('import_records', {
-      source: argOf('--source'),
+      ...clean,
       dry_run: !rest.includes('--write'),
     }), null, 2));
     return;
@@ -353,15 +403,15 @@ async function cli() {
     console.log(JSON.stringify(await callTool('db_snapshot', {}), null, 2));
     return;
   }
-  console.log('사용법: node mcp/server.mjs [preview|import|snapshot] --source <경로> [--write]');
+  console.log('사용법: node mcp/server.mjs [preview|import|snapshot] --source <경로> [--section 경험] [--sheet 시트명] [--column-map JSON] [--only experience] [--expected-digest SHA256] [--write]');
   console.log('인자 없이 실행하면 MCP 서버(stdio)로 동작합니다.');
 }
 
-if (process.argv.length > 2) {
+if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href && process.argv.length > 2) {
   cli().catch((error) => {
     console.error(error.message);
     process.exitCode = 1;
   });
-} else {
+} else if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   serve();
 }

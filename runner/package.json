@@ -16,10 +16,28 @@
     "mcp": "node mcp/server.mjs",
     "mcp:preview": "node mcp/server.mjs preview --source",
     "mcp:snapshot": "node mcp/server.mjs snapshot",
-    "mcp:bench": "node mcp/bench.mjs"
+    "mcp:bench": "node mcp/bench.mjs",
+    "mcp:research": "node mcp/research/benchmark.mjs"
+  },
+  "overrides": {
+    "exceljs": {
+      "uuid": "11.1.1"
+    }
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.58.0",
-    "cross-spawn": "^7.0.6"
-  }
+    "cross-spawn": "^7.0.6",
+    "exceljs": "4.4.0"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tkv00/Career-Atelier-AI-Context-Pack.git",
+    "directory": "runner"
+  },
+  "bugs": {
+    "url": "https://github.com/tkv00/Career-Atelier-AI-Context-Pack/issues"
+  },
+  "homepage": "https://github.com/tkv00/Career-Atelier-AI-Context-Pack#readme",
+  "packageManager": "npm@10.9.2"
 }

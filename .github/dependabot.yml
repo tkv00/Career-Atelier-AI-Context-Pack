@@ -1,0 +1,21 @@
+version: 2
+updates:
+  - package-ecosystem: npm
+    directories: ['/', '/web', '/runner']
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      next-toolchain:
+        patterns: ['next', 'eslint-config-next']
+      react-toolchain:
+        patterns: ['react', 'react-dom', '@types/react', '@types/react-dom']
+      other-minor-patch:
+        patterns: ['*']
+        exclude-patterns: ['next', 'eslint-config-next', 'react', 'react-dom', '@types/react', '@types/react-dom']
+        update-types: [minor, patch]
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 3

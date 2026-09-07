@@ -212,3 +212,7 @@ vulnerability reporting, or email the maintainer.
 Note that the Supabase anon key is *designed* to be public; row level security is
 the actual boundary. If you find a way to read another owner's rows with an anon
 key, that is a real vulnerability and we want to hear about it.
+
+## Packages and releases
+
+Use the npm version pinned in `packageManager` and `npm ci` in root, web, and runner for reproducible installs. Run `npm run verify` from the root for version consistency, tooling/runner tests, and web type checking, lint, and build. Record user-facing changes in [CHANGELOG.md](CHANGELOG.md). Release versions, tags, and upgrade notes follow [docs/RELEASING.md](docs/RELEASING.md); commit messages keep the existing English imperative convention.

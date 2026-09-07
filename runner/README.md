@@ -29,7 +29,7 @@ Career Atelier의 로컬 실행 엔진입니다. 사용자의 로컬 컴퓨터�
 | `backup.mjs` | 로컬 지정 폴더 자동 백업 로직 |
 | `providers/` | CLI별 커맨드라인 인자 구성 (`codex.mjs`, `claude.mjs`, `gemini.mjs`) |
 | `lib/` | Supabase 클라이언트, 세션 스토리지, 환경변수 유틸리티 |
-| `mcp/` | 외부 노트(Markdown, Notion) 무토큰 임포트용 로컬 MCP 서버 |
+| `mcp/` | Excel·Markdown·JSON·Notion 정리본을 LLM 파싱 없이 가져오는 로컬 MCP 서버 |
 
 ---
 

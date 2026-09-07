@@ -57,7 +57,7 @@ export const SECTIONS: SectionSpec[] = [
       { name: 'major', label: '전공', type: 'text' },
       { name: 'secondary_major', label: '부·복수전공', type: 'text' },
       { name: 'secondary_major_type', label: '부·복수 구분', type: 'select', options: SECONDARY_MAJOR_TYPES },
-      { name: 'gpa', label: '학점', type: 'number', placeholder: '3.85' },
+      { name: 'gpa', label: '학점', type: 'number', placeholder: '4.50' },
       { name: 'gpa_scale', label: '기준', type: 'number', placeholder: '4.5' },
       { name: 'hanja_name', label: '한자 이름', type: 'text', placeholder: '증명서용' },
       { name: 'memo', label: '메모', type: 'textarea', wide: true },

@@ -1,455 +1,67 @@
 <img src="docs/images/banner.png" alt="Career Atelier" width="100%">
 
-<p>
-  <img alt="license" src="https://img.shields.io/badge/license-MIT-f5a962?style=flat-square">
-  <img alt="node" src="https://img.shields.io/badge/node-%E2%89%A522-5cc98f?style=flat-square&logo=node.js&logoColor=white">
-  <img alt="next.js" src="https://img.shields.io/badge/Next.js-16-e6eef7?style=flat-square&logo=next.js&logoColor=white">
-  <img alt="supabase" src="https://img.shields.io/badge/Supabase-Postgres%20%2B%20RLS-3ecf8e?style=flat-square&logo=supabase&logoColor=white">
-  <img alt="platform" src="https://img.shields.io/badge/Windows%20%7C%20macOS%20%7C%20Linux-58cfe4?style=flat-square">
-  <img alt="api billing" src="https://img.shields.io/badge/API%20billing-none-5cc98f?style=flat-square">
-</p>
+**[English](README.md)** · 한국어 · MIT · Node.js 22.13+
 
-**[English](README.md)** · 한국어
+# 흩어진 취업 준비를, 나만의 작업실 하나로
 
----
+Notion의 경험, 엑셀의 이력, 채용공고, 자소서를 한곳에서 관리합니다. 내 경험을 근거로 기업 조사부터 초안·검수까지 맡기고, 비서별 AI와 문체를 직접 고릅니다.
 
-**흩어진 취업 준비를, 나만의 작업실 하나로.**
+**내 Supabase에 자료를 저장하고, 내 PC에서 로그인한 AI CLI로 실행하는 개인 설치형 서비스입니다.** 웹에서 자료만 관리할 때는 AI 연결이 필요 없습니다. AI 계정의 사용 한도와 Supabase·Vercel 플랜 조건은 적용됩니다.
 
-Notion에 적어 둔 이력과 경험, 채용 사이트의 공고, 캘린더의 마감일, ChatGPT·Claude에서 쓰던 자소서를 한 흐름으로 연결합니다. Career Atelier는 내 Supabase에 자료를 모으고, 내 컴퓨터의 AI CLI로 조사·작성·검수를 실행하는 오픈소스 취업 준비 작업실입니다.
+[처음 설치하기](#시작하기) · [설치 후 첫 사용](#첫-자소서까지-따라하기) · [기능 찾기](#기능은-어디서-쓰나요) · [로그인 문제 해결](docs/AUTH-TROUBLESHOOTING.md) · [FAQ](docs/FAQ.ko.md)
 
-**내 경험을 근거로, 내 문체에 맞게, 이미 쓰는 AI와 함께.** 자소서 전용 AI 서비스를 하나 더 구독할 필요 없이, 이용 가능한 AI 계정의 CLI 사용량으로 7명의 비서를 운영합니다.
+<img src="docs/images/screens/01-dashboard.png?v=0750026" alt="Career Atelier 관제실" width="100%">
 
-[설치 시작하기](#시작하기) · [먼저 궁금한 점 해결하기](#자주-묻는-질문) · [Notion 정리본 가져오기](#mcp로-정리본-일괄-가져오기)
+## 왜 만들었나요?
 
+취업을 준비하면서 이력과 경험은 Notion·Excel에, 공고와 마감일은 별도 표에, 기업분석과 자소서는 GPT·Claude 대화창에 쌓였습니다. 지원할 때마다 창을 오가고 같은 경험을 다시 복사하며 AI에게 나를 처음부터 설명해야 했습니다.
 
-<br>
+**한 번 정리한 내 경험이 다음 지원에도 이어지면 좋겠다고 생각했습니다.** 그래서 자료 정리부터 기업 조사, 초안, 검수, 면접 준비를 한 작업실에 모았습니다. 내 Supabase에 자료를 보관하고 이미 쓰는 AI를 선택해, 내 근거와 내 문체로 준비할 수 있도록 만들었습니다.
 
-## 목차
+## 함께 일하는 7명의 파일럿
 
-- [왜 만들었나](#왜-만들었나)
-- [처음 사용하는 흐름](#처음-사용하는-흐름)
-- [자주 묻는 질문](#자주-묻는-질문)
-- [7명의 비서](#7명의-비서)
-- [주요 화면](#주요-화면)
-- [구조](#구조)
-- [시작하기](#시작하기)
-- [AI에게 설치 맡기기](#ai에게-설치-맡기기)
-- [MCP로 정리본 일괄 가져오기](#mcp로-정리본-일괄-가져오기)
-- [데이터 백업](#데이터-백업)
-- [비용이 늘지 않는 이유](#비용이-늘지-않는-이유)
-- [기여하기](#기여하기)
-
-<br>
-
-## 왜 만들었나
-
-이력정보와 경험은 Notion에, 기업 공고와 전형 진행 상황은 또 다른 표에, 기업분석과 자소서는 GPT나 Claude 대화창에 쌓였습니다. 지원할 때마다 여러 창을 오가며 자료를 찾고, 같은 경험을 복사하고, AI에게 나를 다시 설명해야 했습니다.
-
-Career Atelier는 이 과정을 한곳에 모으기 위해 만들었습니다. 한 번 정리한 경험이 기업 조사와 자소서의 근거가 되고, 저장한 공고가 캘린더와 면접 준비로 이어집니다. 자료를 옮기는 데 쓰던 시간을, 어떤 경험을 어떻게 전달할지 고민하는 데 쓸 수 있도록요.
-
-| 필요한 것 | Career Atelier에서 달라지는 일 |
-|---|---|
-| 흩어진 자료 정리 | 이력·경험·공고·일정·자소서를 한 작업실에 모읍니다. 기존 정리본은 MCP로 가져옵니다. |
-| 나를 아는 자소서 도우미 | 저장한 경험과 기업 조사 결과를 초안의 근거로 사용하고, 검수 비서가 과장을 확인합니다. |
-| 내 문체와 AI 선택권 | 비서별 프롬프트·AI 제공자·모델·추론 사용량을 직접 설정합니다. |
-| 내 자료의 소유권 | 각 사용자가 자신의 Supabase 프로젝트와 로그인 계정을 운영합니다. |
-| 장소에 구애받지 않는 준비 | Vercel에 배포하면 외부에서도 자료를 열고 수정할 수 있습니다. AI 작업은 켜진 러너가 맡습니다. |
-
-<br>
-
-## 처음 사용하는 흐름
-
-1. **내 작업실 설치:** [설치 마법사](#시작하기)로 Supabase를 연결하고 본인 계정을 만듭니다. AI 기능을 쓸 때는 CLI 로그인과 러너 기기 승인까지 완료합니다.
-2. **나를 알려 주기:** 관제실에서 목표 직무·관심 분야를 입력하고, 나의 정보에 학력·경력 등을 저장합니다. 경험 카드에는 실제 상황·판단·행동·결과를 정리합니다. 기존 파일은 [MCP로 가져올 수 있습니다](#mcp로-정리본-일괄-가져오기).
-3. **비서 배정:** 프롬프트 생성실에서 각 비서가 사용할 AI를 로그인해 둔 CLI로 지정합니다. 원하는 문체와 작성 기준도 저장합니다.
-4. **공고 찾기:** 모카로 채용공고를 탐색합니다. 지원할 공고를 정했으면 지원 일정 화면에서 직접 "캘린더에 저장"을 눌러야 일정에 올라갑니다 — 탐색만으로는 캘린더에 올라가지 않습니다. 자소서 문항도 함께 준비합니다.
-5. **조사부터 검수까지:** 자소서 편집기에서 기업·직무·공고 내용을 입력하고 **「기업 조사부터 소제목까지 실행 (솔)」**을 누릅니다. 솔 → 뮤즈 → 렌즈 → 콤마가 순서대로 실행됩니다.
-6. **내 글로 완성:** 생성된 초안과 검수 내용을 확인해 반영하고, 전형 진행 상황을 기록하며 면접 질문을 준비합니다. 최종 제출은 직접 합니다.
-
-모카의 공고 탐색과 자소서 연쇄 실행은 별도 단계입니다. 공고를 찾았다는 이유만으로 모든 공고의 자소서를 자동 작성하지 않습니다. 경험 카드가 없으면 뮤즈 단계가 중단되므로 먼저 근거를 채워 주세요.
-
-<br>
-
-## 자주 묻는 질문
-
-### 내 자기소개서가 다른 사람에게 보이지 않나요?
-
-**내 Supabase 프로젝트에 저장합니다.** 설치된 소유자 전용 로그인 제한과 행 수준 보안(RLS)은 로그인한 소유자에게만 해당 데이터의 읽기·쓰기를 허용합니다. 다른 오픈소스 이용자와 데이터를 공유하는 공용 서버 구조가 아닙니다. 저장소를 공개해도 DB 내용이 GitHub에 올라가지는 않습니다.
-
-AI 기능을 실행하면 그 작업에 필요한 경험·자소서·조사 자료는 선택한 AI 제공자에게 전달됩니다. 개인 DB 보관과 AI 제공자의 데이터 처리는 구분되며, 계정·접근 권한 관리는 본인이 담당합니다.
-
-### GPT와 Claude도 구독하는데 자소서 AI를 또 구독해야 하나요?
-
-**Career Atelier 자체의 구독료나 토큰당 API 요금은 없습니다.** 지원되는 CLI에 본인 AI 계정으로 로그인해 사용합니다. 이미 가진 구독을 활용하면서 경험 기반 초안과 근거 검수를 한곳에서 진행할 수 있습니다. AI 요금제의 사용 한도는 그대로 적용되고, Supabase·Vercel 사용료는 선택한 플랜과 사용량에 따라 별도일 수 있습니다.
-
-### 평소 내가 쓰던 문체로 작성하고 싶어요.
-
-프롬프트 생성실에서 비서별 프롬프트를 수정하고 저장하세요. 예를 들어 뮤즈에게 「짧은 문장으로 쓰고, 내 판단과 행동을 먼저 설명하며, 근거 없는 수식어를 피하라」고 지시할 수 있습니다. **저장한 설정은 이후 실행에서 읽어 적용**되며 진행 중인 작업의 프롬프트를 바꾸지는 않습니다. 이전 프롬프트 버전으로 복원할 수도 있습니다.
-
-AI 제공자·모델·추론 사용량도 비서마다 선택합니다. 현재 프롬프트는 비서별로 저장되므로 제공자를 바꿀 때 그 모델에 맞게 조정하세요. ChatGPT나 Claude 웹사이트의 개인 설정을 수정하는 기능은 아닙니다.
-
-### 로컬 PC에서만 쓸 수 있나요?
-
-웹 앱을 [Vercel에 배포](#배포)하면 다른 컴퓨터나 모바일 브라우저에서도 로그인해 이력·공고·일정을 관리하고 자소서를 직접 작성·수정할 수 있습니다. **AI 생성에는 인터넷에 연결된 PC의 러너와 로그인된 AI CLI가 필요합니다.** 외부에서 요청한 AI 작업도 그 러너가 처리합니다. PC가 꺼져 있거나 절전 상태이면 처리되지 않으며, 대기 작업에는 6시간 유효기간이 있습니다.
-
-### 자소서를 어떻게 시작할지 모르겠고, 쓰는 시간도 아까워요.
-
-모카로 지원할 공고를 찾고, 내 경험과 문항을 준비한 뒤 솔의 연쇄 실행 버튼을 누르세요. **기업 조사 → 경험 기반 초안 → 근거 검수 → 소제목 제안**을 이어서 맡길 수 있습니다. 매 단계마다 자료를 복사해 챗봇에 다시 붙여 넣을 필요가 없습니다. 다만 결과의 사실관계와 내 의도는 직접 확인해야 하며, 검수가 정확성을 보장하거나 지원서를 자동 제출하지는 않습니다.
-
-### Codex만, 또는 Claude만 쓰는데도 가능한가요?
-
-가능합니다. 프롬프트 생성실에서 일곱 비서를 모두 로그인해 둔 제공자로 지정하거나 역할별로 섞어 쓰세요. 모델 이름과 추론 설정은 해당 CLI가 지원하는 값을 사용합니다. 문서에 소개된 비서별 제공자는 기본 배정입니다.
-
-### 유료 생성형 AI를 구독하지 않아도 시작할 수 있나요?
-
-2026-09-06 확인 기준 **Codex는 ChatGPT Free에도 포함**됩니다. 무료 계정으로 Codex CLI에 로그인하고 사용 한도 안에서 시작할 수 있습니다. 사용 가능한 모델과 한도는 [OpenAI 공식 안내](https://learn.chatgpt.com/docs/pricing)를 확인하세요. **Claude 무료 계정에는 Claude Code가 포함되지 않습니다.** 이 프로젝트의 Claude 경로에는 Claude Code를 사용할 수 있는 구독 로그인이 필요합니다. [Claude 공식 안내](https://code.claude.com/docs/en/setup)
-
-AI 없이 이력·경험·공고·일정과 자소서를 직접 관리하는 용도로도 사용할 수 있습니다. 이 경우 AI CLI와 러너를 실행하지 않아도 웹의 수동 관리 기능은 이용할 수 있습니다.
-
-### Supabase 데이터가 사라지면 어떻게 하나요?
-
-관제실에서 로컬 폴더 백업을 켜 두면 러너가 실행 중일 때 **2시간 주기**로 지정된 데이터 테이블을 JSON으로 저장합니다. 현재 구현은 6시간 주기가 아닙니다. 같은 날의 파일은 갱신하고 날짜가 바뀌면 새 파일을 만듭니다. 이력정보 전체와 첨부파일까지 포함한 완전한 복구 기능은 아니므로 [백업 범위](#데이터-백업)를 확인하세요.
-
-### 공고를 자동으로 찾아 주나요? 캘린더에도 자동으로 올라가나요?
-
-공고 탐색은 자동입니다 — 모카가 목표 직무·관심 분야와 경험을 참고해 공고를 찾고 저장합니다. 관제실에서 직접 탐색을 실행할 수 있고, 승인된 러너가 실행 중이면 매일 15시(KST) 자동 탐색도 지원합니다.
-
-캘린더 등록은 자동이 아닙니다 — 모카가 찾은 공고는 일단 목록에만 쌓이고, 지원할 공고를 골라 지원 일정 화면에서 "캘린더에 저장"을 눌러야 그때 캘린더에 올라갑니다. 상시채용처럼 날짜가 없는 공고에 임의의 마감일을 만들지도 않습니다.
-
-### 연결했는데 비서가 움직이지 않아요.
-
-러너 연결은 작업할 준비가 됐다는 뜻입니다. 실행 버튼을 눌러 작업을 요청하면 실제 실행 중인 비서가 활성화됩니다. 계속 대기한다면 관제실의 기기 승인, 러너 터미널의 오류, 선택한 CLI의 로그인 상태, 실행 기록의 사용량 제한을 확인하세요.
-
-<br>
-
-## 7명의 비서
-
-각 비서는 자기 담당 화면에서 실행되고, 결과는 구조화된 JSON으로 검증된 뒤 저장됩니다.
-
-<br>
+우주 작업실에서 각 파일럿은 서로 다른 일을 맡습니다. 캐릭터 아래의 역할을 보고 필요한 비서를 찾아보세요.
 
 <table>
 <tr>
-<td width="130" align="center"><img src="docs/images/agents/agent-news.png" width="100" alt="루미"></td>
-<td>
-
-### 루미 · 관심 분야 뉴스 조사
-
-**실행** Codex · **저장** `research_notes` (kind: `news`)
-
-`context/01-interests.md`에 적어 둔 관심 분야를 **웹에서 실제로 검색**합니다. 모델이 아는 내용만으로 답하지 않도록 프롬프트에 명시돼 있고, Codex의 자동 `web_search` 도구가 붙습니다.
-
-최근 1~2주 내 뉴스 3~5건을 고르고, 각각 제목·출처·실제 URL·날짜를 함께 반환합니다.
-
-관제실의 루미 카드에서 바로 실행합니다.
-
-</td>
-</tr>
-
-<tr>
-<td width="130" align="center"><img src="docs/images/agents/agent-jobs.png" width="100" alt="모카"></td>
-<td>
-
-### 모카 · 채용공고 탐색
-
-**실행** Codex · **저장** `job_posts`
-
-프로필과 경험 카드를 읽고 맞는 공고를 찾아 적합도(`fit_score`)를 매깁니다. 경험 카드가 없으면 점수를 억지로 올리지 않고 낮게 주거나 빈 결과를 반환합니다.
-
-공고를 저장해도 캘린더에는 자동으로 올라가지 않습니다 — 지원 일정 화면에서 직접 "캘린더에 저장"을 눌러야 그때 일정으로 등록됩니다.
-
-같은 URL은 새로 만들지 않고 기존 공고를 갱신합니다.
-
-**매일 15시(KST)에 자동 실행됩니다.** 노트북이 꺼져 있었다면 그날 안에 켜질 때 실행되고, 날짜가 넘어가면 건너뜁니다.
-
-</td>
-</tr>
-
-<tr>
-<td width="130" align="center"><img src="docs/images/agents/agent-company.png" width="100" alt="솔"></td>
-<td>
-
-### 솔 · 기업·직무 조사
-
-**실행** Claude Code · **저장** `research_notes` (kind: `company`)
-
-회사명과 직무를 주면 공시·재무제표·기술 블로그 같은 **1차 자료 중심**으로 조사합니다. 결과에는 출처 URL이 함께 붙습니다.
-
-단순 요약에서 그치지 않고 "이 회사에 지원한다면 어떤 각도로 쓸 수 있는지"까지 제안합니다.
-
-자소서 편집 화면에서 실행하며, 결과는 뮤즈가 초안을 쓸 때 근거로 넘어갑니다.
-
-</td>
-</tr>
-
-<tr>
-<td width="130" align="center"><img src="docs/images/agents/agent-writer.png" width="100" alt="뮤즈"></td>
-<td>
-
-### 뮤즈 · 자소서 초안 작성
-
-**실행** Codex · **저장** `artifacts` (kind: `draft`)
-
-문항과 목표 글자 수를 받아 초안을 씁니다. **근거는 내가 기록한 경험 카드와 솔의 조사 결과 안에서만** 쓸 수 있습니다.
-
-지어내기를 막는 장치가 3겹입니다.
-
-1. 프롬프트에서 근거 밖 사실을 금지
-2. 출력 스키마가 문단마다 `evidence` 배열을 요구 — 어떤 경험을 근거로 썼는지 명시
-3. **코드가 `experience_id`를 실제 카드와 대조**해, 존재하지 않는 id는 위반으로 기록
-
-초안은 바로 반영되지 않습니다. 저장된 산출물을 확인하고 [반영]을 눌러야 본문이 됩니다.
-
-</td>
-</tr>
-
-<tr>
-<td width="130" align="center"><img src="docs/images/agents/agent-review.png" width="100" alt="렌즈"></td>
-<td>
-
-### 렌즈 · 근거 검수
-
-**실행** Claude Code · **저장** `artifacts` (kind: `review`)
-
-완성된 본문을 읽고 과장·근거 없는 주장·직무 부적합을 찾습니다.
-
-지적은 유형이 붙습니다. `fact_error`(사실 오류), `overclaim`(과장), 근거 누락 등으로 나뉘고, 각각 구체적인 수정 제안이 따라옵니다.
-
-경험 카드에 없는 수치를 본문에 쓰면 잡아냅니다.
-
-</td>
-</tr>
-
-<tr>
-<td width="130" align="center"><img src="docs/images/agents/agent-interview.png" width="100" alt="에코"></td>
-<td>
-
-### 에코 · 면접 질문 생성
-
-**실행** Codex · **저장** `interview_questions`
-
-공고·기업 조사·내 경험 카드를 함께 읽고 예상 질문을 만듭니다.
-
-질문은 카테고리(기업·직무·경험 등)로 분류되어 저장되고, 면접 훈련실 화면에서 답변을 적고 다듬을 수 있습니다.
-
-</td>
-</tr>
-
-<tr>
-<td width="130" align="center"><img src="docs/images/agents/agent-subtitle.png" width="100" alt="콤마"></td>
-<td>
-
-### 콤마 · 문항 소제목 제안
-
-**실행** Antigravity (Gemini 3) · **저장** `artifacts` (kind: `subtitle`)
-
-완성된 자소서 본문을 읽고 **15자 이내** 소제목을 제안합니다.
-
-본문에 없는 사실을 만들지 않고 표현만 압축합니다. 새 주장을 만드는 게 아니라서 뮤즈의 3겹 근거 검증은 적용하지 않지만, **본문이 비어 있으면 실행을 거부**합니다.
-
-다른 비서와 마찬가지로 제안일 뿐이고, [반영]을 눌러야 확정됩니다.
-
-</td>
+<td align="center" width="25%"><img src="docs/images/agents/agent-news.png" width="96" alt="루미"><br><b>루미</b><br>관심 분야 뉴스</td>
+<td align="center" width="25%"><img src="docs/images/agents/agent-jobs.png" width="96" alt="모카"><br><b>모카</b><br>채용공고 탐색</td>
+<td align="center" width="25%"><img src="docs/images/agents/agent-company.png" width="96" alt="솔"><br><b>솔</b><br>기업·직무 조사</td>
+<td align="center" width="25%"><img src="docs/images/agents/agent-writer.png" width="96" alt="뮤즈"><br><b>뮤즈</b><br>경험 기반 초안</td>
 </tr>
 </table>
 
-<br>
+<table>
+<tr>
+<td align="center" width="33%"><img src="docs/images/agents/agent-review.png" width="96" alt="렌즈"><br><b>렌즈</b><br>근거·과장 검수</td>
+<td align="center" width="33%"><img src="docs/images/agents/agent-subtitle.png" width="96" alt="콤마"><br><b>콤마</b><br>문항 소제목</td>
+<td align="center" width="33%"><img src="docs/images/agents/agent-interview.png" width="96" alt="에코"><br><b>에코</b><br>면접 질문 준비</td>
+</tr>
+</table>
 
-> **각 비서가 어떤 LLM으로 돌지는 [프롬프트 생성실](#주요-화면)에서 바꿀 수 있습니다.** 위 표는 기본값입니다.
->
-> 구독을 하나만 쓴다면 일곱 비서를 전부 그쪽으로 몰아도 됩니다. 스키마는 고른 LLM에 맞게 자동으로 변환됩니다. 다만 **로그인한 CLI가 있어야** 실제로 실행되고, 없으면 실행이 실패로 남습니다.
 
-<br>
+모카로 공고를 찾고, 자소서 편집기에서 **솔 → 뮤즈 → 렌즈 → 콤마**를 이어서 실행합니다. 루미는 뉴스 조사, 에코는 면접 준비를 맡습니다. 파일럿별 AI 제공자는 **프롬프트**에서 바꿀 수 있습니다.
 
-## 주요 화면
-
-### 관제실
-
-7명의 상태를 한 화면에서 봅니다. 지금 도는 비서, 마지막 실행 결과, 러너 연결 여부, 오늘 실행 횟수가 보입니다.
-
-루미와 모카는 각자의 카드에서 바로 실행할 수 있습니다.
-
-<!-- 자리표시자 — 이 파일을 실제 캡처로 덮어쓰세요. 규격: docs/images/screens/README.md -->
-<img src="docs/images/screens/01-dashboard.png?v=0750026" alt="관제실" width="100%">
-
-<br>
-
-### 채용 캘린더
-
-마감일을 달력으로 봅니다. **날짜에 마우스를 올리면** 그날 마감인 공고가 회사명·직무·현재 전형 상태와 함께 목록으로 펼쳐집니다.
-
-<!-- 자리표시자 — 이 파일을 실제 캡처로 덮어쓰세요. 규격: docs/images/screens/README.md -->
-<img src="docs/images/screens/02-calendar.png" alt="채용 캘린더" width="100%">
-
-<br>
-
-### 전형별 합불 기록
-
-합불을 서류 하나로 뭉뚱그리지 않습니다. **서류 · 필기시험 · 코딩테스트 · 기술면접 · 최종면접**을 따로 기록합니다.
-
-칩을 누를 때마다 `대기 → 합격 → 불합격 → 대기`로 순환합니다.
-
-<!-- 자리표시자 — 이 파일을 실제 캡처로 덮어쓰세요. 규격: docs/images/screens/README.md -->
-<img src="docs/images/screens/03-stage-board.png" alt="전형별 합불" width="100%">
-
-<br>
-
-### 프롬프트 생성실
-
-각 비서의 시스템 프롬프트를 직접 고칩니다.
-
-저장할 때마다 이전 본문이 버전으로 남고, 언제든 되돌릴 수 있습니다. 되돌리기도 새 버전으로 쌓이기 때문에 기록이 사라지지 않습니다.
-
-<!-- 자리표시자 — 이 파일을 실제 캡처로 덮어쓰세요. 규격: docs/images/screens/README.md -->
-<img src="docs/images/screens/04-prompt-lab.png" alt="프롬프트 생성실" width="100%">
-
-<br>
-
-### 나의 정보
-
-학력·자격증·대외활동·교육활동·프로젝트·경력사항·수상내역, 7개 섹션을 항목별로 기록합니다. 사이드바의 **"나의 정보"**에서 들어갑니다.
-
-지원서를 쓸 때마다 학점이나 자격증 등록번호를 다시 찾지 않아도 됩니다. 성적증명서·졸업증명서 같은 파일도 함께 보관하며, 파일은 비공개 저장소에 올라가고 열람할 때만 60초짜리 링크가 만들어집니다.
-
-<!-- 자리표시자 — 이 파일을 실제 캡처로 덮어쓰세요. 규격: docs/images/screens/README.md -->
-<img src="docs/images/screens/07-records.png?v=0750026" alt="나의 정보" width="100%">
-
-<br>
-
-### 경험 아카이브
-
-프로젝트 경험을 상황·문제·역할·판단·행동·결과·시행착오·회고로 나눠 기록합니다.
-
-여기 적은 것만 뮤즈가 근거로 쓸 수 있습니다.
-
-<!-- 자리표시자 — 이 파일을 실제 캡처로 덮어쓰세요. 규격: docs/images/screens/README.md -->
-<img src="docs/images/screens/05-experiences.png?v=0750026" alt="경험 아카이브" width="100%">
-
-<br>
-
-### 면접 훈련실
-
-에코가 만든 질문에 답을 적고 다듬습니다.
-
-<!-- 자리표시자 — 이 파일을 실제 캡처로 덮어쓰세요. 규격: docs/images/screens/README.md -->
-<img src="docs/images/screens/06-interviews.png?v=0750026" alt="면접 훈련실" width="100%">
-
-<br>
-
-## 구조
-
-```
-                    ┌──────────────────────────────┐
-브라우저  ───────-> │  Vercel (web/)               │
-                    │  · 데이터만 보관              │
-                    │  · AI 자격증명 없음           │──┐
-                    └──────────────────────────────┘  │
-                                                      │  Supabase
-                    ┌──────────────────────────────┐  │  Postgres + Auth + RLS
-내 컴퓨터 ───────-> │  runner/ (Node)              │<─┘
-                    │  · 작업 큐 폴링               │
-                    │  · CLI 실행 · 결과 저장        │
-                    └───────────┬──────────────────┘
-                                │
-                    codex · claude · agy
-                    (구독 OAuth, 이 기기 밖으로 안 나감)
-```
-
-웹 앱은 비서를 직접 실행하지 않습니다. 작업 큐에 한 줄 넣을 뿐입니다.
-
-내 컴퓨터에서 내 계정으로 로그인해 도는 러너가 그 작업을 집어 컨텍스트를 만들고, 알맞은 CLI를 실행하고, 결과를 되돌려 저장합니다.
-
-**러너를 꺼도 사이트는 그대로 동작합니다.** 새 비서 실행만 못 하게 됩니다.
-
-<br>
+[설치부터 시작하기](#시작하기) · [비서별 자세한 역할](docs/REFERENCE.ko.md#7명의-비서) · [자주 묻는 질문](docs/FAQ.ko.md)
 
 ## 시작하기
 
-순서대로 4단계입니다: 아래 준비물 확인 → 없는 CLI 설치 → 설치 마법사 실행 → 두 프로세스 시작. 아무것도 설치돼 있지 않다고 가정하고 씁니다.
+**처음에는 아래 1 → 2 → 3까지만 진행하세요.** 자료를 저장할 수 있으면 설치 성공입니다. AI 연결은 4번, 외부 접속과 MCP는 이후 선택 사항입니다.
 
-### 준비물
+### 1. 준비물 확인
 
-| 항목 | 확인 |
+| 준비물 | 확인 방법 |
 |---|---|
-| Node.js 22.13 이상 | `node -v` |
-| Supabase 무료 프로젝트 | [supabase.com](https://supabase.com) |
-| Supabase CLI | `npm install -g supabase` |
-| AI 기능을 사용할 때 CLI 최소 1개 | 아래 표 |
+| Git | 터미널에서 `git --version` |
+| Node.js 22.13 이상 | `node -v`와 `npm -v`. 없으면 [Node.js](https://nodejs.org/en/download) 설치 |
+| 본인 Supabase 계정 | [Supabase](https://supabase.com)에서 가입 |
+| Supabase CLI | [공식 설치 안내](https://supabase.com/docs/guides/local-development/cli/getting-started)의 운영체제별 설치 후 `supabase --version` |
 
-<br>
+설치 마법사는 `supabase` 명령을 직접 실행하므로 PATH에서 사용할 수 있어야 합니다. 전역 설치는 macOS의 Homebrew, Windows의 Scoop 또는 공식 바이너리를 사용하세요. npm 프로젝트 의존성 설치와 전역 설치는 다릅니다. 기존의 `npm install -g supabase` 안내 대신 [공식 설치 방식](https://supabase.com/docs/guides/local-development/cli/getting-started)을 사용하세요.
 
-| CLI | 담당 비서 | 설치 · 로그인 |
-|---|---|---|
-| Codex | 루미 · 모카 · 뮤즈 · 에코 | `npm install -g @openai/codex` → `codex login` |
-| Claude Code | 솔 · 렌즈 | `npm install -g @anthropic-ai/claude-code` → `claude auth login` |
-| Antigravity | 소제목 | [antigravity.google](https://antigravity.google) 설치 후 `agy` 실행 |
+### 2. 프로젝트 연결 — 터미널 A
 
-**셋 다 설치할 필요는 없습니다.** 이용 가능한 계정의 CLI 하나를 설치하고, 프롬프트 생성실에서 사용할 비서들을 그 제공자로 지정하세요. 로그인하지 않은 CLI로 요청한 작업은 실행할 수 없습니다.
-
-<br>
-
-<details>
-<summary><b>이 CLI들을 한 번도 안 써봤다면 — 완전 처음부터 따라하기</b></summary>
-
-<br>
-
-아래 각 항목은 위 준비물 표의 Node.js 말고는 아무것도 설치돼 있지 않다고 가정합니다.
-
-**Codex CLI (OpenAI)** — ChatGPT 계정으로 로그인합니다. 무료 계정도 지원되며 플랜별 모델·사용 한도가 다릅니다. [최신 지원 범위](https://learn.chatgpt.com/docs/pricing)
-
-```bash
-npm install -g @openai/codex
-codex --version
-codex login
-```
-
-`codex login`을 실행하면 브라우저가 열립니다. **ChatGPT 계정 로그인**을 선택하세요. 이 프로젝트는 API 키 방식의 과금을 코드 레벨에서 거부하므로, API 키로 로그인을 마쳐도 여기서는 동작하지 않습니다.
-
-**Claude Code CLI (Anthropic)** — Claude Pro 또는 Max 구독이 있어야 합니다.
-
-```bash
-npm install -g @anthropic-ai/claude-code
-claude --version
-claude auth login
-```
-
-흐름은 동일합니다. 브라우저가 열리면 Claude 계정으로 로그인하고 구독 로그인을 선택하세요.
-
-**Antigravity CLI (Google)** — Google 계정이 있어야 합니다.
-
-```bash
-# macOS · Linux
-curl -fsSL https://antigravity.google/cli/install.sh | bash
-```
-
-Antigravity는 npm 패키지가 아니므로, Windows에서는 [antigravity.google](https://antigravity.google)에서 설치 프로그램을 내려받아 안내를 따르세요. 이후 과정은 동일합니다.
-
-```bash
-agy --version
-agy
-```
-
-처음 `agy`를 실행하면 브라우저가 열리고 Google 로그인을 요구합니다.
-
-**설치 직후 명령어가 "인식할 수 없습니다"/"command not found"로 나온다면**
-
-터미널을 설치 전에 이미 열어 둔 상태라 새로 추가된 PATH를 못 읽은 것입니다. 터미널을 완전히 닫았다가 새로 열고 `--version` 확인을 다시 시도하세요 — OS를 가리지 않고 가장 흔한 원인입니다.
-
-**macOS·Linux에서 `npm install -g`가 권한 오류(`EACCES`)로 실패한다면**
-
-`sudo`로 다시 실행하지 마세요. 그 순간부터 Node 설치 폴더의 소유권이 root로 넘어가서 이후 다른 권한 오류를 계속 만들어냅니다. 대신 [nvm](https://github.com/nvm-sh/nvm)으로 Node를 설치하세요 — 사용자 홈 디렉터리 안에만 설치되므로 전역 설치에도 관리자 권한이 전혀 필요 없습니다.
-
-로그인은 CLI마다 진행하며 러너를 껐다 켜도 보통 유지됩니다. 세션이 만료되거나 접근 권한이 해제되면 다시 로그인해야 합니다.
-
-CLI 하나라도 로그인에 성공했다면, 아래 "설치 — 명령 3줄"로 넘어가세요. 그 단계는 Supabase를 연결하는 과정이라 CLI와는 무관합니다.
-
-</details>
-
-<br>
-
-### 설치 — 명령 3줄
-
-Windows · macOS · Linux 모두 같은 명령입니다.
+Windows는 PowerShell, macOS·Linux는 터미널에서 **한 줄씩** 실행하세요.
 
 ```bash
 git clone https://github.com/tkv00/Career-Atelier-AI-Context-Pack.git
@@ -457,345 +69,142 @@ cd Career-Atelier-AI-Context-Pack
 npm run setup
 ```
 
-**Supabase에 한 번 로그인하면 마법사가 CLI 로그인을 재사용합니다.** anon 키는 자동으로 조회하고 나머지 작업도 마법사가 처리합니다.
+이미 저장소를 받았다면 해당 폴더에서 마지막 명령만 실행합니다. 마법사에서 본인 Supabase 계정으로 로그인하고 사용할 프로젝트를 선택하세요. 기존 프로젝트를 선택하면 **DB 비밀번호**를 물을 수 있습니다. 새 프로젝트를 만들려면 선택 안내에 따르세요.
 
-1. Node · Supabase CLI · AI CLI 설치 상태 확인
-2. Supabase 로그인 (브라우저가 한 번 열립니다)
-3. 프로젝트 선택 — 없으면 **새로 만들고** 준비될 때까지 대기
-4. anon 키를 **직접 조회**해서 가져옴
-5. HTTPS Management API로 미적용 마이그레이션(테이블 · 보안 정책 · 기본 프롬프트) 적용
-6. 이메일 템플릿 · 단일 사용자 가입 방어 · SMTP 설정 적용
-7. `web/.env.local`과 `runner/.env` 생성
-8. 웹 가입 링크 안내 — 웹에서 이메일과 비밀번호를 한 번 정하고 러너에서도 같은 계정 사용
+**완료 확인:** 설정 적용이 끝나고 웹 실행·가입 링크 안내가 나옵니다. 오류로 끝났다면 다음 단계로 넘어가지 마세요. [설치 상세](docs/USER-GUIDE.md) · [다른 계정으로 전환](docs/AUTH-TROUBLESHOOTING.md#다른-supabase-계정으로-전환하기)
 
-마이그레이션에는 DB 포트(5432/6543) 연결이나 기존 프로젝트의 DB 비밀번호가 필요하지 않습니다. Windows 자격 증명 관리자, macOS 키체인, Linux `secret-tool` 또는 CLI의 대체 토큰 파일에서 로그인 정보를 읽습니다. 현재 셸의 `SUPABASE_ACCESS_TOKEN`이 우선하며, 자격 증명 저장소를 읽을 수 없으면 재로그인 또는 해당 토큰 설정 방법을 안내합니다. 관리 토큰은 웹·러너 환경 파일에 저장하지 않습니다. 공식 클라우드의 `supabase` 프로필만 지원합니다.
+### 3. 웹 실행 후 내 계정 만들기 — 터미널 A와 브라우저
 
-다시 실행하면 이력에 기록된 마이그레이션을 건너뜁니다. SQL과 이력은 함께 커밋되며, 시간 초과 시 설치를 중단하고 다음 실행에서 이력을 확인합니다. 기존 테이블은 있지만 이력이 없거나 이력이 로컬 파일 순서와 다르면 스키마·이력 대조가 필요합니다. 데이터를 초기화하거나 전체 SQL 복사 파일을 만들지 않고 원인을 안내하며 멈춥니다. [설치 문제 해결](docs/USER-GUIDE.md)을 참고하세요. `--skip-migrations`는 이 검증을 생략하므로 적용 상태를 별도로 확인한 경우에만 사용하세요.
-
-설치 마법사는 이제 임시 서비스 비밀번호를 만들지 않습니다. Supabase 관리 계정·DB 비밀번호·Career Atelier 계정은 서로 다릅니다. 새 이메일은 먼저 **계정 만들기**를 선택하세요. 프로젝트마다 첫 소유자 계정 하나만 허용하며, 기존 계정은 로그인하거나 비밀번호를 재설정합니다. 가입 응답에 로그인 세션이 없으면 대시보드로 이동하지 않고 이메일 확인을 안내합니다.
-
-웹만 로그인되고 러너는 실패한다면 로그인 화면의 **로그인이 계속 실패하나요?**에 표시된 프로젝트와 러너의 연결 프로젝트를 비교하세요. `web/.env.local`의 `NEXT_PUBLIC_SUPABASE_URL`과 `runner/.env`의 `SUPABASE_URL`을 맞춘 뒤 둘 다 다시 시작합니다. 러너 비밀번호는 화면에 표시되지 않습니다. 웹 주소 대신 서비스 비밀번호를 입력하세요. 로그인 후에는 저장된 러너 세션을 재사용합니다. [인증 문제 해결 안내](docs/AUTH-TROUBLESHOOTING.md)도 참고하세요.
-
-### Windows · macOS · Linux 한 줄 실행
-
-설치, 의존성 설치(`npm install --prefix runner`), 웹 가입, 러너 로그인(`npm run login --prefix runner`)을 마친 뒤 저장소 루트에서 다음 두 명령을 실행하세요.
+방금 사용한 터미널 A에서 실행합니다.
 
 ```bash
-npm run doctor
-npm run runner
-```
-
-`npm run doctor`는 비밀번호나 토큰을 출력하지 않고 설치된 AI CLI와 구독 로그인 상태를 확인합니다. `npm run runner`는 로컬 작업 큐 러너를 시작합니다. 러너는 실행 중인 계정의 홈 디렉터리를 자동으로 찾으므로 `HOME`, `USERPROFILE` 같은 사용자별 경로를 직접 설정할 필요가 없습니다. 특정 CLI가 없거나 로그인이 만료됐다고 나오면 해당 CLI만 다시 로그인한 뒤 진단을 다시 실행하세요.
-
-> DB 비밀번호는 무작위로 만들고 어디에도 저장하지 않습니다. `service_role` 키는 조회조차 하지 않습니다.
-
-**비밀번호 재설정 메일은 별도 설정 없이 바로 동작합니다** — Supabase 기본 메일 서비스를 쓰기 때문입니다. 다만 시간당 2통으로 제한돼 있어서, 실사용(가끔 비밀번호를 잊었을 때만)에는 충분하지만 가입 흐름을 반복 테스트할 때는 금방 막힙니다. 더 넉넉한 한도가 필요하면 [Resend](https://resend.com)에 무료로 가입해 `supabase/.env.example`을 `supabase/.env`로 복사한 뒤 `RESEND_API_KEY`와 사이트 주소 항목을 채우고 `supabase config push`를 실행하세요.
-
-<br>
-
-### AI에게 설치 맡기기
-
-터미널을 쓸 수 있는 코딩 에이전트(Codex · Claude Code · Gemini CLI · Cursor 등)에 아래 한 줄을 붙여 넣으세요.
-
-```text
-다음 설치 지침을 읽고 그대로 따라 Career Atelier를 설치해 줘: https://raw.githubusercontent.com/tkv00/Career-Atelier-AI-Context-Pack/refs/heads/main/docs/AI-INSTALL.md
-```
-
-에이전트라면 아래 명령을 순서대로 실행해 끝까지 맡길 수도 있습니다. `--yes`를 주면 아무것도 묻지 않고 끝까지 돕니다.
-
-```bash
-git clone https://github.com/tkv00/Career-Atelier-AI-Context-Pack.git
-cd Career-Atelier-AI-Context-Pack
-npm run setup -- --yes
-```
-
-AI는 준비물을 확인하고 공식 저장소 복제, 잠긴 버전의 의존성 설치, 기존 설치 마법사 실행, 빌드 검증까지 진행합니다. 설치 지침에는 API 키 사용, 파괴적인 Git 명령, 환경변수 파일의 무단 덮어쓰기, 자동 배포를 금지하는 안전 규칙도 들어 있습니다. 로그인과 인스턴스 소유권 확인은 직접 해야 합니다. 전체 절차는 실행 전에 [docs/AI-INSTALL.md](docs/AI-INSTALL.md)에서 확인할 수 있습니다.
-
-> 일반 웹 채팅이 아니라 **내 컴퓨터의 터미널 권한이 있는 코딩 에이전트**에서 사용하세요. 웹 채팅만으로는 로컬 프로그램을 설치할 수 없습니다.
-
-리포를 이미 받아 둔 뒤라면 따로 붙여 넣을 것도 없습니다. 루트의 [AGENTS.md](AGENTS.md)를 Codex·Gemini CLI·Cursor·Copilot 등이 **알아서 읽습니다**([AGENTS.md 규약](https://agents.md), 6만 개 이상 저장소가 씁니다). Claude Code는 [CLAUDE.md](CLAUDE.md)를 읽고, 그 파일은 같은 내용을 가리킵니다.
-
-<br>
-
-### 실행
-
-터미널 두 개가 필요합니다. 웹 앱 터미널은 두 운영체제에서 같습니다.
-
-```bash
-# 1번 창 — 웹 앱
 cd web
 npm install
 npm run dev
 ```
 
-#### Windows 러너
+터미널을 켜 둔 채 **브라우저**에서 출력된 Local 주소를 여세요. 보통 `http://localhost:3000`이며 포트가 다르면 출력된 주소를 사용합니다.
 
-두 번째 PowerShell 창을 열고 저장소 루트에서 실행하세요.
+1. **처음이에요 · 계정 만들기**를 선택합니다.
+2. 본인의 이메일과 직접 정한 비밀번호로 가입합니다. 이메일 확인 안내가 나오면 확인을 마칩니다.
+3. 관제실이 열리면 **경험 카드** 메뉴에서 경험 하나를 저장해 보세요.
 
-```powershell
-npm install --prefix runner
-npm run doctor --prefix runner
-npm run login --prefix runner
-npm run runner
-```
+**완료 확인:** 새로고침 후에도 경험이 남아 있습니다. 여기까지면 AI 없이 자료를 관리할 수 있습니다.
 
-`npm run login` 전에 웹 앱에서 같은 계정으로 가입하거나 로그인해야 합니다. 대시보드의 러너 목록에서 이 기기도 한 번 승인하세요. `HOME`, `USERPROFILE`, `HOMEDRIVE`, `HOMEPATH`를 특정 사용자 이름으로 직접 설정하지 마세요. 러너가 현재 Windows 계정의 홈 디렉터리를 자동으로 찾습니다. Windows `.cmd` 실행 파일은 여러 줄 명령행 인자를 잘라낼 수 있으므로 Codex·Claude 프롬프트는 표준입력으로 전달합니다. 러너 코드를 바꾼 뒤에는 `Ctrl+C`로 종료하고 `npm run runner`를 다시 실행하세요.
+> 웹·Runner에서는 **여기서 정한 같은 이메일·비밀번호**를 사용합니다. Supabase 관리 계정이나 DB 비밀번호를 입력하는 곳이 아닙니다. 프로젝트마다 첫 소유자 계정 하나만 가입할 수 있습니다. 이미 가입했다면 로그인 또는 비밀번호 재설정을 이용하세요.
 
-CLI가 없다고 나오면 전역 npm PATH를 새로 읽도록 PowerShell을 닫았다가 다시 여세요. 그 뒤 `npm run doctor`를 다시 실행하세요. `doctor`는 CLI 설치와 구독 로그인만 확인하며 실제 웹 검색은 실행하지 않습니다.
+### 4. AI 비서 연결 — 사용할 때만
 
-#### macOS 러너
+**AI CLI**는 AI 계정을 터미널에서 사용하는 프로그램이고, **Runner**는 웹의 작업 요청을 받아 그 프로그램을 실행하는 로컬 프로세스입니다. 두 프로그램의 로그인은 서로 다릅니다.
 
-두 번째 Terminal 창을 열고 저장소 루트에서 실행하세요.
-
-```bash
-npm install --prefix runner
-npm run doctor --prefix runner
-npm run login --prefix runner
-npm run runner
-```
-
-브라우저가 열리면 Supabase와 선택한 AI CLI 로그인을 완료하세요. macOS CLI 인증 정보는 Keychain에 저장되므로 Windows 환경변수나 다른 사용자의 홈 경로를 복사하지 마세요. 전역 npm 설치에서 `EACCES`가 나오면 [nvm](https://github.com/nvm-sh/nvm)으로 Node를 설치한 뒤 Terminal을 다시 열어 실행하세요. macOS가 CLI 실행을 차단하면 공식 설치 방법으로 CLI를 다시 설치하고 `npm run doctor --prefix runner`를 재실행하세요.
-
-#### 두 운영체제의 이후 실행
-
-최초 로그인과 기기 승인을 끝낸 뒤에는 저장소 루트에서 아래 명령 하나만 실행하면 됩니다.
-
-```bash
-npm run runner
-```
-
-러너 로그인 명령을 실행하기 전에 Next.js가 안내하는 웹 주소(보통 http://localhost:3000)를 여세요. **계정 만들기**에서 본인 이메일과 비밀번호를 정합니다. 이미 계정이 있으면 기존 계정으로 로그인하세요. 러너에도 같은 계정을 입력합니다.
-
-> **가장 먼저 가입한 계정이 그 인스턴스의 소유자가 되고, 이후 가입은 전부 거부됩니다.** 첫 가입을 본인 이메일로 하세요.
-
-마지막으로 관제실 화면 아래 "러너" 목록에서 이 기기를 **승인**하면 작업을 받기 시작합니다. 기기마다 한 번만 하면 됩니다.
-
-<br>
-
-### 배포
-
-선택 사항입니다 — 러너는 내 컴퓨터가 켜져 있어야 하지만, 웹 앱 자체는 `localhost:3000`만으로도 잘 동작합니다. 집·회사 밖에서도 캘린더나 작성 중인 자소서를 보고 싶을 때만 배포하면 됩니다 — 그때도 러너가 켜져 있을 필요는 없습니다.
-
-```bash
-npm run deploy
-```
-
-`web/`을 Vercel CLI로 직접 프로젝트에 연결합니다 — GitHub Import를 거치지 않습니다. Vercel의 GitHub App이 그 저장소(특히 포크)에 접근 권한이 없으면 Import 목록에 아예 안 뜨는 경우가 흔한데, 이 방식은 그 문제 자체를 피해 갑니다. `npm run setup`이 이미 `web/.env.local`에 써 둔 `NEXT_PUBLIC_SUPABASE_URL`·`NEXT_PUBLIC_SUPABASE_ANON_KEY`를 그대로 읽어 Vercel 프로젝트에 설정하고 배포까지 끝냅니다. 처음 한 번만 Vercel 로그인 창이 뜨고, 이후 다시 올리고 싶을 때도 같은 명령을 그대로 실행하면 됩니다.
-
-배포가 끝나면 원하는 주소 이름을 물어봅니다 — 먼저 원하는 이름을 입력해 보세요. `<그 이름>.vercel.app`을 이미 다른 누군가 쓰고 있으면 그렇다고 알려 주고 다시 물어보며, 세 번 연달아 실패하면 매번 새 이름을 고민하게 하는 대신 무작위 접미사가 붙은(확실히 비어 있는) 이름을 제안합니다. (`--yes`로 실행하면 다시 물어볼 사람이 없으므로 첫 실패에서 바로 무작위 이름으로 넘어갑니다.) 이름을 미리 정해서 넘길 수도 있습니다:
-
-```bash
-npm run deploy -- --project-name 원하는-이름
-```
-
-service_role 키나 AI 제공자 키는 넣지 마세요. **일부러 빌드가 거부합니다** (`web/lib/env.ts`).
-
-직접 손으로 하고 싶다면 Vercel 프로젝트의 Root Directory를 `web/`로 잡고 같은 환경변수 두 개를 직접 넣으면 됩니다 — 자세한 내용은 [docs/V2-SETUP.md](docs/V2-SETUP.md)에 있습니다.
-
-<br>
-
-## MCP로 정리본 일괄 가져오기
-
-**Notion에 쌓아 둔 내 경험을 다시 입력하지 마세요.** MCP(Model Context Protocol)는 AI 클라이언트가 외부 도구를 호출하는 공통 연결 규약입니다. 이 저장소의 `career-atelier` 서버는 Notion 페이지·DB 또는 로컬 Markdown·JSON을 읽어 Career Atelier의 이력정보와 경험 카드로 가져옵니다. 웹 화면의 버튼이 아니라 내 PC의 MCP 클라이언트나 터미널에서 실행합니다.
-
-### 어떤 일을 맡길 수 있나요?
-
-| 도구 | 역할 | 주요 인자 |
-|---|---|---|
-| `preview_import` | 인식된 항목·저장 예정 테이블·경고 확인. DB에 쓰지 않음 | `source`, DB 소스일 때 `section` |
-| `import_records` | 항목 추가 또는 기존 항목 갱신 | `source`, `section`, `dry_run`, 선택적 `only` |
-| `db_snapshot` | 지원되는 테이블별 행 수 확인 | 없음 |
-
-기본정보·학력·자격증·대외활동·교육활동·프로젝트·경력·수상·경험 카드를 지원합니다. 공고나 자소서의 범용 임포터, Notion 양방향 동기화, 스캔 이미지 OCR 기능은 아닙니다.
-
-서버는 소스를 로컬에서 파싱해 DB에 기록합니다. 원문 전체를 모델에게 전달해 INSERT 인자로 다시 작성시키지 않고, 클라이언트에는 경로와 건수·제목·결과 요약을 주고받습니다. 구조화 작업 자체에는 LLM 호출이 없습니다. 토큰 절감률은 입력과 도구 정의 비용에 따라 달라지며, 기존 표본의 약 96%는 보장값이 아닌 추정치입니다. `cd runner` 후 `npm run mcp:bench`로 문자 수와 토큰 추정치를 확인할 수 있습니다.
-
-### 1. 설치와 로그인 준비
-
-[설치 마법사](#시작하기)와 `runner` 의존성 설치를 먼저 마치고, `cd runner` → `npm run login`으로 본인 계정의 이메일 인증을 완료하세요. DB 쓰기와 행 수 조회는 러너의 사용자 세션을 사용하며 RLS가 적용됩니다. 파일 미리보기는 DB 로그인 없이도 가능합니다.
-
-MCP 서버는 일반 작업 큐 러너와 별도 프로세스입니다. 임포트만 할 때 `npm run start`를 계속 켜 둘 필요는 없습니다. Notion을 쓰지 않으면 Notion 토큰도 필요 없습니다.
-
-### 2. MCP 클라이언트에 등록
-
-Claude Code는 저장소 루트의 [.mcp.json](.mcp.json)에 등록돼 있습니다. 프로젝트 폴더에서 실행하고 클라이언트의 MCP 승인 절차를 완료하세요. Codex와 Antigravity는 아래처럼 등록합니다. `<repo>`를 **본인의 저장소 절대 경로**로 바꾸세요.
-
-```bash
-codex mcp add career-atelier -- node <repo>/runner/mcp/server.mjs
-agy mcp add career-atelier -- node <repo>/runner/mcp/server.mjs
-```
-
-등록 후 클라이언트를 다시 열고 `career-atelier`의 세 도구가 보이는지 확인합니다. 다른 MCP 클라이언트에서도 명령을 `node`, 인자를 서버 파일의 절대 경로로 지정하면 됩니다.
-
-### 3. 가져올 정리본 작성
-
-제목 1(`#`)은 데이터 종류, 제목 2(`##`)는 항목 이름, 목록의 `키: 값`은 상세 필드입니다. Notion 페이지에서도 본문에 같은 제목·목록 구조를 만드세요. 페이지 제목만으로 데이터 종류를 판단하지 않습니다.
-
-```markdown
-# 경험
-## 교내 스터디 운영
-- 상황: 참여자의 출석률이 낮아지고 있었다
-- 문제: 난이도가 맞지 않아 참여를 포기했다
-- 역할: 커리큘럼 담당
-- 판단: 난이도를 나눠 선택할 수 있게 하기로 했다
-- 행동: 문제를 세 단계로 나누고 막힌 지점을 공유했다
-- 결과: 다음 학기에도 스터디 운영이 이어졌다
-- 태그: 협업, 문제해결
-
-# 학력
-## 예시대학교
-- 전공: 컴퓨터공학
-- 기간: 2020-03 ~ 2024-02
-- 학점: 3.82 / 4.5
-- 상태: 졸업
-```
-
-[전체 예제](runner/mcp/fixtures/sample-notes.md)를 복사해 실제 내용으로 바꿔 사용하세요. 자유 형식 문서의 의미를 AI가 추측해 채우지는 않습니다. 알 수 없는 섹션은 `skipped`, 유효하지 않은 행은 `rejected`, 보정 사항은 `warnings`에 표시됩니다. 일부 알 수 없는 필드는 메모나 상세 내용으로 보존됩니다.
-
-### 4. 미리보기 → 저장 → 확인
-
-클라이언트에 아래처럼 요청할 수 있습니다.
-
-> career-atelier의 preview_import로 /절대경로/내-정리본.md를 확인해 줘. 항목 수와 경고를 알려 줘.
-
-미리보기 결과를 확인한 뒤 저장을 요청합니다.
-
-> 같은 파일을 import_records로 가져와 줘. dry_run은 false로 하고, only는 ["experience"]로 해서 경험 카드만 저장해 줘. 끝나면 db_snapshot으로 건수를 확인해 줘.
-
-`only`를 생략하면 인식된 모든 종류가 대상입니다. 값은 `profile / education / certification / activity / training / project / work / award / experience`를 사용합니다. `dry_run` 기본값은 `true`이며 실제 저장에는 `false`가 필요합니다.
-
-터미널에서도 실행할 수 있습니다.
+1. 사용할 AI CLI **하나**를 설치하고 본인 계정으로 로그인합니다. [제공자별 설치 안내](docs/REFERENCE.ko.md#준비물)를 참고하세요.
+2. 웹의 **프롬프트** 메뉴에서 실행할 비서들의 AI 제공자를 로그인한 CLI로 지정하고 저장합니다. 모든 비서를 같은 제공자로 지정해도 됩니다.
+3. **새 터미널 B**를 열고, 저장소 최상위 폴더로 이동한 뒤 실행합니다.
 
 ```bash
 cd runner
-node mcp/server.mjs preview --source /절대경로/내-정리본.md
-node mcp/server.mjs import --source /절대경로/내-정리본.md
-node mcp/server.mjs import --source /절대경로/내-정리본.md --write
-node mcp/server.mjs snapshot
+npm install
+npm run login
+npm run start
 ```
 
-**같은 항목은 갱신됩니다.** 종류별 비교 키로 기존 행을 찾습니다. 예를 들어 경험은 제목, 학력은 학교명과 구분을 비교합니다. 같은 제목의 경험을 가져오면 기존 내용이 바뀔 수 있고, 기본정보를 포함하면 현재 프로필을 갱신합니다. 가져오기에는 일괄 취소 기능이 없습니다. `written.created / updated / failed`와 `failures`를 확인하세요. 일부 행만 실패할 수도 있습니다.
+`npm run login`에는 **3번에서 웹 가입 시 정한 이메일·비밀번호**를 입력합니다. 비밀번호는 화면에 표시되지 않습니다.
 
-### 5. Notion 연결
+4. 브라우저의 **관제실 → 러너 목록**에서 이 기기를 **승인**합니다.
 
-1. [Notion 내부 통합](https://www.notion.so/my-integrations)을 생성하고 읽을 페이지·DB에 접근 권한을 부여합니다.
-2. `runner/.env`에 `NOTION_TOKEN=<발급받은 토큰>`을 저장합니다. 토큰은 로컬에만 두고 Git에 커밋하거나 채팅에 붙여 넣지 마세요.
-3. **현재 Notion 어댑터는 프로세스 환경변수를 읽습니다.** `.env`에 적는 것만으로는 로드되지 않으므로 Node의 `--env-file`을 지정해 MCP 프로세스를 실행합니다.
+**완료 확인:** 관제실에서 연결·승인 상태를 확인하고, 비서 작업 하나를 요청해 **실행 기록**에서 결과를 확인합니다. 연결만으로 비서가 계속 실행되는 것은 아닙니다. AI 작업 중에는 터미널 B와 PC를 켜 두세요.
 
-```bash
-codex mcp add career-atelier -- node --env-file=<repo>/runner/.env <repo>/runner/mcp/server.mjs
+<details>
+<summary>다음 날 다시 실행할 때</summary>
+
+설치·가입은 반복하지 않습니다. 저장소 폴더에서 터미널 A는 `cd web` → `npm run dev`, 새 터미널 B는 `cd runner` → `npm run start`를 실행하세요. Runner 세션이 만료됐을 때만 `npm run login`을 다시 실행합니다.
+
+</details>
+
+<details>
+<summary>터미널 사용이 어려워 AI에게 설치를 맡기고 싶다면</summary>
+
+내 PC의 터미널에 접근할 수 있는 코딩 에이전트에 아래 문장을 입력하세요. Supabase 로그인·웹 첫 가입·기기 승인은 본인이 진행합니다.
+
+```text
+다음 설치 지침을 읽고 Career Atelier를 설치해 줘: https://raw.githubusercontent.com/tkv00/Career-Atelier-AI-Context-Pack/refs/heads/main/docs/AI-INSTALL.md
 ```
 
-위 명령은 파일 전용 등록 대신 사용할 Notion용 설정입니다. 이미 등록했다면 클라이언트의 해당 서버 설정을 이 실행 명령으로 갱신하고 재연결하세요. Claude Code는 `.mcp.json`의 `args`를 `["--env-file=<repo>/runner/.env", "<repo>/runner/mcp/server.mjs"]`로 설정합니다. Antigravity도 같은 Node 인자를 사용합니다. 로컬 절대 경로 설정은 공유용 설정에 커밋하지 마세요.
+[에이전트 설치 상세](docs/AI-INSTALL.md)
 
-| 소스 | 전달할 값 | 문서 구조 |
+</details>
+
+## 첫 자소서까지 따라하기
+
+| 순서 | 어디서 무엇을 하나요? | 다음 단계로 넘어가는 기준 |
 |---|---|---|
-| 페이지 | `source: "notion://page/<페이지-ID>"` | 본문의 제목 1로 종류 지정 |
-| 데이터베이스 | `source: "notion://database/<DB-ID>", section: "경험"` | 행 제목이 항목명, 속성명이 필드명 |
+| 1 | **관제실**에서 목표 직무·관심 분야 저장 | 조사 기준이 입력됨 |
+| 2 | **이력 정보**에 학력·경력 입력, **경험 카드**에 상황·판단·행동·결과 저장 | 실제 경험 카드가 하나 이상 있음 |
+| 3 | **지원 일정 → + 직접 일정 입력**으로 회사·직무·마감일 입력 후 **캘린더에 저장** | 공고가 목록에 표시됨. 모카가 찾은 공고를 선택해도 됨 |
+| 4 | 공고의 **자소서 쓰기** 또는 **자소서 작성 연결** 선택 | 해당 공고의 자소서 편집기가 열림 |
+| 5 | 문항과 글자 수, 기업·직무·공고 내용을 입력하고 **기업 조사부터 소제목까지 실행 (솔)** 선택 | 솔 → 뮤즈 → 렌즈 → 콤마 작업 결과 확인 |
+| 6 | 초안과 검수 결과를 읽고 사실관계·문체 수정 | 직접 검토한 자소서 완성. 지원서 제출은 본인이 진행 |
 
-공유 링크에서 페이지·DB의 ID를 확인하고 URL 전체나 `?v=` 뒤의 보기 ID 대신 전달합니다. DB는 한 번에 한 종류로 가져오며, 속성 이름을 위 필드 형식에 맞춥니다. DB 행의 본문과 첨부파일은 가져오지 않습니다.
+경험 카드가 없으면 뮤즈 단계에서 멈춥니다. 모카의 공고 탐색과 자소서 작성은 별도 요청입니다. [버튼과 작업 결과 상세](docs/FEATURE-WALKTHROUGH.ko.md)
 
-DB 미리보기 도구 인자 예시:
+## 기능은 어디서 쓰나요?
 
-```json
-{
-  "source": "notion://database/<DB-ID>",
-  "section": "경험"
-}
-```
+아래 이름은 웹의 왼쪽 메뉴와 같습니다.
 
-같은 인자로 `import_records`를 호출하면서 `dry_run: false`를 추가하면 저장합니다. **현재 터미널 CLI는 `--section`을 전달하지 않으므로 DB 소스는 MCP 도구로 사용하세요.** 페이지는 터미널에서 확인할 수 있습니다.
+| 메뉴 | 할 수 있는 일 | AI 필요 여부 |
+|---|---|---|
+| 관제실 | 목표 설정, 루미 뉴스 조사·모카 공고 탐색, Runner 승인 | 조사·탐색에 필요 |
+| 지원 일정 | 공고·마감일 저장, 제출·전형 결과 관리, 자소서 편집기 열기 | 수동 관리에는 불필요 |
+| 경험 카드 | 경험과 해시태그 관리, 3D 행성 탐색 | 수동 관리에는 불필요 |
+| 이력 정보 | 학력·경력·자격증 등 저장 | 불필요 |
+| 면접 준비 | 에코로 예상 질문 생성, 답변 정리 | 질문 생성에 필요 |
+| 프롬프트 | 비서별 AI 제공자·모델·작성 지침 설정 | 설정 저장에는 불필요 |
+| 실행 기록 | 대기·실행·완료·실패와 오류 확인 | 조회에는 불필요 |
 
-```bash
-cd runner
-node --env-file=.env mcp/server.mjs preview --source "notion://page/<페이지-ID>"
-```
+[기능별 사용 순서](docs/FEATURE-WALKTHROUGH.ko.md) · [7명의 비서와 전체 화면](docs/REFERENCE.ko.md#7명의-비서)
 
-### 막힐 때 확인할 것
+## 기존 Notion·Excel 자료 가져오기
 
-| 증상 | 확인할 사항 |
+**선택 기능입니다. 첫 설치에 MCP를 연결할 필요는 없습니다.** 현재 가져오기는 내 PC의 MCP 클라이언트 또는 터미널에서 실행합니다. 웹의 업로드 마법사는 아직 없습니다.
+
+| 내 자료 상태 | 현재 사용할 방법 |
 |---|---|
-| MCP 도구가 안 보임 | 서버 경로, Node 설치, 클라이언트 승인·재연결 |
-| 러너 로그인 없음 / 세션 만료 | `cd runner` 후 `npm run login` |
-| `NOTION_TOKEN` 없음 | 토큰 설정과 MCP 명령의 `--env-file` 확인 |
-| Notion 401 / 403 / 404 | 토큰 유효성, 통합의 페이지 접근 권한, 페이지·DB ID |
-| 저장 예정 0건 / `skipped` | 페이지의 제목 구조, DB의 `section`, 필드 이름 |
-| 저장이 안 됨 | `dry_run: false` 또는 터미널의 `--write`, 결과의 `failures` |
+| 표 구조는 같고 열 이름만 다름 | `column_map`으로 내 열 이름을 서비스 필드에 연결 |
+| 시트가 여러 개임 | 가져올 `sheet`와 기록 종류 `section` 선택 |
+| Notion DB의 속성 이름이 다름 | 속성 이름을 매핑하고 미리보기 확인 |
+| 한 셀에 여러 경험, 병합 셀, 자유 서술 페이지 | 현재 자동 분해·의미 추출 미지원. 표의 값이나 지원되는 Markdown·JSON 구조로 정리 필요 |
 
-**검증 범위:** 파일 파싱과 Supabase 저장·갱신은 실행 검증됐습니다. Notion 어댑터는 구현돼 있지만 실제 Notion 호출은 검증되지 않았습니다. 현재 API 버전은 `2022-06-28`이므로 여러 데이터 소스를 가진 최신 Notion DB는 호환 문제가 있을 수 있습니다. [Notion 버전 변경 안내](https://developers.notion.com/guides/get-started/upgrade-guide-2025-09-03) · [MCP 구현과 상세 검증 기록](runner/mcp/README.md)
+**원본 형식을 모두 같게 만들 필요는 없지만, 현재 매핑으로 해결할 수 있는 범위에는 한계가 있습니다.** 미리보기의 제외·거부·경고를 확인한 뒤 저장하세요. 인식하지 못한 표의 열 값은 현재 저장되지 않습니다.
 
-<br>
+[연결·매핑·저장 예제](runner/mcp/README.md) · [서로 다른 형식을 처리하기 위한 확장 설계 — 미구현](docs/IMPORT-FORMAT-DESIGN.ko.md)
 
-## 데이터 백업
+## 막혔을 때
 
-Supabase 무료 플랜은 장기간 미사용 시 프로젝트가 일시 정지될 수 있습니다. 중요한 자소서와 이력 데이터의 안전을 위해 로컬 백업 기능을 제공합니다.
-
-관제실 화면의 러너 항목에서 로컬 폴더 자동 백업을 활성화하고 절대 경로를 지정하세요.
-
-- macOS · Linux: `~/career-atelier-backups`
-- Windows: `C:\career-atelier-backups`
-
-러너가 켜져 있는 동안 2시간 주기로 [백업 코드에 지정된 테이블](runner/backup.mjs)을 JSON 파일로 저장합니다. 같은 날에는 파일을 덮어쓰고 날짜가 바뀌면 새 파일을 만듭니다. 오래된 파일은 자동 삭제하지 않으므로 보관 기간은 직접 관리하세요.
-
-| 범위 | 현재 동작 |
+| 증상 | 먼저 확인할 것 |
 |---|---|
-| 대상 | 프로필, 경험 카드, 공고·일정, 조사 자료, 프롬프트·설정, 자소서·문항·버전·자동저장, 면접 질문, 생성 결과, 에이전트 실행 정보 |
-| 제외 | 학력·자격증·대외활동·교육·프로젝트·경력·수상 테이블, Storage 첨부파일, 일부 큐·상세 로그 등 |
-| 대용량 | 테이블별 단일 조회라 서버의 응답 행 수 제한을 넘는 데이터를 모두 내보내는 페이지네이션은 없음 |
-| 복원 | JSON 내보내기이며 원클릭 복원 기능은 없음. MCP 정리본 JSON과도 형식이 달라 그대로 임포트할 수 없음 |
+| 비밀번호가 틀리다고 나옴 | 웹 가입 여부, 서비스 비밀번호, 이메일 확인 상태. [로그인 가이드](docs/AUTH-TROUBLESHOOTING.md) |
+| 웹은 되는데 Runner 로그인 실패 | 웹과 Runner의 Supabase 프로젝트가 같은지 확인 |
+| 비서가 계속 대기함 | Runner 실행 → 기기 승인 → 해당 AI CLI 로그인 → 프롬프트의 제공자 설정 순서로 확인 |
+| `cd web` 또는 `cd runner` 실패 | 현재 위치가 저장소 최상위 폴더인지 확인. 터미널 A와 B는 별도 창 |
+| 설치 중 DB 비밀번호를 물음 | 기존 프로젝트에 접속하는 DB 비밀번호. 웹 계정 비밀번호와 다름 |
 
-이 기능은 전체 Supabase 프로젝트의 백업을 대체하지 않습니다. 전체 복구가 필요하면 DB와 첨부파일에 대한 별도 백업도 준비하세요.
+## 버전과 업데이트
 
-백업 작업은 브라우저가 아닌 로컬 머신의 러너 프로세스가 수행하므로, 러너가 켜져 있을 때 동작합니다.
+현재 개발 기준 버전은 **0.1.0**입니다. 웹·Runner·설치 도구는 같은 제품 버전으로 관리합니다. 실제 발행 여부와 배포 파일은 [GitHub Releases](https://github.com/tkv00/Career-Atelier-AI-Context-Pack/releases)에서 확인하세요.
 
-<br>
+저장소 최상위에서 `npm run check:version`으로 버전을 확인합니다. 기존 설치를 바꾸기 전 [변경 이력](CHANGELOG.md)과 [업그레이드 안내](docs/UPGRADING.md)를 읽으세요. 개발자는 `npm run verify`로 버전·테스트·타입·린트·빌드를 한 번에 검사합니다.
 
-## 비용이 늘지 않는 이유
+[패키지·릴리스 정책](docs/RELEASING.md) · [유명 오픈소스 비교와 도입 판단](docs/OPEN-SOURCE-READINESS.ko.md) · [보안 제보](SECURITY.md)
 
-추가 비용이 없다는 것은 토큰 단위의 유료 API 과금이 없다는 의미입니다. 기존에 구독 중인 플랜의 범위 안에서 동작합니다.
+## 필요할 때 더 보기
 
-러너가 강제하는 안전 원칙:
-
-- 자식 프로세스에서 `OPENAI_API_KEY`, `ANTHROPIC_API_KEY` 등 유료 API 환경변수를 제거합니다.
-- 실행 직전 각 CLI가 개인 구독 로그인 상태인지 검증합니다.
-- Claude의 유료 초과 과금 신호가 감지되면 즉시 실행을 중단합니다.
-- 사용량 한도에 도달하면 API로 우회하지 않고 `waiting_for_reset` 상태로 안전하게 대기합니다.
-
-| 안전 상한 | 고정값 |
+| 목적 | 안내 |
 |---|---|
-| 동시 실행 | 1개 |
-| 단일 실행 타임아웃 | 15분 |
-| 실패한 실행 재시도 | 0회 |
-| 루미·모카 검색 품질 재시도 | 최대 1회 |
-| 작업 유효기간 | 6시간 |
+| 외부에서도 웹 사용 | 저장소 최상위에서 `npm run deploy`. [배포 상세](docs/REFERENCE.ko.md#배포). 외부 AI 요청도 켜진 로컬 Runner 필요 |
+| 백업·개인정보·비용 확인 | [백업 범위](docs/REFERENCE.ko.md#데이터-백업) · [개인정보와 비용](docs/PRIVACY-AND-COST.md) |
+| 자주 묻는 질문 | [FAQ: 계정·비용·AI·백업·자료 가져오기](docs/FAQ.ko.md) |
+| 세부 기능·아키텍처 | [상세 가이드](docs/REFERENCE.ko.md) |
+| 기술 연구·MCP 실험 | [한국어 연구 보고서](docs/research/mcp-import/REPORT.ko.md) |
+| 개발·기여 | [기여 규칙](CONTRIBUTING.ko.md) · [AGENTS.md](AGENTS.md) |
 
-<br>
-
-## 기여하기
-
-버그 제보, 문서 개선, 기능 제안, 코드 기여를 모두 환영합니다. 개발 환경 설정과 Pull Request 제출 기준은 [CONTRIBUTING.ko.md](CONTRIBUTING.ko.md) 및 [CONTRIBUTING.md](CONTRIBUTING.md)에서 확인하실 수 있습니다.
-
-각자 독립된 Supabase 프로젝트를 생성해 개발하므로 공용 개발 데이터베이스 충돌 없이 안전하게 작업할 수 있습니다.
-
-<br>
-
-## 문서
-
-| 문서 | 내용 |
-|---|---|
-| [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | OS별 설치 및 사용 가이드 |
-| [로그인·회원가입 문제 해결 가이드](docs/AUTH-TROUBLESHOOTING.md) | 첫 가입, 비밀번호 복구, 웹·러너 Supabase 연결 확인 |
-| [docs/AI-INSTALL.md](docs/AI-INSTALL.md) | 코딩 에이전트를 위한 자동 설치 가이드 |
-| [docs/V2-SETUP.md](docs/V2-SETUP.md) | Supabase 및 Vercel 수동 설정 및 배포 |
-| [docs/PRIVACY-AND-COST.md](docs/PRIVACY-AND-COST.md) | 개인정보 보호 및 비용 무과금 보장 모델 |
-| [docs/HARNESS-ENGINEERING.md](docs/HARNESS-ENGINEERING.md) | 하네스 엔지니어링 및 에이전트 개발자 가이드 |
-| [runner/README.md](runner/README.md) | 러너 프로세스 내부 구조 및 실행 안내 |
-| [runner/mcp/README.md](runner/mcp/README.md) | 로컬 MCP 서버 도구 및 포맷 규약 |
-| [CONTRIBUTING.ko.md](CONTRIBUTING.ko.md) | 오픈소스 기여 가이드 (한국어) |
-| [CONTRIBUTING.md](CONTRIBUTING.md) | Contribution Guidelines (English) |
-
-<br>
-
-## 라이선스
-
-MIT License - [LICENSE](LICENSE)
+[MIT License](LICENSE)

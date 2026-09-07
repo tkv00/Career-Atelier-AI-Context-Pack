@@ -33,6 +33,7 @@ Paste logs here
 
 ### Environment
 
+- Career Atelier version (`npm run check:version`) and commit (`git rev-parse --short HEAD`):
 - OS: [e.g. macOS 14.5, Windows 11, Ubuntu 22.04]
 - Node.js version (`node -v`): [e.g. 22.14.0]
 - Affected component: [e.g. web, runner, setup wizard]

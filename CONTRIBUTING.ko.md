@@ -160,3 +160,7 @@ npm run shoot-docs
 보안 취약점은 공개 이슈로 등록하지 마세요. GitHub의 Private Vulnerability Reporting 기능을 사용하거나 메인테이너에게 비공개로 연락해 주시기 바랍니다.
 
 Supabase의 `anon` 키는 공개되도록 설계된 키이며, 실제 보안 경계는 Row Level Security(RLS)입니다. anon 키를 사용해 타인의 데이터를 읽을 수 있는 경로를 발견하셨다면 이는 중대한 취약점이므로 즉시 알려주시기 바랍니다.
+
+## 패키지와 릴리스
+
+`packageManager`에 지정된 npm 버전을 사용하고 최상위·web·runner에서 `npm ci`로 잠금 파일대로 설치합니다. 최상위의 `npm run verify`는 버전 일치, 도구·Runner 테스트, 웹 타입·린트·빌드를 검사합니다. 사용자에게 영향을 주는 변경은 [CHANGELOG.md](CHANGELOG.md)에 기록하세요. 버전·태그·업그레이드 절차는 [docs/RELEASING.md](docs/RELEASING.md)를 따르며 커밋 메시지는 기존 영어 명령형 규칙을 유지합니다.

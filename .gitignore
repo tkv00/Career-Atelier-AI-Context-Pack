@@ -4,6 +4,11 @@ node_modules/
 local-data/
 *.log
 
+# 브라우저 QA 세션과 중간 렌더링 산출물은 재현 가능한 로컬 검사 자료다.
+# 문서에 공개할 이미지는 docs/images/에만 명시적으로 둔다.
+.playwright-cli/
+output/
+
 # 워크트리 자기 참조 방지 — 이 폴더 안에 다른 세션들의 git worktree가 들어있다
 .claude/
 
@@ -17,4 +22,3 @@ supabase/.temp/
 
 # 로컬 전용 내부 설계 및 기획 문서 (오픈소스 배포본 제외)
 documentation/
-

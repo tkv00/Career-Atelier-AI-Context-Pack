@@ -103,7 +103,11 @@ const FIELD_ALIASES = {
 
 const normalizeKey = (key) => String(key).toLowerCase().replace(/[\s_·/\-()[\]]/g, '');
 
-function fieldFor(kind, rawKey) {
+export function kindForSection(section) {
+  return SECTION_KINDS.find(([re]) => re.test(section))?.[1] ?? null;
+}
+
+export function fieldFor(kind, rawKey) {
   const table = FIELD_ALIASES[kind];
   if (!table) return null;
   const key = normalizeKey(rawKey);

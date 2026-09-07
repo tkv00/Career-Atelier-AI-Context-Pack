@@ -10,6 +10,22 @@
     "setup": "node scripts/setup.mjs",
     "deploy": "node scripts/deploy.mjs",
     "doctor": "node runner/index.mjs doctor",
-    "runner": "node runner/index.mjs start"
-  }
+    "runner": "node runner/index.mjs start",
+    "check:version": "node scripts/release.mjs check",
+    "release:prepare": "node scripts/release.mjs prepare",
+    "test:tooling": "node scripts/test-tooling.mjs",
+    "test": "npm run test:tooling && npm --prefix runner test",
+    "verify": "npm run check:version && npm test && npm --prefix web run typecheck && npm --prefix web run lint && npm --prefix web run build"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/tkv00/Career-Atelier-AI-Context-Pack.git"
+  },
+  "bugs": {
+    "url": "https://github.com/tkv00/Career-Atelier-AI-Context-Pack/issues"
+  },
+  "homepage": "https://github.com/tkv00/Career-Atelier-AI-Context-Pack#readme",
+  "packageManager": "npm@10.9.2",
+  "description": "Self-hosted job-application workspace with local AI CLI agents"
 }
