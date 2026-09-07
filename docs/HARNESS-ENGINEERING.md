@@ -30,7 +30,7 @@ Career Atelier는 7개의 특화 AI 비서와 2개의 비(非) LLM 결정론적 
 | `review` | 렌즈 (Lens) | 수치 과장, 사실 오류 검수 | Claude Code | `artifacts` (kind: review) |
 | `interview` | 에코 (Echo) | 기업/직무/경험 연계 면접 질문 생성 | Codex | `interview_questions` |
 | `subtitle` | 콤마 (Comma) | 자소서 문항별 15자 이내 소제목 제안 | Antigravity | `artifacts` (kind: subtitle) |
-| `nova` | 노바 (Nova) | 공고 마감일 결정론적 파싱 및 캘린더 동기화 | (순수 정규식 코드) | `calendar_events` |
+| `nova` | 노바 (Nova) | 공고 마감일 결정론적 파싱(`runner/nova.mjs`) — 현재 자동 연쇄는 꺼져 있고, 캘린더 등록은 사용자가 지원 일정 화면에서 "캘린더에 저장"을 눌러야만 일어난다(사용자 요청 2026-09-06: 모카가 찾은 공고를 자동으로 일정에 넣지 않는다) | (순수 정규식 코드) | `calendar_events` |
 | `parser` | 문항 파서 | 복사된 채용 문항 텍스트의 글자수/안내문 파싱 | (순수 정규식 코드) | `essay_questions` |
 
 * 비서별 사용 모델은 프롬프트 관리 화면(`prompt_templates.provider`)에서 사용자가 언제든 Codex, Claude, Gemini(Antigravity) 중 하나로 변경할 수 있습니다.

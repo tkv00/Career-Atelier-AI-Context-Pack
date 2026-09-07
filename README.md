@@ -63,7 +63,7 @@ Career Atelier brings that work together. An experience recorded once becomes ev
 1. **Install your workspace:** use the [setup wizard](#getting-started) to connect Supabase and create your own account. For AI features, also sign in to a CLI and approve your runner device.
 2. **Add your background:** enter target roles and interests in the dashboard, save resume records in My info, and record real situations, decisions, actions, and results as experience cards. [Import existing notes over MCP](#bulk-import-over-mcp) if you have them.
 3. **Assign your assistants:** in the prompt studio, assign each assistant to a CLI you have signed in to. Save your preferred writing style and criteria.
-4. **Find a posting:** ask Moka to search. Saved postings with valid deadlines connect to the calendar. Choose a posting and prepare your cover-letter questions.
+4. **Find a posting:** ask Moka to search. Once you pick a posting to apply to, add it to your calendar yourself from the application timeline screen — searching alone doesn't put it there. Prepare your cover-letter questions too.
 5. **Run research through review:** enter the company, role, and job description in the cover-letter editor, then choose **「기업 조사부터 소제목까지 실행 (솔)」** (run from company research through section headings). Sol → Muse → Lens → Comma run in order.
 6. **Make it your own:** inspect and apply the draft and review, track application stages, and prepare interview answers. You submit the final application yourself.
 
@@ -111,9 +111,11 @@ You can also manage resume records, experience, postings, deadlines, and drafts 
 
 Enable local folder backup in the dashboard. While running, the runner exports selected tables to JSON **every two hours**; the current implementation is not a six-hour schedule. It updates the same day's file and creates a new file on a new date. This is not complete recovery covering all resume records and attachments; check the [backup scope](#backups).
 
-### Can it find postings and add their deadlines to my calendar?
+### Does it find postings automatically? Does it add them to my calendar automatically?
 
-Moka searches using your target roles, interests, and experience, then saves results. Postings with valid deadlines connect to the calendar automatically. Rolling postings without dates do not get invented deadlines. You can search from the dashboard; an approved, running runner also supports daily discovery at 15:00 KST.
+Finding postings is automatic — Moka searches using your target roles, interests, and experience, then saves results. You can search from the dashboard; an approved, running runner also supports daily discovery at 15:00 KST.
+
+Calendar registration is not automatic — postings Moka finds only sit in the list. Pick one you want to apply to and add it to your calendar yourself from the application timeline screen. Rolling postings without real dates never get an invented deadline either.
 
 ### The runner is connected, but the assistants are not moving.
 
@@ -151,11 +153,11 @@ Launch it from Lumi's card on the dashboard.
 
 ### Moka — job posting discovery
 
-**Runs on** Codex · **Writes to** `job_posts` → cascades into `calendar_events`
+**Runs on** Codex · **Writes to** `job_posts`
 
 Reads your profile and experience cards, finds matching postings, and scores each one (`fit_score`). With no experience cards recorded it scores conservatively or returns nothing rather than inflating the match.
 
-Saving a posting immediately triggers **Nova**, which parses the deadline with regular expressions and files it on the calendar. Rolling postings with no real deadline get no calendar entry at all.
+Saving a posting does not put it on the calendar — you do that yourself from the application timeline screen with "Add to calendar."
 
 The same URL updates the existing posting instead of creating a duplicate.
 

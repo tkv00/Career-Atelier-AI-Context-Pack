@@ -4,7 +4,6 @@ import { homedir, platform, release } from 'node:os';
 import { resolve } from 'node:path';
 import { env } from './lib/env.mjs';
 import { connectAsRunner, loginInteractive, logout as clearLogin } from './lib/supabase-client.mjs';
-import { syncCalendarEvent } from './nova.mjs';
 import { markDailySearchRan, shouldRunDailySearch } from './scheduler.mjs';
 import {
   COMPANY_RESEARCH_SCHEMA,
@@ -788,21 +787,21 @@ async function processJobSearchJob(supabase, ownerId, job) {
           .eq('owner_id', ownerId)
           .eq('url', normalizedUrl)
           .maybeSingle();
-        const { data: savedRow, error } = existing
-          ? await supabase.from('job_posts').update(payload).eq('id', existing.id).select().single()
-          : await supabase.from('job_posts').insert(payload).select().single();
+        const { error } = existing
+          ? await supabase.from('job_posts').update(payload).eq('id', existing.id)
+          : await supabase.from('job_posts').insert(payload);
         if (error) {
           console.error(`잡 ${job.id}: job_posts 저장 실패 (${normalizedUrl}):`, error.message);
           continue;
         }
         saved++;
-        // 노바(§11) — 모카 완료 시 자동 연쇄. row.deadline은 위에서 date 형식만
-        // 통과시켰으므로, 정규식 커버리지가 더 넓은 노바 쪽엔 원문(raw)을 넘긴다.
-        try {
-          await syncCalendarEvent(supabase, ownerId, savedRow, String(row.deadline ?? ''));
-        } catch (calendarError) {
-          console.error(`잡 ${job.id}: calendar_events 동기화 실패 (${normalizedUrl}):`, calendarError.message);
-        }
+        // 캘린더 등록은 더 이상 여기서 자동으로 하지 않는다(사용자 요청
+        // 2026-09-06) — 모카는 job_posts(조사 결과)까지만 채우고, 실제
+        // calendar_events는 사용자가 지원 일정 화면에서 "캘린더에 저장"을
+        // 눌러야만 생긴다(web/app/(app)/calendar/actions.ts의
+        // saveCalendarJob). 노바(nova.mjs)는 그 수동 등록 흐름과 분리됐다 —
+        // 지금은 호출자가 없지만, 결정론적 마감일 파싱 로직은 그대로 남겨
+        // 뒀다.
       }
       console.log(`잡 ${job.id}: 채용공고 ${saved}건 저장/갱신`);
       if (saved === 0) {
