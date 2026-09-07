@@ -1,5 +1,16 @@
 <img src="docs/images/banner.png" alt="Career Atelier" width="100%">
 
+<p>
+  <a href="https://github.com/tkv00/Career-Atelier-AI-Context-Pack/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/tkv00/Career-Atelier-AI-Context-Pack/actions/workflows/ci.yml/badge.svg?branch=main"></a>
+  <a href="https://github.com/tkv00/Career-Atelier-AI-Context-Pack/releases"><img alt="Package version" src="https://img.shields.io/github/package-json/v/tkv00/Career-Atelier-AI-Context-Pack?label=version&amp;style=flat-square"></a>
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-f5a962?style=flat-square"></a>
+  <img alt="Node.js 22.13 or newer" src="https://img.shields.io/badge/node-%E2%89%A522.13-5cc98f?style=flat-square&amp;logo=node.js&amp;logoColor=white">
+  <img alt="Next.js" src="https://img.shields.io/github/package-json/dependency-version/tkv00/Career-Atelier-AI-Context-Pack/next?filename=web%2Fpackage.json&amp;style=flat-square&amp;logo=nextdotjs">
+  <img alt="Supabase" src="https://img.shields.io/badge/Supabase-Postgres%20%2B%20RLS-3ecf8e?style=flat-square&amp;logo=supabase&amp;logoColor=white">
+  <img alt="Windows macOS Linux" src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-58cfe4?style=flat-square">
+  <img alt="No per-token API billing" src="https://img.shields.io/badge/API%20billing-none-5cc98f?style=flat-square">
+</p>
+
 English · **[한국어](README.ko.md)** · MIT · Node.js 22.13+
 
 # Your job search, in one personal workspace
@@ -176,7 +187,7 @@ These labels match the application's left navigation.
 
 **Sources need not have identical names, but current mapping has limits.** Inspect skipped/rejected rows and warnings before saving. Values in unrecognized table columns are currently not saved.
 
-[Connection, mapping, and import examples](runner/mcp/README.md) · [Flexible-format extension design — not implemented](docs/IMPORT-FORMAT-DESIGN.ko.md) (Korean)
+[Connection, mapping, and import examples](runner/mcp/README.md)
 
 ## When you get stuck
 
@@ -190,11 +201,11 @@ These labels match the application's left navigation.
 
 ## Versions and updates
 
-The current development baseline is **0.1.0**. Web, runner, and installer share one product version. Check [GitHub Releases](https://github.com/tkv00/Career-Atelier-AI-Context-Pack/releases) for actual published versions and release files.
+See the version badge above or run `npm run check:version` for the current version. Web, runner, and installer share one product version. Check [GitHub Releases](https://github.com/tkv00/Career-Atelier-AI-Context-Pack/releases) for actual published versions and release files.
 
 Run `npm run check:version` from the repository root. Before updating, read the [changelog](CHANGELOG.md) and [upgrade guide](docs/UPGRADING.md). Contributors can run `npm run verify` for version checks, tests, types, lint, and build.
 
-[Package and release policy](docs/RELEASING.md) · [Open-source comparison and decisions](docs/OPEN-SOURCE-READINESS.ko.md) (Korean) · [Security reporting](SECURITY.md)
+[Package and release policy](docs/RELEASING.md) · [Security reporting](SECURITY.md)
 
 ## Read more when needed
 
@@ -204,7 +215,6 @@ Run `npm run check:version` from the repository root. Before updating, read the 
 | Understand backups, privacy, and costs | [Backup scope](docs/REFERENCE.md#backups) · [Privacy and costs](docs/PRIVACY-AND-COST.md) |
 | Frequently asked questions | [FAQ: accounts, costs, AI, backups, and imports](docs/FAQ.md) |
 | Explore features and architecture | [Detailed reference](docs/REFERENCE.md) |
-| Study MCP implementation and experiments | [Korean research report](docs/research/mcp-import/REPORT.ko.md) |
 | Contribute | [Contribution rules](CONTRIBUTING.md) · [AGENTS.md](AGENTS.md) |
 
 [MIT License](LICENSE)

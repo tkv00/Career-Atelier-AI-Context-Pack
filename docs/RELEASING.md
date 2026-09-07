@@ -1,6 +1,6 @@
 # Package and release policy
 
-[한국어 비교·도입 배경](OPEN-SOURCE-READINESS.ko.md) · [Changelog](../CHANGELOG.md) · [Upgrade guide](UPGRADING.md)
+[Changelog](../CHANGELOG.md) · [Upgrade guide](UPGRADING.md)
 
 ## Distribution model
 
@@ -62,5 +62,11 @@ git push origin v0.2.0-beta.1
 ```
 
 The tag workflow runs the same CI, checks that the commit belongs to main, requires an exact package/tag match and version-specific changelog notes, then creates a **draft GitHub Release**. Beta/RC tags are marked prerelease. Reruns leave an existing release unchanged. It does not publish npm packages or deploy Vercel. GitHub provides tag-based source archives when a release is published; there is no custom binary artifact yet.
+
+For an existing tag whose run needs retrying, open **Actions → Draft release → Run workflow** and enter the exact tag. Both CI and drafting check out that tag; the selected workflow branch does not change which source is validated. This route requires the updated workflows to exist on the default branch. A missing tag, missing release notes, or failed CI prevents draft creation.
+
+MCP advertises the runner package version directly, so version preparation also updates the version clients see without editing server code. The README version badge shows package metadata; it is not proof of a published release. Use the Releases page to distinguish published versions from development work.
+
+Keep comparison reports, unpublished design proposals, and presentation output local. Public release notes should describe shipped behavior, upgrade requirements, known issues, and verification. Existing Git history is not removed by excluding a document from the current tree.
 
 Review the draft, upgrade instructions, CI results, and real-provider verification before publishing it in GitHub. Do not move an already published tag; issue a new version for a correction. GitHub Actions must be enabled. Configure branch/tag protection and required CI checks in repository settings; YAML files do not enable those settings automatically.

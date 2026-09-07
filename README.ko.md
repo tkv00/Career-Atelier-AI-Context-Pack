@@ -1,5 +1,16 @@
 <img src="docs/images/banner.png" alt="Career Atelier" width="100%">
 
+<p>
+  <a href="https://github.com/tkv00/Career-Atelier-AI-Context-Pack/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/tkv00/Career-Atelier-AI-Context-Pack/actions/workflows/ci.yml/badge.svg?branch=main"></a>
+  <a href="https://github.com/tkv00/Career-Atelier-AI-Context-Pack/releases"><img alt="Package version" src="https://img.shields.io/github/package-json/v/tkv00/Career-Atelier-AI-Context-Pack?label=version&amp;style=flat-square"></a>
+  <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/badge/license-MIT-f5a962?style=flat-square"></a>
+  <img alt="Node.js 22.13 or newer" src="https://img.shields.io/badge/node-%E2%89%A522.13-5cc98f?style=flat-square&amp;logo=node.js&amp;logoColor=white">
+  <img alt="Next.js" src="https://img.shields.io/github/package-json/dependency-version/tkv00/Career-Atelier-AI-Context-Pack/next?filename=web%2Fpackage.json&amp;style=flat-square&amp;logo=nextdotjs">
+  <img alt="Supabase" src="https://img.shields.io/badge/Supabase-Postgres%20%2B%20RLS-3ecf8e?style=flat-square&amp;logo=supabase&amp;logoColor=white">
+  <img alt="Windows macOS Linux" src="https://img.shields.io/badge/platform-Windows%20%7C%20macOS%20%7C%20Linux-58cfe4?style=flat-square">
+  <img alt="No per-token API billing" src="https://img.shields.io/badge/API%20billing-none-5cc98f?style=flat-square">
+</p>
+
 **[English](README.md)** · 한국어 · MIT · Node.js 22.13+
 
 # 흩어진 취업 준비를, 나만의 작업실 하나로
@@ -176,7 +187,7 @@ npm run start
 
 **원본 형식을 모두 같게 만들 필요는 없지만, 현재 매핑으로 해결할 수 있는 범위에는 한계가 있습니다.** 미리보기의 제외·거부·경고를 확인한 뒤 저장하세요. 인식하지 못한 표의 열 값은 현재 저장되지 않습니다.
 
-[연결·매핑·저장 예제](runner/mcp/README.md) · [서로 다른 형식을 처리하기 위한 확장 설계 — 미구현](docs/IMPORT-FORMAT-DESIGN.ko.md)
+[연결·매핑·저장 예제](runner/mcp/README.md)
 
 ## 막혔을 때
 
@@ -190,11 +201,11 @@ npm run start
 
 ## 버전과 업데이트
 
-현재 개발 기준 버전은 **0.1.0**입니다. 웹·Runner·설치 도구는 같은 제품 버전으로 관리합니다. 실제 발행 여부와 배포 파일은 [GitHub Releases](https://github.com/tkv00/Career-Atelier-AI-Context-Pack/releases)에서 확인하세요.
+현재 버전은 상단의 버전 배지와 `npm run check:version`으로 확인합니다. 웹·Runner·설치 도구는 같은 제품 버전으로 관리합니다. 실제 발행 여부와 배포 파일은 [GitHub Releases](https://github.com/tkv00/Career-Atelier-AI-Context-Pack/releases)에서 확인하세요.
 
 저장소 최상위에서 `npm run check:version`으로 버전을 확인합니다. 기존 설치를 바꾸기 전 [변경 이력](CHANGELOG.md)과 [업그레이드 안내](docs/UPGRADING.md)를 읽으세요. 개발자는 `npm run verify`로 버전·테스트·타입·린트·빌드를 한 번에 검사합니다.
 
-[패키지·릴리스 정책](docs/RELEASING.md) · [유명 오픈소스 비교와 도입 판단](docs/OPEN-SOURCE-READINESS.ko.md) · [보안 제보](SECURITY.md)
+[패키지·릴리스 정책](docs/RELEASING.md) · [보안 제보](SECURITY.md)
 
 ## 필요할 때 더 보기
 
@@ -204,7 +215,6 @@ npm run start
 | 백업·개인정보·비용 확인 | [백업 범위](docs/REFERENCE.ko.md#데이터-백업) · [개인정보와 비용](docs/PRIVACY-AND-COST.md) |
 | 자주 묻는 질문 | [FAQ: 계정·비용·AI·백업·자료 가져오기](docs/FAQ.ko.md) |
 | 세부 기능·아키텍처 | [상세 가이드](docs/REFERENCE.ko.md) |
-| 기술 연구·MCP 실험 | [한국어 연구 보고서](docs/research/mcp-import/REPORT.ko.md) |
 | 개발·기여 | [기여 규칙](CONTRIBUTING.ko.md) · [AGENTS.md](AGENTS.md) |
 
 [MIT License](LICENSE)

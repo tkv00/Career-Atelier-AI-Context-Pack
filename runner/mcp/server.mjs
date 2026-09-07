@@ -21,11 +21,11 @@ import { parseMarkdown } from './parse.mjs';
 import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { performance } from 'node:perf_hooks';
+import { readFileSync } from 'node:fs';
 
 const SERVER_NAME = 'career-atelier';
-// MCP 클라이언트에 보이는 서버 버전도 릴리스 전에는 제품 기준선과 맞춘다.
-// 다음 공개 버전은 release:prepare가 세 패키지 버전을 함께 올린 뒤 갱신한다.
-const SERVER_VERSION = '0.1.0';
+// 버전 갱신 뒤 MCP 클라이언트에 이전 버전이 표시되지 않도록 패키지를 기준으로 한다.
+const SERVER_VERSION = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8')).version;
 const SUPPORTED_PROTOCOLS = ['2025-06-18', '2024-11-05'];
 
 const log = (message) => process.stderr.write(`[mcp] ${message}\n`);

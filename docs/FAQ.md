@@ -68,7 +68,7 @@ No. Supabase dashboard credentials manage your project; the database password co
 
 ### Must I rename every Notion or Excel column?
 
-Use `column_map` for different column names. The current implementation does not automatically split multiple experiences in one cell or extract meaning from arbitrary prose. Inspect missing data and warnings in the preview. There is no web upload wizard yet. [Current usage](../runner/mcp/README.md) · [Extension design — not implemented](IMPORT-FORMAT-DESIGN.ko.md) (Korean)
+Use `column_map` for different column names. The current implementation does not automatically split multiple experiences in one cell or extract meaning from arbitrary prose. Inspect missing data and warnings in the preview. There is no web upload wizard yet. [Current usage](../runner/mcp/README.md)
 
 ### Where do I start writing a cover letter?
 

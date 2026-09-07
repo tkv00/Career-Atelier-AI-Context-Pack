@@ -448,7 +448,7 @@ Prefer to do it by hand instead? Point a Vercel project at the `web/` directory 
 
 Supported kinds: profile, education, certifications, activities, training, projects, work, awards, and experience cards. It is not a general importer for postings or cover letters, a two-way Notion sync, or OCR for scanned documents.
 
-The server parses the source locally and writes it to the database. Instead of asking a model to restate the entire source as INSERT arguments, the client exchanges paths and summaries of counts, titles, and results. Parsing itself makes no LLM call. Our reproducible experiment separates measured direct-call/MCP timings from a modeled source-relay baseline. Its character-based token estimates are not measured provider usage or guaranteed savings. Run `npm run mcp:research` from `runner`; see the [Korean research report](../docs/research/mcp-import/REPORT.ko.md) and [individual SVG/PDF figures](../docs/research/mcp-import/index.html).
+The server parses the source locally and writes it to the database. Instead of asking a model to restate the entire source as INSERT arguments, the client exchanges paths and summaries of counts, titles, and results. Parsing itself makes no LLM call. Our reproducible experiment separates measured direct-call/MCP timings from a modeled source-relay baseline. Its character-based token estimates are not measured provider usage or guaranteed savings. Run `npm run mcp:research` from `runner` to generate local benchmark results.
 
 ### 1. Prepare installation and login
 
@@ -492,7 +492,7 @@ Heading 1 (`#`) selects the kind, heading 2 (`##`) names one item, and `key: val
 
 Copy the [complete example](../runner/mcp/fixtures/sample-notes.md) and replace it with your real material. The parser does not use AI to infer meaning from arbitrary prose. Unknown sections appear in `skipped`, invalid rows in `rejected`, and adjustments in `warnings`. Some unknown fields are preserved in memo or detail text.
 
-For Excel, use a header row followed by one experience per row. Start from the [synthetic example workbook](../docs/research/mcp-import/examples/ko-2.xlsx), replace its sample content, and keep the field headers. Select the sheet and record kind; `column_map` maps your existing column names to supported fields:
+For Excel, use a header row followed by one experience per row. Start from the [synthetic example workbook](../runner/mcp/fixtures/sample-experiences.xlsx), replace its sample content, and keep the field headers. Select the sheet and record kind; `column_map` maps your existing column names to supported fields:
 
 ```bash
 cd runner

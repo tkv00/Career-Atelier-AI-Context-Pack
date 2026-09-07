@@ -18,7 +18,7 @@ Node 22.13 이상에서 `cd runner && npm ci`를 실행한다. DB에 쓰려면 �
 
 ## Excel 가져오기
 
-[합성 예제 XLSX](../../docs/research/mcp-import/examples/ko-2.xlsx)를 복사해 가상 경험을 실제 내용으로 바꾼다. 첫 행은 열 제목, 이후 한 행은 경험 하나다. 시트 이름을 `Experience` 또는 `경험`으로 두거나 `section`을 전달한다.
+[합성 예제 XLSX](fixtures/sample-experiences.xlsx)를 복사해 가상 경험을 실제 내용으로 바꾼다. 첫 행은 열 제목, 이후 한 행은 경험 하나다. 시트 이름을 `Experience` 또는 `경험`으로 두거나 `section`을 전달한다.
 
 | 열 | 의미 |
 |---|---|
@@ -109,9 +109,8 @@ node mcp/server.mjs preview --source "notion://database/<DB-ID>" --section 경�
 
 새 직접 의존성 ExcelJS 4.4.0은 표준 라이브러리에 없는 OOXML ZIP/XML·공유 문자열·날짜 처리를 맡는다. 간접 uuid는 11.1.1로 제한했다. MCP SDK는 추가하지 않았으므로 프로토콜 변경의 유지보수는 이 구현이 담당한다. 현재 tools 중심의 stdio 구현이며 모든 MCP 기능의 완전한 적합성 검증을 주장하지 않는다.
 
-## 정량 평가와 발표 자료
+## 성능 측정
 
-설계 이유, 구현 단계, 비정형 입력의 예외와 한계, 실제 에이전트 usage 측정 절차는 [상세 기술 블로그 초안](../../docs/research/mcp-import/BLOG.ko.md)에 정리했다. 실제 에이전트 실행은 아직 수행하지 않았으며, 로그 추출기는 사용자가 실행한 결과만 읽는다.
 
 ```bash
 cd runner
@@ -120,6 +119,8 @@ npm run mcp:research
 cd ..
 python3 scripts/render-mcp-research.py
 ```
+
+결과는 로컬 `docs/research/mcp-import/`에 생성되며 Git 추적에서 제외된다.
 
 `npm run mcp:bench`도 동일한 재현 실험을 실행한다. 렌더러에는 matplotlib·numpy·Pillow와 Graphviz, 한국어 글꼴이 필요하다. 서비스 런타임 의존성은 아니다.
 
@@ -131,7 +132,6 @@ python3 scripts/render-mcp-research.py
 
 `token_metrics`는 과거 형식과의 호환을 위한 문자 기반 추정이다. 도구 스키마·요청·프로토콜 외피·metrics 필드를 제외하므로 자체 절감률을 실제 비용 절감으로 인용하면 안 된다. 연구 벤치마크는 이들과 미리보기 왕복을 별도로 포함해 기록한다. 일반 호출의 로컬 메트릭 로그도 성능에 영향을 줄 수 있어 실험에서는 `CAREER_MCP_METRICS_DISABLED=1`로 끈다.
 
-[한국어 보고서](../../docs/research/mcp-import/REPORT.ko.md) · [SVG/PDF/PNG 갤러리](../../docs/research/mcp-import/index.html) · [측정 결과](../../docs/research/mcp-import/data/results.json) · [480회 원시 기록](../../docs/research/mcp-import/data/trials.csv)
 
 ## 이번 변경에서 실제로 검증한 범위
 

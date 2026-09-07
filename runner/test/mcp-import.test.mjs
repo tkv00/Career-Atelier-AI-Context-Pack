@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, rm, writeFile } from 'node:fs/promises';
+import { mkdtemp, rm, writeFile, readFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import ExcelJS from 'exceljs';
@@ -101,6 +101,8 @@ test('real MCP stdio initialization, discovery, preview, dry-run and tool error'
   const client = createResearchClient();
   try {
     const init = await client.initialize(); assert.equal(init.message.result.protocolVersion, '2025-06-18');
+    const manifest = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'));
+    assert.equal(init.message.result.serverInfo.version, manifest.version);
     const list = await client.request('tools/list'); assert.equal(list.message.result.tools.length, 3);
     const response = await client.request('tools/call', { name: 'preview_import', arguments: { source: fixture.xlsx } });
     const result = JSON.parse(response.message.result.content[0].text); assert.equal(result.parsed_items, 3);

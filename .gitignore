@@ -22,3 +22,8 @@ supabase/.temp/
 
 # 로컬 전용 내부 설계 및 기획 문서 (오픈소스 배포본 제외)
 documentation/
+
+# 내부 비교·설계·발표 자료는 로컬에 보관하고 공개 소스에서 제외한다.
+docs/OPEN-SOURCE-READINESS.ko.md
+docs/IMPORT-FORMAT-DESIGN.ko.md
+docs/research/

@@ -1,6 +1,6 @@
 {
   "name": "career-atelier-web",
-  "version": "0.1.0",
+  "version": "0.2.0-beta.1",
   "private": true,
   "description": "Career Atelier v2 클라우드 면 — Vercel에 배포되는 Next.js 앱. LLM 호출 코드는 여기 없다 (docs/DESIGN-V2-CLOUD.md §3).",
   "engines": {

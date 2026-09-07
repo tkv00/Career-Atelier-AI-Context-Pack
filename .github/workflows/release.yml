@@ -3,17 +3,25 @@ name: Draft release
 on:
   push:
     tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing release tag (for example v0.2.0-beta.1)'
+        type: string
+        required: true
 
 permissions:
   contents: read
 
 concurrency:
-  group: release-${{ github.ref }}
+  group: release-${{ inputs.tag || github.ref_name }}
   cancel-in-progress: false
 
 jobs:
   validate:
     uses: ./.github/workflows/ci.yml
+    with:
+      ref: refs/tags/${{ inputs.tag || github.ref_name }}
 
   draft:
     needs: validate
@@ -24,6 +32,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: refs/tags/${{ inputs.tag || github.ref_name }}
           fetch-depth: 0
           persist-credentials: false
       - uses: actions/setup-node@v4
@@ -31,14 +40,14 @@ jobs:
           node-version: '22.13.0'
       - name: Verify main ancestry and release notes
         env:
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           git merge-base --is-ancestor HEAD origin/main
           node scripts/release.mjs notes "$RELEASE_TAG" > "$RUNNER_TEMP/release-notes.md"
       - name: Create a draft for maintainer review
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ github.ref_name }}
+          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
         run: |
           if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
             echo "Release already exists; leave it unchanged."
