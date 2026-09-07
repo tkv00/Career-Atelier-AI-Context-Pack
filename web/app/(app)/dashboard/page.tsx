@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { isRunnerOnline } from '@/lib/runner-status';
 import { formatDateTime } from '@/lib/datetime';
+import { formatCompanyRating } from '@/lib/company-rating';
 import { formatResetsAt, parseClaudeWindows, sumCodexTokens } from '@/lib/llm-usage';
 import { createEssay, startEssayForJobPost } from '../essays/actions';
 import { approveRunner } from '../runners/actions';
@@ -251,7 +252,7 @@ export default async function DashboardPage() {
                   <a href={job.url || undefined} target="_blank" rel="noreferrer" style={{ color: job.url ? 'var(--cyan)' : 'inherit' }}>
                     {job.company} · {job.role}
                   </a>{' '}
-                  {job.deadline ? `· D-day ${job.deadline}` : ''} · 적합도 {job.fit_score}%
+                  {job.deadline ? `· D-day ${job.deadline}` : ''} · 적합도 {job.fit_score}% · {formatCompanyRating(job.company_rating)}
                 </span>
                 <span style={{ display: 'flex', gap: 8 }}>
                   <form action={startEssayForJobPost.bind(null, job.id)}>

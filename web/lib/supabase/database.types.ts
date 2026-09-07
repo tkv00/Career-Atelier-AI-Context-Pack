@@ -820,6 +820,7 @@ export type Database = {
         Row: {
           application_type: string
           company: string
+          company_rating: number | null
           company_type: string
           created_at: string
           deadline: string | null
@@ -840,6 +841,7 @@ export type Database = {
         Insert: {
           application_type?: string
           company: string
+          company_rating?: number | null
           company_type?: string
           created_at?: string
           deadline?: string | null
@@ -860,6 +862,7 @@ export type Database = {
         Update: {
           application_type?: string
           company?: string
+          company_rating?: number | null
           company_type?: string
           created_at?: string
           deadline?: string | null

@@ -775,6 +775,9 @@ async function processJobSearchJob(supabase, ownerId, job) {
           description: String(row.description || ''),
           requirements: Array.isArray(row.requirements) ? row.requirements.map(String) : [],
           source: String(row.source || '모카 채용 탐색'),
+          // 잡플래닛 평점(요청 2026-09-06) — normalizeJobCandidates가 이미
+          // 0~5 범위·소수점 한 자리로 정규화해 뒀다. 없으면 null(= "없음").
+          company_rating: row.company_rating ?? null,
           updated_at: new Date().toISOString(),
         };
         // job_posts의 유니크 인덱스가 partial(where url <> '')이라 supabase-js

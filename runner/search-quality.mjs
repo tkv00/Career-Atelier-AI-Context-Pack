@@ -30,6 +30,11 @@ export function buildJobsDiscoveryPrompt({ targetRoles, interests, today = today
     `목표 직무 데이터(JSON): ${JSON.stringify(targetRoles)}`,
     `관심 분야 데이터(JSON): ${JSON.stringify(interests)}`,
     '검색으로 확인한 회사명, 직무명, 공식 공고 URL, 마감일, 주요 업무와 요구 역량을 일반 텍스트 조사 메모로 남겨라.',
+    // 요청 2026-09-06 — 잡플래닛 평점도 같은 검색 단계에서 함께 확인한다.
+    // 구조화 단계(formatSearchDiscovery)는 이 메모만 보고 JSON을 만들 뿐 새로
+    // 검색하지 않으므로, 평점을 여기서 안 찾으면 이후 단계에서 지어내거나
+    // 항상 null이 되어 버린다.
+    '각 회사마다 잡플래닛(jobplanet.co.kr)에서 평점을 검색해 소수점까지(예: 3.7) 메모에 함께 남겨라. 잡플래닛에 없거나 확인하지 못했으면 "잡플래닛 평점 없음"이라고 적어라 — 다른 사이트의 평점으로 대신하지 마라.',
     '마감되었거나 URL을 확인하지 못한 공고는 제외하고, 이 단계에서는 JSON 작성이나 적합도 계산을 하지 마라.',
   ].join('\n');
 }
@@ -87,6 +92,18 @@ export function normalizeNewsItems(items, limit = 5) {
   return normalized;
 }
 
+// 잡플래닛 평점은 5점 만점이다 — 모델이 범위 밖 숫자나 문자열을 섞어 보내도
+// DB의 체크 제약(0030)에 걸리기 전에 여기서 한 번 걸러 소수점 한 자리로
+// 정규화한다. 숫자로 못 읽으면 "확인 못 함"과 같은 뜻이라 null로 둔다.
+function normalizeCompanyRating(value) {
+  // Number(null)은 0이다(자바스크립트의 함정) — "평점 없음"이 "0점"으로
+  // 둔갑하지 않도록 null/undefined/빈 문자열은 숫자 변환 전에 먼저 걸러낸다.
+  if (value === null || value === undefined || value === '') return null;
+  const num = Number(value);
+  if (!Number.isFinite(num)) return null;
+  return Math.round(Math.min(5, Math.max(0, num)) * 10) / 10;
+}
+
 export function normalizeJobCandidates(items, limit = 30) {
   const normalized = [];
   const seenUrls = new Set();
@@ -101,8 +118,9 @@ export function normalizeJobCandidates(items, limit = 30) {
     const source = !claimedSource || /context[\\/]|search-discovery|\.md\b/i.test(claimedSource)
       ? new URL(url).hostname.replace(/^www\./, '')
       : claimedSource;
+    const companyRating = normalizeCompanyRating(item?.company_rating);
     seenUrls.add(url);
-    normalized.push({ ...item, company, role, url, source });
+    normalized.push({ ...item, company, role, url, source, company_rating: companyRating });
     if (normalized.length >= limit) break;
   }
   return normalized;

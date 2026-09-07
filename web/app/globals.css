@@ -1654,6 +1654,13 @@ option {
   color: var(--text-3);
   font-size: var(--fs-xs);
 }
+/* 잡플래닛 평점(요청 2026-09-06) — 출처를 항상 같이 적어서, 숫자만 보고
+   어디서 조사한 값인지 헷갈리지 않게 한다. */
+.application-status-scroll td .company-rating {
+  display: block;
+  color: var(--text-dim);
+  font-size: var(--fs-hud);
+}
 .application-status-scroll time {
   font-variant-numeric: tabular-nums;
   color: var(--text-2);

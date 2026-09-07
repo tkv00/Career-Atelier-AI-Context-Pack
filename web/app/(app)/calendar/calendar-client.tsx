@@ -7,6 +7,7 @@ import { startEssayForJobPost } from '../essays/actions';
 import { cycleStageResult, saveCalendarJob, updateJobProgress } from './actions';
 import { JobPostDeleteButton } from './job-post-delete-button';
 import { formatDate, formatDateTime, remainingLabel, timeInputValue } from '@/lib/datetime';
+import { formatCompanyRating } from '@/lib/company-rating';
 import { parseStageResults, STAGES, type Stage } from '@/lib/stage-results';
 
 type CalendarEvent = Database['public']['Tables']['calendar_events']['Row'];
@@ -233,7 +234,7 @@ export function CalendarClient({ events, jobs, essays }: { events: CalendarEvent
             {[...jobs].sort((a, b) => (a.deadline || '9999').localeCompare(b.deadline || '9999')).map((job) => (
               <tr key={job.id}>
                 <td><select disabled={pending} value={job.application_type} onChange={(event) => update(job.id, 'application_type', event.target.value)}>{APPLICATION_TYPES.map((item) => <option key={item}>{item}</option>)}</select></td>
-                <td><b>{job.company}</b><span>{job.role}</span></td>
+                <td><b>{job.company}</b><span>{job.role}</span><small className="company-rating">{formatCompanyRating(job.company_rating)}</small></td>
                 <td>
                   {job.deadline ? (
                     <>

@@ -348,7 +348,7 @@ export const JOBS_OUTPUT_SCHEMA = {
       type: 'array',
       items: {
         type: 'object',
-        required: ['company', 'role', 'url', 'deadline', 'description', 'requirements', 'fit_score', 'source'],
+        required: ['company', 'role', 'url', 'deadline', 'description', 'requirements', 'fit_score', 'source', 'company_rating'],
         additionalProperties: false,
         properties: {
           company: { type: 'string' },
@@ -361,6 +361,10 @@ export const JOBS_OUTPUT_SCHEMA = {
           source: {
             type: 'string',
             description: '실제 공고를 확인한 채용 사이트 또는 회사 이름. context 파일명이나 로컬 경로를 쓰지 않는다.',
+          },
+          company_rating: {
+            type: ['number', 'null'],
+            description: '잡플래닛(jobplanet.co.kr)에서 확인한 이 회사의 평점(5점 만점, 소수점 포함, 예: 3.7). 잡플래닛에 없거나 확인하지 못하면 null.',
           },
         },
       },
