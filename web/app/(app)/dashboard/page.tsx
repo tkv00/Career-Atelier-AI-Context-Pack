@@ -96,8 +96,8 @@ export default async function DashboardPage() {
       </div>
       <PilotBridge runs={agentRuns ?? []} runnerOnline={runnerOnline} providers={providerByAgent}
         pending={{ news: newsJob, jobs: jobSearchJob }} actions={{
-          news: <NewsRunButton pending={newsPending} runnerOnline={runnerOnline} pendingJob={newsJob}/>,
-          jobs: <JobSearchButton pending={jobsPending} runnerOnline={runnerOnline} pendingJob={jobSearchJob}/>,
+          news: <NewsRunButton key="news-action" pending={newsPending} runnerOnline={runnerOnline} pendingJob={newsJob}/>,
+          jobs: <JobSearchButton key="jobs-action" pending={jobsPending} runnerOnline={runnerOnline} pendingJob={jobSearchJob}/>,
         }}/>
       <details className={styles.profilePanel} open={!profile || !(profile.target_roles as string[] | null)?.length || !(profile.interests as string[] | null)?.length}>
         <summary>비행 목표와 프로필 <span>목표 직무 · 관심 분야 설정</span></summary>
