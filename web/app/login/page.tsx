@@ -8,6 +8,7 @@ import { env } from '@/lib/env';
 import { BrandIcon } from '../brand-icon';
 import { CosmicScene } from './cosmic-scene';
 import styles from './login.module.css';
+import { authErrorMessage, signupOutcome } from './auth-feedback';
 
 const linkErrorMessages: Record<string, string> = {
   invalid_link: '로그인 링크가 만료됐거나 이미 사용됐습니다. 다시 요청해 주세요.',
@@ -74,17 +75,22 @@ type Mode = 'login' | 'signup' | 'forgot';
 function LoginForm() {
   const searchParams = useSearchParams();
   const linkError = searchParams.get('error');
-  const [mode, setMode] = useState<Mode>('login');
-  const [email, setEmail] = useState('');
+  const [mode, setMode] = useState<Mode>(searchParams.get('mode') === 'signup' ? 'signup' : 'login');
+  const [email, setEmail] = useState(searchParams.get('email') ?? '');
   const [password, setPassword] = useState('');
   const [status, setStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   function switchMode(next: Mode) {
+    if (status === 'sending') return;
     setMode(next);
     setStatus('idle');
     setErrorMessage('');
     setPassword('');
+    setSuccessMessage('');
+    setShowPassword(false);
   }
 
   async function handleLogin(event: React.FormEvent<HTMLFormElement>) {
@@ -92,13 +98,14 @@ function LoginForm() {
     setStatus('sending');
     setErrorMessage('');
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
+    const { data, error } = await supabase.auth.signInWithPassword({ email: email.trim(), password }).catch(() => ({ data: null, error: {} }));
     if (error) {
       setStatus('error');
-      setErrorMessage('이메일 또는 비밀번호가 올바르지 않습니다.');
+      setErrorMessage(authErrorMessage(error, 'login'));
       return;
     }
     // 서버 컴포넌트가 방금 설정된 쿠키를 확실히 읽도록 풀 네비게이션으로 이동한다.
+    if (!data?.session) { setStatus('error'); setErrorMessage('로그인 세션을 받지 못했습니다. 다시 시도해 주세요.'); return; }
     window.location.assign('/dashboard');
   }
 
@@ -107,10 +114,18 @@ function LoginForm() {
     setStatus('sending');
     setErrorMessage('');
     const supabase = createClient();
-    const { error } = await supabase.auth.signUp({ email, password });
+    const { data, error } = await supabase.auth.signUp({ email: email.trim(), password }).catch(() => ({ data: null, error: {} }));
     if (error) {
       setStatus('error');
-      setErrorMessage(error.message);
+      setErrorMessage(authErrorMessage(error, 'signup'));
+      return;
+    }
+    const outcome = signupOutcome(data ?? { session: null, user: null });
+    if (outcome !== 'ready') {
+      setStatus('sent');
+      setSuccessMessage(outcome === 'existing'
+        ? '이미 가입한 계정일 수 있습니다. 로그인하거나 비밀번호를 재설정해 주세요.'
+        : '가입 요청을 접수했습니다. 이메일 확인이 필요한 경우 메일함의 확인 링크를 연 뒤 로그인해 주세요. 메일이 없다면 스팸함과 설치 프로젝트의 Auth 설정을 확인하세요.');
       return;
     }
     window.location.assign('/dashboard');
@@ -121,25 +136,26 @@ function LoginForm() {
     setStatus('sending');
     setErrorMessage('');
     const supabase = createClient();
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
       redirectTo: `${window.location.origin}/auth/confirm`,
-    });
+    }).catch(() => ({ error: {} }));
     if (error) {
       setStatus('error');
-      setErrorMessage(error.message);
+      setErrorMessage(authErrorMessage(error, 'forgot'));
       return;
     }
     setStatus('sent');
+    setSuccessMessage('가입된 계정이라면 비밀번호 재설정 메일이 발송됩니다. 메일함과 스팸함을 확인해 주세요.');
   }
 
   const headerText =
     mode === 'signup'
-      ? '새 계정을 만듭니다. 이 인스턴스에는 계정을 하나만 만들 수 있습니다.'
+      ? '내 이메일과 비밀번호로 시작하세요. 웹과 러너에서 같은 계정을 사용합니다. 작업실마다 첫 계정 하나만 만들 수 있습니다.'
       : mode === 'forgot'
         ? '가입한 이메일로 비밀번호 재설정 메일을 보내드립니다.'
         : env.allowedEmail
           ? `${env.allowedEmail} 계정으로만 로그인할 수 있습니다.`
-          : '이메일과 비밀번호로 로그인하세요.';
+          : 'Career Atelier에서 가입한 이메일과 비밀번호를 입력하세요.';
 
   return <section className={styles.card} aria-label="Career Atelier 로그인">
     <header className={styles.cardHeader}>
@@ -148,6 +164,10 @@ function LoginForm() {
       <p>{headerText}</p>
     </header>
     {linkError && <div className={`${styles.message} ${styles.error}`} role="alert">{linkErrorMessages[linkError] ?? '로그인에 실패했습니다. 다시 시도해 주세요.'}</div>}
+    {mode !== 'forgot' && <div className={styles.authTabs} aria-label="계정 시작 방법">
+      <button type="button" disabled={status === 'sending'} aria-pressed={mode === 'signup'} onClick={() => switchMode('signup')}>처음이에요 · 계정 만들기</button>
+      <button type="button" disabled={status === 'sending'} aria-pressed={mode === 'login'} onClick={() => switchMode('login')}>기존 계정 로그인</button>
+    </div>}
 
     {mode === 'forgot' ? (
       <form onSubmit={handleForgot}>
@@ -162,9 +182,9 @@ function LoginForm() {
           <div>
             <FieldIcon password />
             <input
-              type="password"
+              type={showPassword ? 'text' : 'password'}
               required
-              minLength={8}
+              minLength={mode === 'signup' ? 8 : undefined}
               autoComplete={mode === 'signup' ? 'new-password' : 'current-password'}
               value={password}
               onChange={(event) => setPassword(event.target.value)}
@@ -172,6 +192,8 @@ function LoginForm() {
             />
           </div>
         </label>
+        <button className={styles.passwordToggle} type="button" aria-pressed={showPassword} onClick={() => setShowPassword(!showPassword)}>{showPassword ? '비밀번호 숨기기' : '비밀번호 표시'}</button>
+        <p className={styles.authHint}>Supabase 관리 계정이나 DB 비밀번호가 아닌, 여기서 직접 정한 비밀번호를 사용하세요.</p>
         <button type="submit" disabled={status === 'sending'}>
           <span>{status === 'sending' ? (mode === 'signup' ? '만드는 중…' : '로그인 중…') : mode === 'signup' ? '계정 만들기' : '로그인'}</span>
           <i aria-hidden="true">↗</i>
@@ -188,7 +210,8 @@ function LoginForm() {
       {mode === 'forgot' && <button type="button" onClick={() => switchMode('login')}>로그인으로 돌아가기</button>}
     </div>
 
-    {status === 'sent' && <div className={`${styles.message} ${styles.success}`} role="status"><i/>메일함에 비밀번호 재설정 링크를 보냈습니다.</div>}
+    {status === 'sent' && <div className={`${styles.message} ${styles.success}`} role="status">{successMessage}</div>}
     {status === 'error' && <div className={`${styles.message} ${styles.error}`} role="alert">{errorMessage}</div>}
+    <details className={styles.connectionInfo}><summary>로그인이 계속 실패하나요?</summary><p>연결 프로젝트: <code>{new URL(env.supabaseUrl).host}</code></p><p>러너가 표시하는 프로젝트와 같아야 합니다. 새 이메일은 먼저 계정을 만들어야 합니다. 기존 설치 비밀번호로 실패하면 비밀번호를 재설정하세요.</p></details>
   </section>;
 }

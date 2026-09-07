@@ -266,6 +266,13 @@
   color: var(--login-muted);
 }
 .privateNote svg { width: 14px; height: 14px; }
+.authTabs { display: flex; gap: 8px; }
+.authTabs button { flex: 1; padding: 10px 7px; border: 1px solid #466079; border-radius: 8px; background: #101a27; color: #b2c1d1; font: inherit; font-size: 12px; cursor: pointer; }
+.authTabs button[aria-pressed='true'] { color: #ffe0aa; border-color: #bc9762; background: #352a1c; }
+.card form .passwordToggle { justify-content: flex-end; min-height: 28px; margin: -6px 0 0; padding: 0; border: 0; background: transparent; color: #c6d7e8; box-shadow: none; font-size: 12px; }
+.authHint, .connectionInfo { margin: 0; font-size: 12px; line-height: 1.7; color: #aabed0; }
+.connectionInfo summary { cursor: pointer; }
+.connectionInfo p { margin: 8px 0 0; overflow-wrap: anywhere; }
 .message { padding: 12px; border: 1px solid; border-radius: 8px; font-size: 12px; line-height: 1.6; overflow-wrap: anywhere; }
 .error { color: #f0a79c; background: var(--danger-bg); border-color: var(--danger-line); }
 .success { color: #8fdcb0; background: var(--ok-bg); border-color: var(--ok-line); }

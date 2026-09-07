@@ -75,8 +75,9 @@ Two things you cannot do:
   human opens http://localhost:3000 and creates an account with their own email
   and a password. **The first account to sign up becomes the owner of that
   instance and every later signup is rejected**, so this must be them.
-- **Runner login and approval.** `cd runner`, then `npm run login` needs a
-  six-digit code from their email. After `npm run start`, they approve the
+- **Runner login and approval.** `cd runner`, then `npm run login` needs the
+  email and password they chose in the web signup form. The password input is hidden.
+  Supabase dashboard and database passwords are different credentials. After `npm run start`, they approve the
   device in the dashboard's runner list.
 
 Agents also need their own CLI subscriptions signed in (`codex login`,

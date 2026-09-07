@@ -1,5 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
-import { createInterface } from 'node:readline/promises';
+import { authenticateRunner } from './auth-login.mjs';
+import { promptLogin } from './login-prompt.mjs';
+import { checkLocalWebProject } from '../../scripts/lib/auth-target.mjs';
 import { env } from './env.mjs';
 import { clearSession, loadSession, saveSession } from './session-store.mjs';
 
@@ -16,22 +18,23 @@ function newClient() {
   });
 }
 
-function persist(session) {
+async function persist(session) {
   if (!session) return;
-  void saveSession(JSON.stringify({ access_token: session.access_token, refresh_token: session.refresh_token }));
+  await saveSession(JSON.stringify({ access_token: session.access_token, refresh_token: session.refresh_token, supabase_url: env.supabaseUrl }));
 }
 
-export async function loginInteractive(email) {
+export async function loginInteractive() {
+  checkLocalWebProject(env.supabaseUrl, new URL('../../web/.env.local', import.meta.url));
+  console.log(`연결 프로젝트: ${new URL(env.supabaseUrl).host}`);
+  console.log('웹에서 계정을 먼저 만드세요. 웹과 러너는 같은 이메일·비밀번호를 사용합니다.');
+  console.log('Supabase 관리 계정·DB 비밀번호·웹 주소는 서비스 비밀번호가 아닙니다.');
+  const { email, password } = await promptLogin();
   const supabase = newClient();
-  const rl = createInterface({ input: process.stdin, output: process.stdout });
-  const password = (await rl.question(`${email} 계정의 비밀번호를 입력하세요: `)).trim();
-  rl.close();
-
-  const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-  if (error || !data.session) throw new Error(`로그인 실패: ${error?.message ?? '세션을 받지 못했습니다.'}`);
-
-  persist(data.session);
-  return data.session.user;
+  try {
+    return await authenticateRunner(supabase, email, password, persist);
+  } finally {
+    supabase.auth.stopAutoRefresh();
+  }
 }
 
 export async function logout() {
@@ -52,6 +55,9 @@ export async function connectAsRunner() {
     return { supabase: null, authenticated: false, user: null };
   }
 
+  if (parsed.supabase_url && new URL(parsed.supabase_url).origin !== new URL(env.supabaseUrl).origin) {
+    return { supabase: null, authenticated: false, user: null };
+  }
   const supabase = newClient();
   const { data, error } = await supabase.auth.setSession({
     access_token: parsed.access_token,
@@ -59,7 +65,10 @@ export async function connectAsRunner() {
   });
   if (error || !data.session) return { supabase: null, authenticated: false, user: null };
 
-  supabase.auth.onAuthStateChange((_event, session) => persist(session));
+  await persist(data.session);
+  supabase.auth.onAuthStateChange((_event, session) => {
+    void persist(session).catch(() => console.error('세션 저장 실패: 로컬 저장 경로의 권한을 확인하세요.'));
+  });
 
   return { supabase, authenticated: true, user: data.session.user };
 }

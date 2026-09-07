@@ -461,7 +461,11 @@ npm run setup
 5. Apply tables, row level security, and the default prompts
 6. Apply email templates, the single-owner signup guard, and SMTP settings
 7. Write `web/.env.local` and `runner/.env`
-8. Create your account and print the password to the terminal — type it in once to sign in, then change it from the dashboard banner
+8. Show the web signup link — choose your own email and password there once, then use the same credentials for the runner
+
+The wizard no longer creates temporary service passwords. Supabase dashboard credentials, the database password, and your Career Atelier account are separate. A new email needs **Create account** first. Each project accepts only its first owner account. Existing users should sign in or reset their password. Signup without an authenticated session stays on the confirmation screen instead of opening the dashboard.
+
+If web login works but runner login fails, compare the project host shown under **Having trouble signing in?** on the login page with the runner's project host. Match `NEXT_PUBLIC_SUPABASE_URL` in `web/.env.local` and `SUPABASE_URL` in `runner/.env`, then restart both. Password entry in the runner is hidden; enter your service password, not the login URL. Once signed in, the saved runner session is reused. See [authentication troubleshooting](docs/AUTH-TROUBLESHOOTING.md).
 
 > The database password is generated at random and stored nowhere. The `service_role` key is never even read.
 
@@ -512,7 +516,7 @@ npm run login
 npm run start
 ```
 
-Open http://localhost:3000. If the wizard already created an account for you (step 8 above), log in with that email and the printed password. Otherwise, create one with your own email and a password.
+Before running the runner login command, open the web address printed by Next.js (usually http://localhost:3000). Choose **Create account** and set your own email and password. If you already have an account, sign in with it. The runner uses those same credentials.
 
 > **The first account to sign up becomes the owner of that instance, and every later signup is rejected.** Make sure the first sign-up is yours.
 
@@ -734,6 +738,7 @@ Everyone develops against their own Supabase project, so **there is no shared de
 | Document | Description |
 |---|---|
 | [docs/USER-GUIDE.md](docs/USER-GUIDE.md) | Per-OS installation and usage guide |
+| [Login and signup troubleshooting](docs/AUTH-TROUBLESHOOTING.md) | First signup, password recovery, and web/runner Supabase connection checks (Korean) |
 | [docs/AI-INSTALL.md](docs/AI-INSTALL.md) | Safe installation runbook for AI coding agents |
 | [docs/V2-SETUP.md](docs/V2-SETUP.md) | Supabase and Vercel manual setup and deployment |
 | [docs/PRIVACY-AND-COST.md](docs/PRIVACY-AND-COST.md) | Privacy model and zero-cost guarantee |

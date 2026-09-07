@@ -17,7 +17,7 @@
 //   node scripts/setup.mjs                      # 로그인만 하면 프로젝트 생성·키 조회까지 알아서
 //   node scripts/setup.mjs --new-project my-app --region ap-northeast-2
 //   node scripts/setup.mjs --project-ref abc --anon-key eyJ... --db-password ...   # 값을 직접 줄 때
-//   node scripts/setup.mjs --owner-email me@example.com   # 계정도 자동 생성(비밀번호는 화면에 출력)
+//   node scripts/setup.mjs --owner-email me@example.com   # 웹 가입 화면에 이메일만 미리 채움
 //   node scripts/setup.mjs --skip-migrations              # SQL Editor로 이미 수동 적용을 끝냈을 때
 
 import { execFileSync, spawnSync } from 'node:child_process';
@@ -27,6 +27,8 @@ import { createInterface } from 'node:readline/promises';
 import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseEnv } from 'node:util';
+import { checkLocalWebProject } from './lib/auth-target.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -521,8 +523,7 @@ async function main() {
   }
 
   if (configPush.status !== 0) {
-    warn('supabase config push 실패 — 이메일 템플릿과 가입 제한 훅이 원격에 반영되지 않았습니다.');
-    console.log(c.dim('  잠시 후 다시 실행하세요: supabase config push'));
+    throw new Error('Supabase Auth 설정 적용에 실패했습니다. 가입 제한과 이메일 확인 설정을 확인할 수 없어 설치를 중단합니다. 원인을 해결한 뒤 같은 설치 명령을 다시 실행하세요.');
   } else if (hasResend) {
     ok('이메일 템플릿·가입 제한·SMTP 설정 적용 완료');
   } else {
@@ -556,39 +557,12 @@ async function main() {
     ok(`${path} 작성`);
   }
 
-  // 6. 소유자 계정 -------------------------------------------------------------
-  // service_role은 여기서도 안 쓴다 — anon 키로 회원가입 API를 그대로 호출할
-  // 뿐이고, before_user_created 훅이 이미 "첫 계정만 허용"을 강제하므로 이
-  // 결과는 웹 폼으로 직접 가입하는 것과 동일하게 안전하다. AI 에이전트가
-  // --yes로 무인 설치할 때는 사람 대신 이메일을 지어내면 안 되므로(AGENTS.md
-  // "First sign-up ... this must be them"), --owner-email을 직접 받았거나
-  // 사람이 지금 이 프롬프트에 답한 경우에만 진행한다.
-  let ownerEmail = args.ownerEmail;
-  if (!ownerEmail && interactive) {
-    ownerEmail = await ask('\n웹 앱 로그인에 쓸 본인 이메일 (건너뛰려면 Enter): ');
-  }
-
-  let ownerAccountCreated = false;
-  if (ownerEmail) {
-    const ownerPassword = randomBytes(9).toString('base64url');
-    const signupResult = await fetch(`${supabaseUrl}/auth/v1/signup`, {
-      method: 'POST',
-      headers: { apikey: anonKey, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: ownerEmail, password: ownerPassword, data: { generated_password: true } }),
-    }).catch((error) => ({ ok: false, status: null, statusText: error.message }));
-
-    if (signupResult.ok) {
-      ownerAccountCreated = true;
-      console.log(c.bold('\n계정을 만들었습니다.\n'));
-      console.log(`  이메일:   ${ownerEmail}`);
-      console.log(`  비밀번호: ${c.bold(ownerPassword)}`);
-      console.log(c.dim('  로그인 후 반드시 비밀번호를 바꾸세요 — 대시보드에 안내 배너가 뜹니다.'));
-    } else {
-      const detail = await signupResult.json?.().catch(() => null);
-      warn(`계정 자동 생성 실패(${detail?.msg ?? signupResult.statusText ?? signupResult.status}).`);
-      console.log(c.dim('  웹에서 직접 "계정이 없으신가요? 만들기"로 가입하세요.'));
-    }
-  }
+  // 가입은 웹 한 곳에서만 한다. signup의 HTTP 200은 로그인 가능한 세션을
+  // 보장하지 않아 임시 비밀번호를 출력하는 설치 경로가 혼란을 만들었다.
+  checkLocalWebProject(parseEnv(readFileSync(runnerEnv, 'utf8')).SUPABASE_URL, webEnv);
+  const signupUrl = new URL('http://localhost:3000/login');
+  signupUrl.searchParams.set('mode', 'signup');
+  if (args.ownerEmail) signupUrl.searchParams.set('email', args.ownerEmail);
 
   // 7. 다음 단계 -------------------------------------------------------------
   // 명령을 한 줄씩 따로 찍는다 — &&로 이으면 Windows 기본 PowerShell(5.1)에서
@@ -598,16 +572,15 @@ async function main() {
   console.log(`     ${c.dim('cd web')}`);
   console.log(`     ${c.dim('npm install')}`);
   console.log(`     ${c.dim('npm run dev')}`);
-  if (ownerAccountCreated) {
-    console.log(c.dim('     http://localhost:3000 에서 위 이메일·비밀번호로 로그인하세요.'));
-  } else {
-    console.log(c.dim('     http://localhost:3000 에서 본인 이메일과 비밀번호로 계정을 만드세요.'));
-    console.log(c.dim('     가장 먼저 가입한 계정이 이 인스턴스의 소유자가 되고, 이후 가입은 막힙니다.'));
-  }
+  console.log(c.dim(`     브라우저에서 열기: ${signupUrl.href}`));
+  console.log(c.dim('     처음이면 본인 이메일과 직접 정한 비밀번호로 가입하세요. 기존 계정은 로그인하세요.'));
+  console.log(c.dim('     DB 비밀번호와 서비스 비밀번호는 다릅니다. 임시 서비스 비밀번호는 발급하지 않습니다.'));
+  console.log(c.dim('     첫 가입 계정만 허용됩니다. 웹 서버가 다른 포트를 안내하면 그 주소를 사용하세요.'));
   console.log(`\n  ${c.bold('2)')} 러너 로그인`);
   console.log(`     ${c.dim('cd runner')}`);
   console.log(`     ${c.dim('npm install')}`);
   console.log(`     ${c.dim('npm run login')}`);
+  console.log(c.dim('     웹 가입 시 정한 같은 이메일·비밀번호를 입력하세요. 새 계정을 만들 필요가 없습니다.'));
   console.log(`\n  ${c.bold('3)')} 러너 실행`);
   console.log(`     ${c.dim('cd runner')}`);
   console.log(`     ${c.dim('npm run start')}`);

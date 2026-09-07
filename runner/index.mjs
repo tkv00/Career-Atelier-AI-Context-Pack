@@ -1171,11 +1171,7 @@ async function main() {
   const command = process.argv[2];
 
   if (command === 'login') {
-    const rl = await import('node:readline/promises');
-    const iface = rl.createInterface({ input: process.stdin, output: process.stdout });
-    const email = (await iface.question('로그인할 이메일: ')).trim();
-    iface.close();
-    const user = await loginInteractive(email);
+    const user = await loginInteractive();
     console.log(`로그인 완료: ${user.email}`);
     return;
   }
@@ -1196,6 +1192,6 @@ async function main() {
 }
 
 main().catch((error) => {
-  console.error(error);
+  console.error(error.message ?? '러너 실행에 실패했습니다.');
   process.exitCode = 1;
 });
