@@ -517,7 +517,7 @@ AI는 준비물을 확인하고 공식 저장소 복제, 잠긴 버전의 의존
 
 ### 실행
 
-터미널 두 개가 필요합니다.
+터미널 두 개가 필요합니다. 웹 앱 터미널은 두 운영체제에서 같습니다.
 
 ```bash
 # 1번 창 — 웹 앱
@@ -526,17 +526,37 @@ npm install
 npm run dev
 ```
 
-```bash
-# 2번 창 — 러너
-cd runner
-npm install
-npm run login
-npm run start
+#### Windows 러너
+
+두 번째 PowerShell 창을 열고 저장소 루트에서 실행하세요.
+
+```powershell
+npm install --prefix runner
+npm run doctor --prefix runner
+npm run login --prefix runner
+npm run runner
 ```
 
-Windows 검색 오류가 있다면 러너 코드를 갱신한 뒤 반드시 재시작하세요. Windows `.cmd`가 다중 줄 인자와 뒤따르는 옵션을 잘라내는 문제를 막기 위해 Codex·Claude 프롬프트는 표준입력으로 전달합니다. `doctor`는 설치·로그인만 확인하며 실제 웹 검색 성공까지 검사하지는 않습니다. Claude 비대화식 모드에는 읽기·웹 검색 도구를 명시적으로 허용합니다. 시스템 환경변수는 직접 바꿀 필요가 없습니다.
+`npm run login` 전에 웹 앱에서 같은 계정으로 가입하거나 로그인해야 합니다. 대시보드의 러너 목록에서 이 기기도 한 번 승인하세요. `HOME`, `USERPROFILE`, `HOMEDRIVE`, `HOMEPATH`를 특정 사용자 이름으로 직접 설정하지 마세요. 러너가 현재 Windows 계정의 홈 디렉터리를 자동으로 찾습니다. Windows `.cmd` 실행 파일은 여러 줄 명령행 인자를 잘라낼 수 있으므로 Codex·Claude 프롬프트는 표준입력으로 전달합니다. 러너 코드를 바꾼 뒤에는 `Ctrl+C`로 종료하고 `npm run runner`를 다시 실행하세요.
 
-처음 로그인한 뒤에는 저장소 루트에서 아래 명령 하나로 러너를 다시 시작할 수 있습니다.
+CLI가 없다고 나오면 전역 npm PATH를 새로 읽도록 PowerShell을 닫았다가 다시 여세요. 그 뒤 `npm run doctor`를 다시 실행하세요. `doctor`는 CLI 설치와 구독 로그인만 확인하며 실제 웹 검색은 실행하지 않습니다.
+
+#### macOS 러너
+
+두 번째 Terminal 창을 열고 저장소 루트에서 실행하세요.
+
+```bash
+npm install --prefix runner
+npm run doctor --prefix runner
+npm run login --prefix runner
+npm run runner
+```
+
+브라우저가 열리면 Supabase와 선택한 AI CLI 로그인을 완료하세요. macOS CLI 인증 정보는 Keychain에 저장되므로 Windows 환경변수나 다른 사용자의 홈 경로를 복사하지 마세요. 전역 npm 설치에서 `EACCES`가 나오면 [nvm](https://github.com/nvm-sh/nvm)으로 Node를 설치한 뒤 Terminal을 다시 열어 실행하세요. macOS가 CLI 실행을 차단하면 공식 설치 방법으로 CLI를 다시 설치하고 `npm run doctor --prefix runner`를 재실행하세요.
+
+#### 두 운영체제의 이후 실행
+
+최초 로그인과 기기 승인을 끝낸 뒤에는 저장소 루트에서 아래 명령 하나만 실행하면 됩니다.
 
 ```bash
 npm run runner

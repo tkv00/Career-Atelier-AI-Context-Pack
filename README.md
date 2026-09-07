@@ -514,7 +514,7 @@ Once the repo is cloned there is nothing to paste. [AGENTS.md](AGENTS.md) at the
 
 ### Run
 
-You need two terminals.
+You need two terminals. The web terminal is the same on both operating systems:
 
 ```bash
 # terminal 1 — web app
@@ -523,21 +523,43 @@ npm install
 npm run dev
 ```
 
-```bash
-# terminal 2 — runner
-cd runner
-npm install
-npm run login
-npm run start
+#### Windows runner
+
+Open a second PowerShell window. Run these commands from the repository root:
+
+```powershell
+npm install --prefix runner
+npm run doctor --prefix runner
+npm run login --prefix runner
+npm run runner
 ```
 
-Windows search troubleshooting: update the runner and restart it after code changes. Codex and Claude prompts are sent over stdin because Windows `.cmd` launchers can truncate multiline arguments and discard subsequent options. `doctor` checks installation and login only; it does not verify a real web search. Claude's headless mode explicitly allows read and web search tools. No system environment-variable edits are required.
+Open the web app first and create or sign in to the same account before `npm run login`. Approve the device in the dashboard once. Do not set `HOME`, `USERPROFILE`, `HOMEDRIVE`, or `HOMEPATH` to a copied username; the runner derives the current Windows user's home directory automatically. Windows `.cmd` launchers can truncate multiline command-line arguments, so the runner sends Codex and Claude prompts through stdin. After changing runner code, stop it with `Ctrl+C` and run `npm run runner` again.
 
-For later launches, the repository-root shortcut is enough:
+If a CLI is reported as missing, close PowerShell and open a new one so the global npm PATH is reloaded. Run `npm run doctor` again before starting a job. `doctor` checks installation and subscription login; it does not perform a live search.
+
+#### macOS runner
+
+Open a second Terminal window. Run these commands from the repository root:
+
+```bash
+npm install --prefix runner
+npm run doctor --prefix runner
+npm run login --prefix runner
+npm run runner
+```
+
+Finish the browser login for Supabase and the selected AI CLI when prompted. macOS stores CLI credentials in Keychain; do not copy a Windows environment-variable value or another user's home path. If a global npm install reports `EACCES`, install Node with [nvm](https://github.com/nvm-sh/nvm) and reopen Terminal. If macOS blocks a CLI binary, reinstall it from its official installer and run `npm run doctor --prefix runner` again.
+
+#### Later launches on either OS
+
+After the first login and device approval, use this single command from the repository root:
 
 ```bash
 npm run runner
 ```
+
+`npm run doctor` checks installation and login without printing tokens. It cannot prove that a provider will return useful news; a real job must still complete with searchable URLs and structured items.
 
 Before running the runner login command, open the web address printed by Next.js (usually http://localhost:3000). Choose **Create account** and set your own email and password. If you already have an account, sign in with it. The runner uses those same credentials.
 
