@@ -155,13 +155,17 @@ Mac과 완전히 동일합니다.
 **로그인하려는데 "이미 소유자가 있습니다"라고 나옵니다**
 → 그 Supabase 프로젝트에는 이미 다른 계정이 등록돼 있습니다. 본인 프로젝트를 새로 만들어 `npm run setup`을 다시 실행하세요.
 
-**`npm run setup`이 "supabase db push 실패 — 직접 DB 연결이 막힌 네트워크일 수 있습니다"라고 나옵니다**
-→ 학교·회사 네트워크가 데이터베이스 포트(5432/6543)를 막아 둔 경우입니다(웹은 되는데 DB 직결만 안 되는 흔한 방화벽 구성). 마법사가 자동으로 다른 경로(HTTPS)로 재시도합니다. 그것도 안 되면 `career-atelier-migrations-manual.sql` 파일을 만들어 주는데, 이 파일 전체를 복사해 `https://supabase.com/dashboard/project/<project-ref>/sql/new`의 SQL Editor(브라우저)에 붙여넣어 실행하세요 — 브라우저는 HTTPS만 쓰므로 같은 네트워크에서도 대개 됩니다. **터미널을 그대로 두고** 다 붙여넣고 실행했으면 터미널로 돌아와 Enter만 누르면 됩니다 — 마법사가 같은 실행 안에서 나머지 단계를 이어서 끝냅니다.
->
-> `--yes`(무인 설치)로 실행 중이었다면 되돌아와 Enter를 누를 사람이 없으므로, 대신 안내된 명령에 `--skip-migrations`를 붙여 다시 실행하세요:
-> ```bash
-> node scripts/setup.mjs --project-ref <project-ref> --skip-migrations
-> ```
+**`npm run setup`에서 DB 연결 시간 초과가 발생합니다**
+→ 현재 설치기는 DB 포트(5432/6543)에 연결하지 않고 Management API의 HTTPS(443)로 마이그레이션을 적용합니다. `db push` 또는 SQL 복사 안내가 보이면 이전 설치 스크립트인지 확인하세요. HTTPS 요청도 실패한다면 `api.supabase.com:443` 접근과 프록시·프로젝트 상태를 확인한 뒤 `npm run setup`을 다시 실행하세요. 응답을 못 받았어도 서버에서 적용됐을 수 있으므로 재실행 시 이력을 먼저 확인합니다.
+
+**"Supabase 관리 토큰을 읽지 못했습니다" 또는 HTTP 401/403이 나옵니다**
+→ `supabase login`으로 로그인한 후 다시 실행하세요. 공식 `supabase` 프로필만 지원하며, 다른 프로필이면 `supabase login --profile supabase`를 사용하세요. Windows 자격 증명 관리자·macOS 키체인·Linux `secret-tool`을 읽을 수 없는 환경에서는 관리용 액세스 토큰을 현재 셸의 `SUPABASE_ACCESS_TOKEN`에 설정할 수 있습니다. 웹·러너 `.env`에 저장하지 마세요. HTTP 403은 해당 계정의 프로젝트 접근 및 SQL 실행 권한도 확인해야 합니다. anon 키나 `service_role` 키로 대체하지 마세요.
+
+**"기존 public 테이블이 있지만 적용 이력이 없습니다" 또는 `profiles already exists`가 나옵니다**
+→ 테이블 존재만으로 전체 설치 완료를 판단할 수 없습니다. 이전에 수동 SQL을 실행했거나 SQL 실행 후 이력 기록이 누락됐을 수 있습니다. `supabase_migrations.schema_migrations` 이력과 실제 테이블·컬럼·RLS·함수를 로컬 `supabase/migrations`와 대조하고, 적용이 확인된 버전만 이력을 복구해야 합니다. 설치기는 자동 초기화나 이력 추정을 하지 않습니다. 기존 `career-atelier-migrations-manual.sql` 전체를 다시 실행하지 마세요. `--skip-migrations`는 적용 상태를 별도로 검증한 경우에만 사용하세요.
+
+**"원격 DB에만 있는 마이그레이션 이력"이 나옵니다**
+→ 다른 버전의 코드에서 DB를 업데이트했을 수 있습니다. 안내된 마이그레이션 파일이 포함된 저장소 버전을 먼저 확보한 뒤 다시 실행하세요. 설치를 통과시키려고 원격 이력을 삭제하거나 임의의 빈 마이그레이션 파일을 만들면 스키마와 코드의 차이를 숨기게 됩니다.
 
 **`npm run deploy`에서 원하는 주소 이름을 입력했는데 계속 "이미 다른 곳에서 쓰고 있습니다"가 나옵니다**
 → 정상적인 흐름입니다. `<이름>.vercel.app`은 Vercel 전체에서 하나뿐이라 흔한 이름은 이미 다른 사람이 쓰고 있을 수 있습니다. 다른 이름을 입력해 다시 시도하면 되고, 세 번 연달아 실패하면 스크립트가 확실히 비어 있는 무작위 이름을 제안합니다.

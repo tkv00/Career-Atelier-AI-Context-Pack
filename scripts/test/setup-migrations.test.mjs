@@ -1,0 +1,120 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+import { fileURLToPath } from 'node:url';
+import { applyMigrations, migrationFiles, inspectMigrations } from '../lib/setup-migrations.mjs';
+import { createManagementQuery } from '../lib/supabase-management.mjs';
+import { loadManagementToken } from '../lib/supabase-token.mjs';
+
+const root = fileURLToPath(new URL('../../', import.meta.url));
+const files = migrationFiles(root);
+const token = 'sbp_' + 'a'.repeat(40);
+const projectRef = 'a'.repeat(20);
+
+test('HTTPS request uses only the official API and returns rows', async () => {
+  const query = createManagementQuery({ projectRef, token, fetchImpl: async (url, options) => {
+    assert.equal(url, `https://api.supabase.com/v1/projects/${projectRef}/database/query`);
+    assert.equal(options.headers.Authorization, `Bearer ${token}`);
+    assert.equal(options.redirect, 'error');
+    assert.deepEqual(JSON.parse(options.body), { query: 'select 1', read_only: true });
+    assert.ok(options.signal instanceof AbortSignal);
+    return new Response('[{"ok":1}]', { status: 201 });
+  } });
+  assert.deepEqual(await query('select 1', { readOnly: true }), [{ ok: 1 }]);
+});
+
+test('HTTP errors redact credentials and do not retry writes', async () => {
+  for (const status of [401, 403, 429, 500]) {
+    let calls = 0;
+    const query = createManagementQuery({ projectRef, token, fetchImpl: async () => {
+      calls++;
+      return new Response(`error ${token}`, { status });
+    } });
+    await assert.rejects(query('create table example(id int)'), (error) => {
+      assert.match(error.message, new RegExp(`HTTP ${status}`));
+      assert.ok(!error.message.includes(token));
+      return true;
+    });
+    assert.equal(calls, 1);
+  }
+});
+
+test('lost responses stop and instruct history verification on rerun', async () => {
+  const query = createManagementQuery({ projectRef, token, fetchImpl: async () => { throw new DOMException('timeout', 'TimeoutError'); } });
+  await assert.rejects(query('write'), /재실행 시 이력/);
+});
+
+test('malformed success responses are rejected', async () => {
+  const query = createManagementQuery({ projectRef, token, fetchImpl: async () => new Response('<html>proxy</html>') });
+  await assert.rejects(query('select 1'), /JSON/);
+  assert.throws(() => createManagementQuery({ projectRef: '../elsewhere', token }), /ref/);
+});
+
+test('recorded migrations are skipped without writes', async () => {
+  let calls = 0;
+  const result = await applyMigrations({ root, query: async (sql, options) => {
+    assert.equal(options?.readOnly, true);
+    calls++;
+    if (sql.includes('to_regclass')) return [{ history_exists: true, has_tables: true }];
+    return files.map(({ version, name }) => ({ version, name }));
+  } });
+  assert.deepEqual(result, { applied: 0, skipped: files.length });
+  assert.equal(calls, 3);
+});
+
+test('existing tables without history stop before any writes', async () => {
+  let calls = 0;
+  await assert.rejects(applyMigrations({ root, query: async (sql, options) => {
+    calls++;
+    assert.equal(options?.readOnly, true);
+    return [{ history_exists: false, has_tables: true }];
+  } }), /적용 이력이 없습니다/);
+  assert.equal(calls, 1);
+});
+
+test('history gaps, foreign versions, names, and malformed rows fail closed', async () => {
+  for (const history of [[files[1]], [{ version: '9999' }], [...files, { version: '9999', name: 'newer_schema' }], [{ version: files[0].version, name: 'foreign' }], [null]]) {
+    await assert.rejects(inspectMigrations({ root, query: async (sql, options) => {
+      assert.equal(options?.readOnly, true);
+      return sql.includes('to_regclass') ? [{ history_exists: true, has_tables: true }] : history;
+    } }), /이력/);
+  }
+});
+
+test('after an ambiguous write failure, the next run resumes from committed history', async () => {
+  const history = files.slice(0, files.length - 2);
+  let loseResponse = true;
+  let writes = 0;
+  const query = async (sql, options) => {
+    if (options?.readOnly) {
+      if (sql.includes('to_regclass')) return [{ history_exists: true, has_tables: true }];
+      return history.map(({ version, name }) => ({ version, name }));
+    }
+    writes++;
+    history.push(files[history.length]);
+    if (loseResponse) { loseResponse = false; throw new Error('response lost after commit'); }
+    return [];
+  };
+  await assert.rejects(applyMigrations({ root, query }), /response lost/);
+  assert.equal(writes, 1);
+  const result = await applyMigrations({ root, query });
+  assert.equal(writes, 2);
+  assert.equal(result.applied, 1);
+});
+
+test('environment token takes precedence and never invokes the keyring', () => {
+  assert.equal(loadManagementToken({ env: { SUPABASE_ACCESS_TOKEN: token }, read: () => '', run: () => { throw new Error('must not run'); } }), token);
+  assert.throws(() => loadManagementToken({ env: { SUPABASE_ACCESS_TOKEN: 'eyJ-not-a-management-token' }, read: () => '' }), /토큰 형식/);
+});
+
+test('credential lookup uses captured output, no shell, and CLI fallback file', () => {
+  assert.equal(loadManagementToken({ env: {}, platform: 'win32', read: () => '', run: (command, args, options) => {
+    assert.equal(command, 'powershell.exe');
+    assert.ok(args.includes('supabase'));
+    assert.deepEqual(options.stdio, ['ignore', 'pipe', 'pipe']);
+    assert.ok(!options.shell);
+    assert.equal(options.windowsHide, true);
+    return { status: 0, stdout: token };
+  } }), token);
+  assert.equal(loadManagementToken({ env: { SUPABASE_NO_KEYRING: '1' }, read: (path) => path.endsWith('access-token') ? token : '' }), token);
+  assert.throws(() => loadManagementToken({ env: { SUPABASE_PROFILE: 'supabase-staging' }, read: () => '' }), /공식 클라우드/);
+});

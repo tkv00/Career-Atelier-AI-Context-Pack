@@ -80,7 +80,10 @@ Useful flags:
 - `--new-project <name>` — force creating a new project instead of reusing one
 - `--region <region>` — defaults to `ap-northeast-2`
 - `--project-ref <ref> --anon-key <key>` — skip discovery entirely when the user hands you the values
-- `--db-password <password>` — required alongside `--project-ref` for an existing project; applying migrations needs a real Postgres connection, which the anon key alone cannot authenticate. Reusing an existing project without this flag stops and asks the user for it (find or reset it under the project's Settings → Database in the Supabase dashboard) — never guess or fabricate a password.
+- `--db-password <password>` — optional when creating a new project; otherwise a random password is generated. Existing-project migrations use the HTTPS Management API and do not require a database password.
+- `--skip-migrations` — bypass migration application and verification only when the complete installation was independently verified. Never use it to suppress a schema/history mismatch.
+
+The wizard reuses the Supabase CLI management token from the OS credential store or the CLI fallback file; `SUPABASE_ACCESS_TOKEN` in the current shell takes precedence. Never write this token into project environment files, logs, or messages. Only the official `supabase` cloud profile is supported. If credentials cannot be read, have the human run `supabase login` again or set the management token in their shell. SQL runs directly through `https://api.supabase.com`, without `supabase link`, `db push`, or `db query`. Pending SQL and its migration-history entry commit together. Existing tables without history require schema/history reconciliation; do not reset the database, mark unverified migrations as applied, or paste the old full migration bundle.
 
 Existing env files are kept unless `--yes` is passed, which overwrites them. If the user has an installation they care about, confirm before overwriting.
 

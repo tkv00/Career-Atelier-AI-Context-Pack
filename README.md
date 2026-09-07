@@ -452,16 +452,20 @@ cd Career-Atelier-AI-Context-Pack
 npm run setup
 ```
 
-**You never open the Supabase dashboard or copy a key.** Sign in once in the browser and the wizard does the rest:
+**Sign in to Supabase once; the wizard reuses the CLI login.** It reads the anon key automatically and does the rest:
 
 1. Check Node, the Supabase CLI, and your AI CLIs
 2. Sign in to Supabase (opens a browser once)
 3. Pick a project, or **create one** and wait until it is ready
 4. **Read the anon key directly** from the CLI
-5. Apply tables, row level security, and the default prompts
+5. Apply pending migrations (tables, row level security, and default prompts) through the HTTPS Management API
 6. Apply email templates, the single-owner signup guard, and SMTP settings
 7. Write `web/.env.local` and `runner/.env`
 8. Show the web signup link — choose your own email and password there once, then use the same credentials for the runner
+
+Database ports 5432/6543 and an existing project's database password are not needed for migrations. The wizard reads the CLI login from the OS credential store (Windows Credential Manager, macOS Keychain, or Linux `secret-tool`) or the CLI's fallback token file. `SUPABASE_ACCESS_TOKEN` in the current shell takes precedence; if the credential store cannot be read, the wizard explains how to sign in again or supply that token. The management token is never written to the web or runner environment files. Only the official `supabase` cloud profile is supported.
+
+Re-running setup skips recorded migrations. Each migration and its history entry commit together; a timeout stops setup, and the next run checks the history before proceeding. Existing tables without migration history, or a history that differs from the local migration sequence, require a schema/history review. Setup stops without resetting data or generating a full SQL file to paste. See [setup troubleshooting](docs/USER-GUIDE.md). `--skip-migrations` bypasses this verification and is only for installations whose migrations were independently verified.
 
 The wizard no longer creates temporary service passwords. Supabase dashboard credentials, the database password, and your Career Atelier account are separate. A new email needs **Create account** first. Each project accepts only its first owner account. Existing users should sign in or reset their password. Signup without an authenticated session stays on the confirmation screen instead of opening the dashboard.
 

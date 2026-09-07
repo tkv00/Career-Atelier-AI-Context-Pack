@@ -16,27 +16,23 @@
 //
 //   node scripts/setup.mjs                      # 로그인만 하면 프로젝트 생성·키 조회까지 알아서
 //   node scripts/setup.mjs --new-project my-app --region ap-northeast-2
-//   node scripts/setup.mjs --project-ref abc --anon-key eyJ... --db-password ...   # 값을 직접 줄 때
+//   node scripts/setup.mjs --project-ref abc --anon-key eyJ...   # 값을 직접 줄 때 (Supabase 로그인 필요)
 //   node scripts/setup.mjs --owner-email me@example.com   # 웹 가입 화면에 이메일만 미리 채움
 //   node scripts/setup.mjs --skip-migrations              # SQL Editor로 이미 수동 적용을 끝냈을 때
 
 import { execFileSync, spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { existsSync, readdirSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { createInterface } from 'node:readline/promises';
-import { tmpdir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseEnv } from 'node:util';
 import { checkLocalWebProject } from './lib/auth-target.mjs';
+import { loadManagementToken } from './lib/supabase-token.mjs';
+import { createManagementQuery } from './lib/supabase-management.mjs';
+import { applyMigrations } from './lib/setup-migrations.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
-
-// db push/db query가 Postgres에 직접 접속하는 단계. 정상 네트워크에서는
-// 1~3초면 끝나는데, 막힌 네트워크에서는 CLI가 내부적으로 최대 8번 재시도하며
-// 몇 분씩 걸린다(SSAFY 실습실에서 실제로 겪음, 2026-09-03) — 그 시간을 다
-// 기다리게 두지 않고, 이 시간 안에 안 끝나면 끊고 바로 다음 폴백으로 넘어간다.
-const DB_CONNECT_TIMEOUT_MS = 20_000;
 
 function parseArgs(argv) {
   // 서울에서 가장 가까운 리전을 기본값으로 둔다.
@@ -60,7 +56,7 @@ const args = parseArgs(process.argv.slice(2));
 
 // --yes를 주거나 필요한 값이 전부 인자로 왔으면 stdin을 아예 건드리지 않는다.
 // 프로젝트 ref와 키를 이제 CLI로 알아내므로, 에이전트는 --yes 하나만 주면 된다.
-const interactive = !args.yes && !(args.projectRef && args.anonKey);
+const interactive = Boolean(process.stdin.isTTY) && !args.yes && !(args.projectRef && args.anonKey);
 const rl = interactive ? createInterface({ input: process.stdin, output: process.stdout }) : null;
 const ask = async (question) => (rl ? (await rl.question(question)).trim() : '');
 
@@ -110,7 +106,7 @@ async function supabaseLoggedIn() {
 }
 
 // 갓 만든 프로젝트는 몇십 초 동안 연결을 못 받는다. 준비될 때까지 기다렸다가
-// 다음 단계(link → db push)로 넘어간다.
+// 다음 단계(Management API 마이그레이션)로 넘어간다.
 async function waitUntilHealthy(ref, timeoutMs = 5 * 60 * 1000) {
   const deadline = Date.now() + timeoutMs;
   process.stdout.write('  프로젝트가 준비되기를 기다리는 중');
@@ -132,112 +128,6 @@ function writeEnv(path, values) {
     .map(([key, value]) => `${key}=${value}`)
     .join('\n');
   writeFileSync(path, `${body}\n`, 'utf8');
-}
-
-// db push가 처음 성공할 때 자동으로 만들어 주는 이력 테이블이다. HTTPS
-// 폴백 경로는 db push를 거치지 않으므로, 이력을 기록하기 전에 이 스키마와
-// 테이블이 없으면 우리가 직접 만들어야 한다(실제로 SSAFY 실습실에서
-// "relation supabase_migrations.schema_migrations does not exist"로 걸림,
-// 2026-09-03). 컬럼 구성은 실제 운영 프로젝트에서 그대로 읽어 옴.
-const MIGRATION_HISTORY_TABLE_SQL =
-  'create schema if not exists supabase_migrations;\n' +
-  'create table if not exists supabase_migrations.schema_migrations (\n' +
-  '  version text not null primary key,\n' +
-  '  statements text[],\n' +
-  '  name text\n' +
-  ');\n';
-
-function migrationFiles(root) {
-  const dir = resolve(root, 'supabase/migrations');
-  return readdirSync(dir)
-    .filter((f) => f.endsWith('.sql'))
-    .sort()
-    .map((file) => {
-      const match = file.match(/^(\d+)_(.+)\.sql$/);
-      return { file, path: resolve(dir, file), version: match?.[1], name: match?.[2] };
-    });
-}
-
-// db push가 막힌 네트워크(학교·회사 방화벽으로 Postgres 5432/6543이 닫힌
-// 경우 — SSAFY 실습실에서 실제로 겪음, 2026-09-03)에서 쓰는 우회 경로.
-// `db query --linked`는 로컬에서 Postgres로 직접 붙는 대신 Management
-// API(HTTPS)로 SQL을 실행한다 — 웹 브라우징이 되는 네트워크면 대개 이것도
-// 된다. 파일마다 db push와 같은 이력 테이블에도 기록해 둔다 — 안 하면
-// 나중에 정상 네트워크에서 db push를 다시 돌릴 때 이미 적용된 걸 또
-// 적용하려다 충돌한다.
-//
-// --file로 넘기는 경로는 항상 OS 임시 디렉터리에 둔다. Windows에서는 이
-// 명령을 shell: true로 실행하는데, 이 상태에서 경로에 공백이 있으면(예:
-// "OneDrive\바탕 화면\...") 인자가 공백에서 잘려 CLI가 파일을 못 찾는다
-// (SSAFY 실습실에서 "FileSystem.readFile (...\바탕)"으로 실제로 겪음,
-// 2026-09-04) — 프로젝트 루트는 사용자마다 경로가 달라 이 문제를 피할 수
-// 없으므로, 기존 마이그레이션 파일도 내용을 그대로 임시 경로에 복사해 넘긴다.
-function applyMigrationsOverHttps(root) {
-  const historyFile = resolve(tmpdir(), 'career-atelier-migration-history-init.sql');
-  writeFileSync(historyFile, MIGRATION_HISTORY_TABLE_SQL, 'utf8');
-  const initHistory = spawnSync('supabase', ['db', 'query', '--linked', '--file', historyFile], {
-    cwd: root, stdio: 'inherit', shell: process.platform === 'win32', timeout: DB_CONNECT_TIMEOUT_MS,
-  });
-  try { unlinkSync(historyFile); } catch {}
-  if (initHistory.status !== 0) return false;
-
-  for (const { file, path, version, name } of migrationFiles(root)) {
-    if (!version) continue;
-
-    const tmpMigrationFile = resolve(tmpdir(), `career-atelier-migration-${version}.sql`);
-    writeFileSync(tmpMigrationFile, readFileSync(path, 'utf8'), 'utf8');
-    const apply = spawnSync('supabase', ['db', 'query', '--linked', '--file', tmpMigrationFile], {
-      cwd: root, stdio: 'inherit', shell: process.platform === 'win32', timeout: DB_CONNECT_TIMEOUT_MS,
-    });
-    try { unlinkSync(tmpMigrationFile); } catch {}
-    if (apply.status !== 0) return false;
-
-    const sql = readFileSync(path, 'utf8').replace(/'/g, "''");
-    const recordFile = resolve(tmpdir(), `career-atelier-migration-record-${version}.sql`);
-    writeFileSync(
-      recordFile,
-      `insert into supabase_migrations.schema_migrations (version, name, statements)\n` +
-        `values ('${version}', '${name}', ARRAY['${sql}'])\n` +
-        `on conflict (version) do nothing;\n`,
-      'utf8',
-    );
-    const record = spawnSync('supabase', ['db', 'query', '--linked', '--file', recordFile], {
-      cwd: root, stdio: 'inherit', shell: process.platform === 'win32', timeout: DB_CONNECT_TIMEOUT_MS,
-    });
-    try { unlinkSync(recordFile); } catch {}
-    if (record.status !== 0) return false;
-
-    ok(`${file} 적용`);
-  }
-  return true;
-}
-
-// 마지막 수단: CLI로는 아예 안 되는 네트워크일 때, 사람이 브라우저로 Supabase
-// 대시보드 SQL Editor에 붙여넣을 수 있는 파일을 만든다. 대시보드는 HTTPS로만
-// 접속하므로 Postgres 포트가 막혀 있어도 언제나 열려 있다. 이력 테이블
-// 기록까지 같이 넣는다 — 안 하면 나중에 이 명령을 다시 실행했을 때 db
-// push(또는 위 HTTPS 폴백)가 이미 만들어진 테이블을 또 만들려다 충돌한다.
-function writeManualMigrationFile(root) {
-  const header =
-    '-- Career Atelier 전체 마이그레이션을 순서대로 이어붙인 파일.\n' +
-    '-- CLI로 적용이 안 되는 네트워크에서, 이 파일 전체를 복사해 Supabase\n' +
-    '-- 대시보드의 SQL Editor(브라우저)에 붙여넣고 실행하세요.\n\n' +
-    MIGRATION_HISTORY_TABLE_SQL +
-    '\n';
-  const body = migrationFiles(root)
-    .map(({ file, path, version, name }) => {
-      const sql = readFileSync(path, 'utf8');
-      const record = version
-        ? `\ninsert into supabase_migrations.schema_migrations (version, name, statements)\n` +
-          `values ('${version}', '${name}', ARRAY['${sql.replace(/'/g, "''")}'])\n` +
-          `on conflict (version) do nothing;\n`
-        : '';
-      return `-- ===== ${file} =====\n${sql}${record}\n`;
-    })
-    .join('\n');
-  const outPath = resolve(root, 'career-atelier-migrations-manual.sql');
-  writeFileSync(outPath, header + body, 'utf8');
-  return outPath;
 }
 
 async function main() {
@@ -328,22 +218,6 @@ async function main() {
       projectRef = pick.ref;
       ok(`기존 프로젝트 사용: ${pick.name} (${projectRef})`);
 
-      // db push는 관리 API가 아니라 실제 Postgres 접속이라 DB 비밀번호가
-      // 따로 필요하다. 방금 만든 프로젝트라면 아래에서 그 값을 그대로 쓰지만,
-      // 기존 프로젝트는 CLI도 이 값을 알려주지 않는다(서버가 평문 보관을
-      // 안 한다) — 사용자에게 직접 물어보는 수밖에 없다. --skip-migrations면
-      // db push/db query를 아예 안 쓰므로 이 값 자체가 필요 없다.
-      if (!dbPassword && !args.skipMigrations) {
-        if (!interactive) {
-          fail(`${pick.name}의 DB 비밀번호를 모릅니다. --db-password로 넘기거나 --new-project로 새 프로젝트를 만드세요.`);
-          process.exit(1);
-        }
-        dbPassword = await ask(`${pick.name}의 데이터베이스 비밀번호 (모르면 대시보드 Settings → Database에서 재설정): `);
-        if (!dbPassword) {
-          fail('비밀번호 없이는 마이그레이션을 적용할 수 없습니다.');
-          process.exit(1);
-        }
-      }
     } else {
       const orgs = supabaseJson(['orgs', 'list']) ?? [];
       if (!orgs.length) {
@@ -393,91 +267,19 @@ async function main() {
   }
   ok('anon key 확보');
 
-  // --project-ref를 직접 줘서 위의 프로젝트 선택/생성 분기를 아예 건너뛴
-  // 경우(문서에 나온 사용법)에도 마찬가지로 비밀번호가 필요하다 — 안전망으로
-  // 여기서 한 번 더 확인한다. --skip-migrations면 필요 없다.
-  if (!dbPassword && !args.skipMigrations) {
-    if (!interactive) {
-      fail('DB 비밀번호가 없습니다. --db-password로 넘기세요(대시보드 Settings → Database에서 확인/재설정).');
-      process.exit(1);
-    }
-    dbPassword = await ask('데이터베이스 비밀번호 (모르면 대시보드 Settings → Database에서 재설정): ');
-    if (!dbPassword) {
-      fail('비밀번호 없이는 마이그레이션을 적용할 수 없습니다.');
-      process.exit(1);
-    }
-  }
-
-  // 3. 마이그레이션 ----------------------------------------------------------
+  // CLI의 link/query는 버전에 따라 DB 포트에 접속하므로 HTTPS API를 직접 호출한다.
   console.log(c.bold('\n\n데이터베이스 준비\n'));
-  console.log('Supabase에 로그인 창이 열릴 수 있습니다.');
-
-  // link/db push는 admin API가 아니라 실제 Postgres 접속이라 이 환경변수가
-  // 없으면 CLI가 비밀번호를 못 찾고 pooler 연결에서 조용히 끊긴다.
-  const supabaseEnv = { ...process.env, SUPABASE_DB_PASSWORD: dbPassword };
-
-  const link = spawnSync('supabase', ['link', '--project-ref', projectRef], {
-    cwd: root,
-    stdio: 'inherit',
-    shell: process.platform === 'win32',
-    env: supabaseEnv,
-  });
-  if (link.status !== 0) {
-    fail('supabase link 실패. 프로젝트 ref와 로그인 상태를 확인하세요.');
-    process.exit(1);
-  }
-
   if (args.skipMigrations) {
-    // db push도 db query --linked도 원격 DB에 "이미 뭐가 적용됐는지" 확인하는
-    // 것부터 direct connection이 필요해서, 방화벽이 막은 네트워크에서는 이미
-    // 수동으로 다 끝냈어도 매번 처음부터 같은 실패를 반복하게 된다(SSAFY
-    // 실습실에서 실제로 겪음, 2026-09-04). 대시보드 SQL Editor로 이미 적용을
-    // 끝낸 경우를 위한 탈출구다.
-    warn('--skip-migrations — 마이그레이션이 이미 적용됐다고 보고 이 단계를 건너뜁니다.');
+    warn('--skip-migrations — 적용 상태를 검증하지 않고 건너뜁니다. 모든 마이그레이션 적용을 별도로 확인한 경우에만 사용하세요.');
   } else {
-    console.log(c.dim(`  (최대 ${DB_CONNECT_TIMEOUT_MS / 1000}초 기다립니다 — 막힌 네트워크면 CLI가 내부적으로 훨씬 오래 재시도하는데, 그건 기다리지 않습니다.)`));
-    const push = spawnSync('supabase', ['db', 'push', '--linked'], {
-      cwd: root,
-      stdio: 'inherit',
-      shell: process.platform === 'win32',
-      env: supabaseEnv,
-      timeout: DB_CONNECT_TIMEOUT_MS,
-    });
-
-    if (push.status === 0) {
-      ok('테이블·RLS·기본 프롬프트 적용 완료');
-    } else {
-      // db push는 Postgres에 직접 접속한다(pooler로 TCP) — 학교·회사 네트워크가
-      // 이 포트를 막아 두면 여기서 조용히 타임아웃난다. db query --linked는
-      // Management API(HTTPS)를 우선 쓰므로 같은 네트워크에서도 될 수 있다.
-      warn('supabase db push 실패 — 직접 DB 연결(포트 5432/6543)이 막힌 네트워크일 수 있습니다.');
-      console.log(c.dim('  HTTPS 경로로 다시 시도합니다...'));
-
-      if (applyMigrationsOverHttps(root)) {
-        ok('테이블·RLS·기본 프롬프트 적용 완료 (HTTPS 경로)');
-      } else {
-        const manualPath = writeManualMigrationFile(root);
-        fail('두 경로 모두 실패했습니다 — 이 네트워크에서는 CLI로 적용할 수 없습니다.');
-        console.log(c.dim(`  ${manualPath}의 전체 내용을 복사해 아래 주소의 SQL Editor에 붙여넣고 실행하세요:`));
-        console.log(c.dim(`    https://supabase.com/dashboard/project/${projectRef}/sql/new`));
-
-        if (interactive) {
-          // 사람이 지금 화면 앞에 있으니, 여기서 새 명령을 따로 찾아 다시
-          // 치게 하지 않는다 — 브라우저에서 SQL만 붙여넣고 돌아와 Enter를
-          // 누르면 같은 실행 안에서 이어서 끝낸다(실제로 "그러면 새 명령을
-          // 또 찾아야 하냐"는 지적을 받고 고침, 2026-09-04).
-          await ask(c.dim('  다 붙여넣고 실행했으면 Enter를 눌러 계속하세요... '));
-          ok('알겠습니다 — 마이그레이션이 적용됐다고 보고 계속 진행합니다.');
-        } else {
-          // --yes로 무인 실행 중이면 아무도 SQL Editor를 대신 열어 줄 수
-          // 없다. 사람이 나중에 그대로 붙여넣기만 하면 되는 명령을 남긴다.
-          console.log(c.dim('  실행한 뒤 이 명령에 --skip-migrations를 붙여 다시 실행하면 나머지 단계(Auth 설정·환경변수 파일)를 이어서 끝냅니다:'));
-          console.log(c.dim(`    node scripts/setup.mjs --project-ref ${projectRef} --skip-migrations`));
-          process.exit(1);
-        }
-      }
-    }
+    const token = loadManagementToken();
+    const query = createManagementQuery({ projectRef, token });
+    console.log('Management API(HTTPS)로 적용 이력을 확인합니다.');
+    const result = await applyMigrations({ root, query, onProgress: ok });
+    ok(`마이그레이션 이력 검증 완료: 신규 ${result.applied}개, 기존 ${result.skipped}개`);
   }
+
+  const supabaseEnv = { ...process.env };
 
   // 4. Auth 설정(이메일 템플릿·가입 제한 훅·SMTP) -----------------------------
   // config.toml의 [auth] 섹션은 db push로는 안 밀린다 — 별도 명령이 필요하다.
