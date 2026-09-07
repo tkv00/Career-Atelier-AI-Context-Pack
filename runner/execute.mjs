@@ -63,6 +63,7 @@ export function runProvider({
     let finalOutput = '';
     let paidOverageBlocked = false;
     let webSearchUsed = false;
+    let providerError = '';
     const eventBuffer = [];
     const flushTimer = setInterval(() => flushBuffer(supabase, runId, ownerId, eventBuffer), EVENT_FLUSH_MS);
     const timeout = setTimeout(() => child.kill('SIGTERM'), safeTimeoutMinutes * 60 * 1000);
@@ -78,6 +79,12 @@ export function runProvider({
         parsed = { type: 'text', text: line };
       }
       eventBuffer.push({ sequence: sequence++, kind: parsed.type || 'event', payload: parsed });
+      if (parsed.type === 'result' && parsed.is_error) {
+        providerError = JSON.stringify(parsed.errors || parsed.result || parsed.subtype);
+      }
+      if (provider === 'claude' && parsed.type === 'result' && parsed.permission_denials?.length) {
+        providerError = `Claude 도구 권한이 거부되었습니다: ${parsed.permission_denials.map(item => item.tool_name).join(', ')}`;
+      }
       if (provider === 'codex' && eventUsesWebSearch(parsed)) webSearchUsed = true;
       // Codex는 rate_limit_event를 내지 않는다(§9 실측) — 나머지 스트리밍
       // 계열 프로바이더는 감지해둔다. detectPaidOverage 자체가
@@ -120,10 +127,12 @@ export function runProvider({
 
       if (paidOverageBlocked) {
         resolveRun({ status: 'blocked_paid_overage', output: finalOutput, error: '유료 초과 사용 가능성이 감지되어 실행을 중단했습니다.', webSearchUsed });
-      } else if (code === 0 && finalOutput) {
+      } else if (code === 0 && finalOutput && !providerError) {
         resolveRun({ status: 'completed', output: finalOutput, error: '', webSearchUsed });
       } else {
-        const errorText = stderr || `프로세스가 code=${code}, signal=${signal || 'none'}로 종료되었습니다.`;
+        const errorText = providerError || stderr || (code === 0
+          ? `${provider} CLI가 정상 종료했지만 결과 JSON 이벤트를 반환하지 않았습니다. CLI 출력 옵션과 프롬프트 전달 경로를 확인하세요.`
+          : `프로세스가 code=${code}, signal=${signal || 'none'}로 종료되었습니다.`);
         resolveRun({ status: isUsageLimitError(errorText) ? 'waiting_for_reset' : 'failed', output: finalOutput, error: errorText.slice(0, 12_000), webSearchUsed });
       }
     });

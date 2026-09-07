@@ -1,6 +1,4 @@
-// Windows에서 codex는 실행파일이 아니라 .cmd 셰임이라 node:child_process의
-// spawn(shell:false 기본값)으로는 ENOENT로 죽는다 — cross-spawn이 프롬프트에
-// 셸 메타문자(%, &, " 등)가 있어도 안전하게 이스케이프해서 실행한다.
+// Windows npm .cmd 탐색은 cross-spawn에 맡기고 다중 줄 본문은 stdin에 쓴다.
 import spawn from 'cross-spawn';
 import { childEnvironment } from '../safety.mjs';
 
@@ -8,7 +6,7 @@ import { childEnvironment } from '../safety.mjs';
 // `codex --search exec` 순서여야 한다(`codex exec --search`는 현재 CLI에서
 // unexpected argument로 실패한다). 루미·모카에만 켜서 최신 결과가 필요 없는
 // 작성 비서가 불필요하게 웹을 보지 않게 한다.
-export function buildCodexArgs({ workspace, prompt, model, effort, outputSchema, sandbox = 'read-only', liveWebSearch = false }) {
+export function buildCodexArgs({ workspace, model, effort, outputSchema, sandbox = 'read-only', liveWebSearch = false }) {
   const args = liveWebSearch ? ['--search', 'exec'] : ['exec'];
   args.push('-C', workspace, '--skip-git-repo-check', '--ephemeral', '--ignore-user-config', '-s', sandbox);
   // 최신 Codex는 --search가 없어도 캐시 검색을 기본 제공한다. 구조화·작성
@@ -17,7 +15,8 @@ export function buildCodexArgs({ workspace, prompt, model, effort, outputSchema,
   if (model) args.push('-m', model);
   if (effort) args.push('-c', `model_reasoning_effort="${effort}"`);
   if (outputSchema) args.push('--output-schema', outputSchema);
-  args.push('--json', prompt);
+  // cmd.exe가 줄바꿈 뒤를 버리지 않도록 프롬프트는 stdin으로 전달한다.
+  args.push('--json', '-');
   return args;
 }
 
@@ -27,11 +26,10 @@ export function spawnCodex(options) {
   const { workspace } = options;
   const args = buildCodexArgs(options);
 
-  // stdin은 'ignore'가 아니라 실제 파이프를 즉시 닫아 EOF를 준다 — Codex가
-  // "stdin이 파이프면 프롬프트에 이어붙인다"를 시도할 때 tty 없는 헤드리스
-  // 환경에서 os error 2(No such file or directory)로 죽는 걸 막는다.
+  // 본문 전송 뒤 EOF를 보내야 CLI가 입력 완료를 알고 실행을 시작한다.
   const child = spawn('codex', args, { cwd: workspace, env: childEnvironment(), stdio: ['pipe', 'pipe', 'pipe'] });
-  child.stdin.end();
+  child.stdin.on('error', () => {});
+  child.stdin.end(options.prompt, 'utf8');
   return child;
 }
 

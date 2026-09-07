@@ -8,6 +8,8 @@
   },
   "scripts": {
     "setup": "node scripts/setup.mjs",
-    "deploy": "node scripts/deploy.mjs"
+    "deploy": "node scripts/deploy.mjs",
+    "doctor": "node runner/index.mjs doctor",
+    "runner": "node runner/index.mjs start"
   }
 }

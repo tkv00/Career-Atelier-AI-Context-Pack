@@ -1,4 +1,6 @@
 import spawn from 'cross-spawn';
+import { homedir } from 'node:os';
+import { resolve } from 'node:path';
 
 // v1(server/index.mjs)의 안전장치를 그대로 옮긴 것 — UI에서 끌 수 없는 코드
 // 상수로만 존재해야 한다(§5, §6, §19.2 #10). 값을 DB/env로 노출하지 않는다.
@@ -30,8 +32,24 @@ export const JOB_EXPIRY_HOURS = 6;
 export const HEARTBEAT_INTERVAL_MS = 15_000;
 export const HEARTBEAT_STALE_MS = 90_000;
 
-export function childEnvironment() {
-  const environment = { ...process.env, NO_COLOR: '1', FORCE_COLOR: '0' };
+export function childEnvironment(source = process.env) {
+  // CLI들은 각자 설정 파일을 사용자 홈에서 찾는다. Windows 서비스/IDE/npm이
+  // HOME을 생략해도 특정 사용자의 경로를 하드코딩하지 않고 Node가 판별한
+  // 현재 계정의 홈을 보완한다.
+  const environment = { ...source, NO_COLOR: '1', FORCE_COLOR: '0' };
+  const home = homedir();
+  if (home) {
+    if (!environment.HOME) environment.HOME = home;
+    // Codex CLI는 npm으로 설치된 Windows 환경에서 기본 홈 탐색에 실패할
+    // 수 있다. 현재 계정의 표준 설정 폴더를 명시하면 사용자명과 무관하게
+    // 기존 로그인 세션을 재사용한다.
+    if (!environment.CODEX_HOME) environment.CODEX_HOME = resolve(home, '.codex');
+    if (process.platform === 'win32') {
+      if (!environment.USERPROFILE) environment.USERPROFILE = home;
+      if (!environment.HOMEDRIVE) environment.HOMEDRIVE = home.slice(0, 2);
+      if (!environment.HOMEPATH) environment.HOMEPATH = home.slice(2) || '\\';
+    }
+  }
   for (const key of SENSITIVE_API_VARIABLES) delete environment[key];
   return environment;
 }

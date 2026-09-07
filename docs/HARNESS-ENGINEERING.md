@@ -113,7 +113,8 @@ Career Atelier는 7개의 특화 AI 비서와 2개의 비(非) LLM 결정론적 
 - 검색 완료 판정: 프롬프트의 주장이나 결과 개수만 믿지 않고 JSONL 스트림에 실제 `item.type = "web_search"` 이벤트가 있었는지 확인합니다. 검색 미호출·JSON 파싱 실패·저장 가능 결과 0건은 완료로 기록하지 않고 최대 한 번만 새 작업으로 재시도합니다. Codex 루미·모카는 첫 실행부터 조사·개인화·JSON 요구를 한 프롬프트에 섞지 않습니다. 짧은 검색 전용 실행은 `--search`만 적용해 원문 URL이 있는 조사 메모를 만들고, 실제 검색 이벤트가 확인된 뒤 별도의 구조화 전용 실행이 `--output-schema`로 JSON을 만듭니다.
 
 ### 2. Claude Code CLI (`runner/providers/claude.mjs`)
-- 실행 커맨드: `claude -p <prompt> --add-dir <context_dir> --permission-mode plan --restricted`
+- 실행 커맨드: `claude -p --add-dir <context_dir> --permission-mode dontAsk --permission-prompts none --allowedTools Read Glob Grep WebSearch WebFetch --restricted` (본문은 stdin으로 전달)
+- Windows `.cmd`는 다중 줄 명령행 인자를 첫 줄에서 잘라 뒤의 출력 옵션까지 버릴 수 있습니다. Codex는 `--json -`, Claude는 `-p`로 실행하고 프롬프트 전체를 stdin으로 전송한 뒤 EOF를 보냅니다. Claude의 `dontAsk`에는 읽기·검색 허용 목록이 필요합니다.
 - 스키마 옵션: `--json-schema <schema_json_string>` (파일 경로가 아닌 JSON 문자열을 직접 전달)
 - 스트리밍 옵션: `-p`와 `--output-format stream-json`을 조합할 때는 반드시 `--verbose` 플래그를 함께 넘겨야 에러가 발생하지 않습니다.
 - 유료 초과 과금 방지: 스트림 이벤트 중 `rate_limit_event`에서 `isUsingOverage: true`가 감지되면 즉시 프로세스를 강제 종료하고 `blocked_paid_overage` 상태로 작업을 정지시킵니다.

@@ -30,7 +30,7 @@ test('실시간 검색 옵션은 exec 앞에 놓인다', () => {
   const args = buildCodexArgs({ workspace: 'C:\\Career Atelier\\run', prompt: '검색', liveWebSearch: true });
   assert.deepEqual(args.slice(0, 2), ['--search', 'exec']);
   assert.equal(args.includes('web_search="disabled"'), false);
-  assert.equal(args.at(-1), '검색');
+  assert.equal(args.at(-1), '-');
 });
 
 test('검색하지 않는 비서에는 --search를 넣지 않는다', () => {

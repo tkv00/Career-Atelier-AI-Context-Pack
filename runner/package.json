@@ -10,6 +10,7 @@
   "scripts": {
     "login": "node index.mjs login",
     "logout": "node index.mjs logout",
+    "doctor": "node index.mjs doctor",
     "start": "node index.mjs start",
     "test": "node --test",
     "mcp": "node mcp/server.mjs",

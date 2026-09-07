@@ -474,6 +474,17 @@ npm run setup
 
 웹만 로그인되고 러너는 실패한다면 로그인 화면의 **로그인이 계속 실패하나요?**에 표시된 프로젝트와 러너의 연결 프로젝트를 비교하세요. `web/.env.local`의 `NEXT_PUBLIC_SUPABASE_URL`과 `runner/.env`의 `SUPABASE_URL`을 맞춘 뒤 둘 다 다시 시작합니다. 러너 비밀번호는 화면에 표시되지 않습니다. 웹 주소 대신 서비스 비밀번호를 입력하세요. 로그인 후에는 저장된 러너 세션을 재사용합니다. [인증 문제 해결 안내](docs/AUTH-TROUBLESHOOTING.md)도 참고하세요.
 
+### Windows · macOS · Linux 한 줄 실행
+
+설치, 의존성 설치(`npm install --prefix runner`), 웹 가입, 러너 로그인(`npm run login --prefix runner`)을 마친 뒤 저장소 루트에서 다음 두 명령을 실행하세요.
+
+```bash
+npm run doctor
+npm run runner
+```
+
+`npm run doctor`는 비밀번호나 토큰을 출력하지 않고 설치된 AI CLI와 구독 로그인 상태를 확인합니다. `npm run runner`는 로컬 작업 큐 러너를 시작합니다. 러너는 실행 중인 계정의 홈 디렉터리를 자동으로 찾으므로 `HOME`, `USERPROFILE` 같은 사용자별 경로를 직접 설정할 필요가 없습니다. 특정 CLI가 없거나 로그인이 만료됐다고 나오면 해당 CLI만 다시 로그인한 뒤 진단을 다시 실행하세요.
+
 > DB 비밀번호는 무작위로 만들고 어디에도 저장하지 않습니다. `service_role` 키는 조회조차 하지 않습니다.
 
 **비밀번호 재설정 메일은 별도 설정 없이 바로 동작합니다** — Supabase 기본 메일 서비스를 쓰기 때문입니다. 다만 시간당 2통으로 제한돼 있어서, 실사용(가끔 비밀번호를 잊었을 때만)에는 충분하지만 가입 흐름을 반복 테스트할 때는 금방 막힙니다. 더 넉넉한 한도가 필요하면 [Resend](https://resend.com)에 무료로 가입해 `supabase/.env.example`을 `supabase/.env`로 복사한 뒤 `RESEND_API_KEY`와 사이트 주소 항목을 채우고 `supabase config push`를 실행하세요.
@@ -521,6 +532,14 @@ cd runner
 npm install
 npm run login
 npm run start
+```
+
+Windows 검색 오류가 있다면 러너 코드를 갱신한 뒤 반드시 재시작하세요. Windows `.cmd`가 다중 줄 인자와 뒤따르는 옵션을 잘라내는 문제를 막기 위해 Codex·Claude 프롬프트는 표준입력으로 전달합니다. `doctor`는 설치·로그인만 확인하며 실제 웹 검색 성공까지 검사하지는 않습니다. Claude 비대화식 모드에는 읽기·웹 검색 도구를 명시적으로 허용합니다. 시스템 환경변수는 직접 바꿀 필요가 없습니다.
+
+처음 로그인한 뒤에는 저장소 루트에서 아래 명령 하나로 러너를 다시 시작할 수 있습니다.
+
+```bash
+npm run runner
 ```
 
 러너 로그인 명령을 실행하기 전에 Next.js가 안내하는 웹 주소(보통 http://localhost:3000)를 여세요. **계정 만들기**에서 본인 이메일과 비밀번호를 정합니다. 이미 계정이 있으면 기존 계정으로 로그인하세요. 러너에도 같은 계정을 입력합니다.

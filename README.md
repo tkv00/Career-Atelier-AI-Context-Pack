@@ -471,6 +471,17 @@ The wizard no longer creates temporary service passwords. Supabase dashboard cre
 
 If web login works but runner login fails, compare the project host shown under **Having trouble signing in?** on the login page with the runner's project host. Match `NEXT_PUBLIC_SUPABASE_URL` in `web/.env.local` and `SUPABASE_URL` in `runner/.env`, then restart both. Password entry in the runner is hidden; enter your service password, not the login URL. Once signed in, the saved runner session is reused. See [authentication troubleshooting](docs/AUTH-TROUBLESHOOTING.md).
 
+### One-command runner check (Windows, macOS, and Linux)
+
+After setup, dependency installation (`npm install --prefix runner`), web signup, and runner login (`npm run login --prefix runner`) are complete, run this from the repository root:
+
+```bash
+npm run doctor
+npm run runner
+```
+
+`npm run doctor` checks the installed AI CLIs and subscription sessions without printing credentials. `npm run runner` starts the local queue worker. The runner derives the current user's home directory at runtime, so you do not need to set `HOME`, `USERPROFILE`, or any user-specific path by hand. If the doctor reports a missing or expired CLI session, sign in only to that CLI and run the check again.
+
 > The database password is generated at random and stored nowhere. The `service_role` key is never even read.
 
 **Password-reset emails work out of the box**, using Supabase's built-in mailer — but it's capped at 2 emails per hour, which is fine for actual use (you only reset a forgotten password occasionally) but tight while you're testing the sign-up flow repeatedly. For a higher limit, sign up for a free [Resend](https://resend.com) account, copy `supabase/.env.example` to `supabase/.env`, fill in `RESEND_API_KEY` and the site URL fields, then run `supabase config push`.
@@ -518,6 +529,14 @@ cd runner
 npm install
 npm run login
 npm run start
+```
+
+Windows search troubleshooting: update the runner and restart it after code changes. Codex and Claude prompts are sent over stdin because Windows `.cmd` launchers can truncate multiline arguments and discard subsequent options. `doctor` checks installation and login only; it does not verify a real web search. Claude's headless mode explicitly allows read and web search tools. No system environment-variable edits are required.
+
+For later launches, the repository-root shortcut is enough:
+
+```bash
+npm run runner
 ```
 
 Before running the runner login command, open the web address printed by Next.js (usually http://localhost:3000). Choose **Create account** and set your own email and password. If you already have an account, sign in with it. The runner uses those same credentials.
