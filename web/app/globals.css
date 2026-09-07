@@ -1265,16 +1265,31 @@ option {
 .calendar-day.today > b {
   color: var(--amber);
 }
-.calendar-day small {
-  color: var(--text-dim);
-  font-size: 9px;
+/* 칸을 넘는 날은 "+N개 더보기"를 누른다 — 예전엔 옅은 회색 9px 텍스트라
+   잘 안 보인다는 지적을 받았다(2026-09-06). 실제로 누를 수 있는 링크처럼
+   시안 강조색을 주고 한 단계 키웠다. */
+.calendar-day-more {
+  justify-self: start;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--cyan-strong);
+  font-size: var(--fs-hud);
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  cursor: pointer;
+}
+.calendar-day-more:hover {
+  color: var(--cyan);
 }
 
-/* 날짜 호버 미리보기 — 그 날의 회사·진행상황을 전부 리스트로 보여준다
-   (마우스 호버 요청, 2026-09-02). 셀 안에 2개까지만 보이던 칩을 굳이
-   전부 클릭하지 않아도 한눈에 훑을 수 있다. 기본은 숨김, hover와
-   focus-within(키보드로 칩까지 탭한 경우)에 뜬다 — 그래서 마우스 없이도
-   내용에 닿을 수 있다. 일정이 있는 날에만 렌더한다. */
+/* 날짜 더보기 팝업 — 그 날의 회사·진행상황을 전부 리스트로 보여준다
+   (요청 2026-09-02). 원래는 마우스 올림(hover)으로만 열렸는데, 트리거와
+   팝업 사이 6px 틈을 마우스가 지나는 순간 hover가 끊겨 팝업이 닫히면서
+   "스크롤하려고 하면 사라진다"는 문제가 있었다(사용자 실제로 겪음,
+   2026-09-06). 지금은 클릭으로 열고 React 상태로 고정한다 — 그 틈 문제
+   자체가 없어지고, 터치 기기에서도 그대로 동작한다. */
 .calendar-day-preview {
   position: absolute;
   left: 0;
@@ -1286,36 +1301,55 @@ option {
   border-radius: var(--r-card);
   background: var(--surface-2);
   box-shadow: var(--shadow-float);
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(-4px);
-  transition: opacity var(--dur-fast) var(--ease), transform var(--dur-fast) var(--ease);
-  pointer-events: none;
 }
-.calendar-day:hover .calendar-day-preview,
-.calendar-day:focus-within .calendar-day-preview {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
+.calendar-day-preview-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--s2);
+  margin-bottom: var(--s2);
 }
-.calendar-day-preview > p {
-  margin: 0 0 var(--s2);
+.calendar-day-preview-head > p {
+  margin: 0;
   color: var(--text-3);
   font-size: var(--fs-xs);
   font-weight: 600;
+}
+.calendar-day-preview-head > button {
+  padding: 0 4px;
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: var(--fs-md);
+  line-height: 1;
+  cursor: pointer;
+}
+.calendar-day-preview-head > button:hover {
+  color: var(--text-1);
 }
 .calendar-day-preview ul {
   margin: 0;
   padding: 0;
   list-style: none;
   display: grid;
-  gap: var(--s2);
+  gap: var(--s1);
   max-height: 220px;
   overflow-y: auto;
 }
-.calendar-day-preview li {
+.calendar-day-preview li button {
+  width: 100%;
+  padding: var(--s1);
+  border: 0;
+  border-radius: var(--r-control);
+  background: transparent;
   display: grid;
   gap: 2px;
+  text-align: left;
+  font-family: inherit;
+  cursor: pointer;
+}
+.calendar-day-preview li button:hover {
+  background: var(--surface-3);
 }
 .calendar-day-preview li b {
   font-size: var(--fs-sm);
@@ -1325,6 +1359,12 @@ option {
 .calendar-day-preview li small {
   color: var(--text-3);
   font-size: var(--fs-xs);
+}
+.calendar-day-preview-remaining {
+  color: var(--danger);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  font-style: normal;
 }
 /* 넷째 줄 이후 칸은 화면 아래로 넘칠 수 있어 위로 띄운다. */
 .calendar-grid > :nth-child(n+29) .calendar-day-preview {
@@ -1618,6 +1658,16 @@ option {
   font-variant-numeric: tabular-nums;
   color: var(--text-2);
 }
+/* 마감까지 남은 시간 — D-3/1시간전/3분전(요청 2026-09-06). 날짜 옆에 바로
+   붙는 배지라 항상 눈에 띄어야 해서 위험색(danger)을 쓴다. */
+.application-status-scroll td .deadline-remaining {
+  display: block;
+  margin-top: 1px;
+  color: var(--danger);
+  font-size: var(--fs-hud);
+  font-weight: 600;
+  font-style: normal;
+}
 .application-status-scroll a {
   color: var(--cyan);
   text-decoration: none;
@@ -1672,16 +1722,16 @@ option {
   border-radius: var(--r-control);
   background: var(--surface-2);
 }
-.calendar-upcoming time b {
+/* 마감까지 남은 시간 배지 — D-3/1시간전/3분전(요청 2026-09-06). 항상
+   위험색으로 표시해 다가오는 일정임을 놓치지 않게 한다. */
+.calendar-upcoming time.deadline-remaining b {
   font-size: var(--fs-xl);
   font-variant-numeric: tabular-nums;
-  color: var(--amber);
+  color: var(--danger);
 }
-.calendar-upcoming time span {
-  color: var(--text-dim);
-  font-family: var(--font-mono);
-  font-size: 9px;
-  letter-spacing: 0.08em;
+.calendar-upcoming time.deadline-remaining span {
+  color: var(--danger);
+  font-size: var(--fs-hud);
 }
 .calendar-upcoming article > div:nth-child(2) {
   min-width: 0;

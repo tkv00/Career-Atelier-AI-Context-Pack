@@ -12,6 +12,9 @@ export type CalendarJobInput = {
   url: string;
   jd: string;
   deadline: string;
+  /** "HH:MM" — 비워 두면 예전처럼 정오(all_day)로 저장한다(요청 2026-09-06:
+      마감 시·분까지 기록). */
+  deadlineTime?: string;
   applicationType?: string;
   companyType?: string;
   submissionStatus?: string;
@@ -28,8 +31,10 @@ export async function saveCalendarJob(input: CalendarJobInput) {
   const company = input.company.trim();
   const role = input.role.trim();
   const deadline = input.deadline.trim();
+  const deadlineTime = (input.deadlineTime ?? '').trim();
   const url = input.url.trim();
   if (!company || !role || !/^\d{4}-\d{2}-\d{2}$/.test(deadline)) throw new Error('회사명, 지원 직무, 마감일을 확인해 주세요.');
+  if (deadlineTime && !/^\d{2}:\d{2}$/.test(deadlineTime)) throw new Error('마감 시각 형식이 올바르지 않습니다.');
   if (url) {
     const parsed = new URL(url);
     if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('채용 사이트는 HTTP(S) 주소만 입력할 수 있습니다.');
@@ -60,7 +65,9 @@ export async function saveCalendarJob(input: CalendarJobInput) {
     jobPostId = data.id;
   }
 
-  const startsAt = new Date(`${deadline}T12:00:00+09:00`).toISOString();
+  // 시각을 지정하면 그 시각으로, 아니면 예전처럼 정오·종일 일정으로 둔다 —
+  // 시각 없이 날짜만 아는 공고를 억지로 "몇 시 마감"처럼 보이게 하지 않는다.
+  const startsAt = new Date(`${deadline}T${deadlineTime || '12:00'}:00+09:00`).toISOString();
   const payload = {
     owner_id: user.id,
     job_post_id: jobPostId,
@@ -68,10 +75,10 @@ export async function saveCalendarJob(input: CalendarJobInput) {
     company,
     event_type: 'deadline',
     starts_at: startsAt,
-    all_day: true,
+    all_day: !deadlineTime,
     source_url: url || null,
     confidence: 'confirmed',
-    raw_deadline_text: deadline,
+    raw_deadline_text: deadlineTime ? `${deadline} ${deadlineTime}` : deadline,
     memo: input.jd.trim() || null,
   };
   const { data: existingEvent } = await supabase.from('calendar_events').select('id').eq('job_post_id', jobPostId).limit(1).maybeSingle();
@@ -90,7 +97,7 @@ export async function updateJobProgress(jobPostId: string, field: 'application_t
   const { supabase } = await requireUser();
   const allowed = {
     application_type: ['서류접수', '시험 응시', '과제 전형', '1차 면접', '2차 면접', '최종 면접'],
-    company_type: ['미분류', '대기업', '중견기업', '공기업', '스타트업', '외국계'],
+    company_type: ['미분류', '대기업', '중견기업', '공기업', '스타트업', '외국계', '기타기업'],
     submission_status: ['미제출', '작성중', '검토중', '제출 완료'],
   } as const;
   if (!(allowed[field] as readonly string[]).includes(value)) throw new Error('지원 상태 값이 올바르지 않습니다.');

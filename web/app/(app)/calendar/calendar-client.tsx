@@ -1,21 +1,21 @@
 'use client';
 
-import { useMemo, useState, useTransition } from 'react';
+import { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import type { Database } from '@/lib/supabase/database.types';
 import { startEssayForJobPost } from '../essays/actions';
 import { cycleStageResult, saveCalendarJob, updateJobProgress } from './actions';
 import { JobPostDeleteButton } from './job-post-delete-button';
-import { formatDate } from '@/lib/datetime';
+import { formatDate, formatDateTime, remainingLabel, timeInputValue } from '@/lib/datetime';
 import { parseStageResults, STAGES, type Stage } from '@/lib/stage-results';
 
 type CalendarEvent = Database['public']['Tables']['calendar_events']['Row'];
 type JobPost = Database['public']['Tables']['job_posts']['Row'];
 type EssayLink = { job_id: string | null; title: string };
-type CalendarItem = { id: string; jobPostId: string | null; title: string; company: string; startsAt: string; sourceUrl: string; memo: string };
+type CalendarItem = { id: string; jobPostId: string | null; title: string; company: string; startsAt: string; allDay: boolean; sourceUrl: string; memo: string };
 
 const APPLICATION_TYPES = ['서류접수', '시험 응시', '과제 전형', '1차 면접', '2차 면접', '최종 면접'];
-const COMPANY_TYPES = ['미분류', '대기업', '중견기업', '공기업', '스타트업', '외국계'];
+const COMPANY_TYPES = ['미분류', '대기업', '중견기업', '공기업', '스타트업', '외국계', '기타기업'];
 const SUBMISSION_STATUSES = ['미제출', '작성중', '검토중', '제출 완료'];
 const STAGE_SHORT_LABEL: Record<Stage, string> = { 서류: '서류', 필기시험: '필기', 코딩테스트: '코테', 기술면접: '기술', 최종면접: '최종' };
 
@@ -75,32 +75,70 @@ export function CalendarClient({ events, jobs, essays }: { events: CalendarEvent
   }, [essays]);
   const [pending, startTransition] = useTransition();
   const [month, setMonth] = useState(new Date(now.getFullYear(), now.getMonth(), 1));
-  const [form, setForm] = useState({ jobPostId: '', company: '', role: '', url: '', jd: '', deadline: '', applicationType: '서류접수', companyType: '미분류', submissionStatus: '미제출' });
+  const [form, setForm] = useState({ jobPostId: '', company: '', role: '', url: '', jd: '', deadline: '', deadlineTime: '', applicationType: '서류접수', companyType: '미분류', submissionStatus: '미제출' });
   const [message, setMessage] = useState('직접 입력하거나 모카가 조사한 공고를 선택하세요.');
+  // 칸을 넘는 날짜는 클릭해서 펼친다 — 예전에는 마우스 올림(hover)으로
+  // 열렸는데, 트리거와 팝업 사이 6px 틈을 마우스가 지나는 순간 hover가
+  // 끊겨 팝업이 닫히면서 "스크롤하려고 하면 사라진다"는 문제가 있었다
+  // (사용자 실제로 겪음, 2026-09-06). 클릭으로 열고 상태로 고정하면 그
+  // 틈 문제 자체가 없어지고, 터치 기기에서도 그대로 동작한다.
+  const [expandedDay, setExpandedDay] = useState<string | null>(null);
+  const expandedDayRef = useRef<HTMLDivElement | null>(null);
+  useEffect(() => {
+    if (!expandedDay) return;
+    function closeIfOutside(event: MouseEvent) {
+      if (expandedDayRef.current && !expandedDayRef.current.contains(event.target as Node)) setExpandedDay(null);
+    }
+    function closeOnEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') setExpandedDay(null);
+    }
+    document.addEventListener('mousedown', closeIfOutside);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('mousedown', closeIfOutside);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [expandedDay]);
   const first = new Date(month.getFullYear(), month.getMonth(), 1);
   const gridStart = new Date(first);
   gridStart.setDate(1 - first.getDay());
   const cells = Array.from({ length: 42 }, (_, index) => { const date = new Date(gridStart); date.setDate(gridStart.getDate() + index); return date; });
   const researchedJobs = jobs.filter((job) => job.source !== '캘린더 직접 입력');
   const calendarItems: CalendarItem[] = [
-    ...events.map((event) => ({ id: event.id, jobPostId: event.job_post_id, title: event.title, company: event.company || event.title, startsAt: event.starts_at, sourceUrl: event.source_url || '', memo: event.memo || '' })),
-    ...jobs.filter((job) => job.deadline && !events.some((event) => event.job_post_id === job.id)).map((job) => ({ id: `job-${job.id}`, jobPostId: job.id, title: `${job.company} · ${job.role} 지원 마감`, company: job.company, startsAt: `${job.deadline}T12:00:00+09:00`, sourceUrl: job.url, memo: job.description })),
+    ...events.map((event) => ({ id: event.id, jobPostId: event.job_post_id, title: event.title, company: event.company || event.title, startsAt: event.starts_at, allDay: event.all_day, sourceUrl: event.source_url || '', memo: event.memo || '' })),
+    ...jobs.filter((job) => job.deadline && !events.some((event) => event.job_post_id === job.id)).map((job) => ({ id: `job-${job.id}`, jobPostId: job.id, title: `${job.company} · ${job.role} 지원 마감`, company: job.company, startsAt: `${job.deadline}T12:00:00+09:00`, allDay: true, sourceUrl: job.url, memo: job.description })),
   ];
   const upcoming = calendarItems.filter((item) => new Date(item.startsAt).getTime() >= new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime()).sort((a, b) => a.startsAt.localeCompare(b.startsAt)).slice(0, 8);
+  // 진행상황 표의 "일정" 칸도 캘린더와 같은 남은 시간을 보여준다 — 공고에
+  // 이미 시각까지 등록된 일정이 있으면 그 정확한 시각을 쓴다.
+  const calendarItemByJobId = new Map(calendarItems.map((item) => [item.jobPostId, item]));
 
   function chooseJob(id: string) {
     const job = jobs.find((item) => item.id === id);
     if (!job) {
-      setForm({ jobPostId: '', company: '', role: '', url: '', jd: '', deadline: '', applicationType: '서류접수', companyType: '미분류', submissionStatus: '미제출' });
+      setForm({ jobPostId: '', company: '', role: '', url: '', jd: '', deadline: '', deadlineTime: '', applicationType: '서류접수', companyType: '미분류', submissionStatus: '미제출' });
       setMessage('직접 입력 모드입니다.'); return;
     }
-    setForm({ jobPostId: job.id, company: job.company, role: job.role, url: job.url, jd: job.description, deadline: job.deadline || '', applicationType: job.application_type, companyType: job.company_type, submissionStatus: job.submission_status });
+    // job_posts.deadline은 날짜만 있고 시각이 없다 — 이미 캘린더에 시각까지
+    // 등록된 공고라면 아래 chooseItem으로 불러올 때 채워진다.
+    setForm({ jobPostId: job.id, company: job.company, role: job.role, url: job.url, jd: job.description, deadline: job.deadline || '', deadlineTime: '', applicationType: job.application_type, companyType: job.company_type, submissionStatus: job.submission_status });
     setMessage(`${job.company} 공고를 불러왔습니다.`);
   }
 
   function chooseItem(item: CalendarItem) {
     const job = item.jobPostId ? jobs.find((row) => row.id === item.jobPostId) : undefined;
-    setForm({ jobPostId: job?.id || '', company: job?.company || item.company, role: job?.role || '', url: job?.url || item.sourceUrl, jd: job?.description || item.memo, deadline: dateKey(item.startsAt), applicationType: job?.application_type || '서류접수', companyType: job?.company_type || '미분류', submissionStatus: job?.submission_status || '미제출' });
+    setForm({
+      jobPostId: job?.id || '',
+      company: job?.company || item.company,
+      role: job?.role || '',
+      url: job?.url || item.sourceUrl,
+      jd: job?.description || item.memo,
+      deadline: dateKey(item.startsAt),
+      deadlineTime: item.allDay ? '' : timeInputValue(item.startsAt),
+      applicationType: job?.application_type || '서류접수',
+      companyType: job?.company_type || '미분류',
+      submissionStatus: job?.submission_status || '미제출',
+    });
     setMessage(`${item.title} 일정을 편집할 수 있도록 불러왔습니다.`);
   }
 
@@ -129,27 +167,43 @@ export function CalendarClient({ events, jobs, essays }: { events: CalendarEvent
           {cells.map((date) => {
             const key = dateKey(date);
             const dayItems = calendarItems.filter((item) => dateKey(item.startsAt) === key);
+            const isExpanded = expandedDay === key;
             return (
-              <div className={`calendar-day ${date.getMonth() !== month.getMonth() ? 'outside' : ''} ${key === dateKey(now) ? 'today' : ''}`} key={key} tabIndex={dayItems.length ? 0 : undefined}>
+              <div
+                className={`calendar-day ${date.getMonth() !== month.getMonth() ? 'outside' : ''} ${key === dateKey(now) ? 'today' : ''}`}
+                key={key}
+                ref={isExpanded ? expandedDayRef : undefined}
+              >
                 <b>{date.getDate()}</b>
                 <div>
                   {dayItems.slice(0, 2).map((item) => {
                     const job = item.jobPostId ? jobs.find((row) => row.id === item.jobPostId) : undefined;
                     return <button className={`calendar-progress-chip ${progressTone(job)}`} key={item.id} onClick={() => chooseItem(item)} title={`${item.title} · ${job?.submission_status || '일정'}`}><i />{item.company}</button>;
                   })}
-                  {dayItems.length > 2 && <small>+{dayItems.length - 2}개 일정</small>}
+                  {dayItems.length > 2 && (
+                    <button type="button" className="calendar-day-more" onClick={() => setExpandedDay(isExpanded ? null : key)} aria-expanded={isExpanded}>
+                      +{dayItems.length - 2}개 더보기
+                    </button>
+                  )}
                 </div>
-                {dayItems.length > 0 && (
-                  <div className="calendar-day-preview" role="tooltip">
-                    <p>{date.getMonth() + 1}월 {date.getDate()}일 · {dayItems.length}건</p>
+                {isExpanded && (
+                  <div className="calendar-day-preview" role="dialog" aria-label={`${date.getMonth() + 1}월 ${date.getDate()}일 일정 ${dayItems.length}건`}>
+                    <div className="calendar-day-preview-head">
+                      <p>{date.getMonth() + 1}월 {date.getDate()}일 · {dayItems.length}건</p>
+                      <button type="button" onClick={() => setExpandedDay(null)} aria-label="닫기">×</button>
+                    </div>
                     <ul>
                       {dayItems.map((item) => {
                         const job = item.jobPostId ? jobs.find((row) => row.id === item.jobPostId) : undefined;
+                        const remaining = remainingLabel(item.startsAt, now);
                         return (
                           <li key={item.id}>
-                            <span className={`status-pill ${progressTone(job)}`}><i />{job?.result_status ?? '일정'}</span>
-                            <b>{item.company}</b>
-                            {job?.role && <small>{job.role}</small>}
+                            <button type="button" onClick={() => { chooseItem(item); setExpandedDay(null); }}>
+                              <span className={`status-pill ${progressTone(job)}`}><i />{job?.result_status ?? '일정'}</span>
+                              <b>{item.company}</b>
+                              {job?.role && <small>{job.role}</small>}
+                              <em className="calendar-day-preview-remaining">{remaining.label}</em>
+                            </button>
                           </li>
                         );
                       })}
@@ -161,7 +215,7 @@ export function CalendarClient({ events, jobs, essays }: { events: CalendarEvent
           })}
         </div>
       </section>
-      <aside className="calendar-editor"><div><h3>지원 일정 등록</h3></div><label className="researched-job-select"><span>에이전트가 조사한 채용공고</span><select value={form.jobPostId} onChange={(event) => chooseJob(event.target.value)}><option value="">직접 입력</option>{researchedJobs.map((job) => <option key={job.id} value={job.id}>{job.company} · {job.role}</option>)}</select></label><div className="calendar-form-grid"><label><span>회사명 *</span><input value={form.company} onChange={(event) => setForm({ ...form, company: event.target.value })} /></label><label><span>지원할 직무 *</span><input value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })} /></label><label className="wide"><span>채용 사이트</span><input type="url" value={form.url} onChange={(event) => setForm({ ...form, url: event.target.value })} /></label><label><span>지원 마감일 *</span><input type="date" value={form.deadline} onChange={(event) => setForm({ ...form, deadline: event.target.value })} /></label><label><span>전형 구분</span><select value={form.applicationType} onChange={(event) => setForm({ ...form, applicationType: event.target.value })}>{APPLICATION_TYPES.map((item) => <option key={item}>{item}</option>)}</select></label><label><span>기업 유형</span><select value={form.companyType} onChange={(event) => setForm({ ...form, companyType: event.target.value })}>{COMPANY_TYPES.map((item) => <option key={item}>{item}</option>)}</select></label><label className="wide"><span>제출 여부</span><select value={form.submissionStatus} onChange={(event) => setForm({ ...form, submissionStatus: event.target.value })}>{SUBMISSION_STATUSES.map((item) => <option key={item}>{item}</option>)}</select></label><label className="wide"><span>JD 원문</span><textarea value={form.jd} onChange={(event) => setForm({ ...form, jd: event.target.value })} /></label></div><p className="calendar-message">{message}</p><div className="calendar-form-actions">{form.url && <a href={form.url} target="_blank" rel="noreferrer">공고 원문</a>}<button disabled={pending} onClick={save}>{pending ? '저장 중…' : '캘린더에 저장'}</button>{form.jobPostId && <button className="primary" disabled={pending} onClick={() => startTransition(() => startEssayForJobPost(form.jobPostId))}>자소서 작성 연결</button>}</div>
+      <aside className="calendar-editor"><div><h3>지원 일정 등록</h3></div><label className="researched-job-select"><span>에이전트가 조사한 채용공고</span><select value={form.jobPostId} onChange={(event) => chooseJob(event.target.value)}><option value="">직접 입력</option>{researchedJobs.map((job) => <option key={job.id} value={job.id}>{job.company} · {job.role}</option>)}</select></label><div className="calendar-form-grid"><label><span>회사명 *</span><input value={form.company} onChange={(event) => setForm({ ...form, company: event.target.value })} /></label><label><span>지원할 직무 *</span><input value={form.role} onChange={(event) => setForm({ ...form, role: event.target.value })} /></label><label className="wide"><span>채용 사이트</span><input type="url" value={form.url} onChange={(event) => setForm({ ...form, url: event.target.value })} /></label><label><span>지원 마감일 *</span><input type="date" value={form.deadline} onChange={(event) => setForm({ ...form, deadline: event.target.value })} /></label><label><span>마감 시각</span><input type="time" value={form.deadlineTime} onChange={(event) => setForm({ ...form, deadlineTime: event.target.value })} /></label><label><span>전형 구분</span><select value={form.applicationType} onChange={(event) => setForm({ ...form, applicationType: event.target.value })}>{APPLICATION_TYPES.map((item) => <option key={item}>{item}</option>)}</select></label><label><span>기업 유형</span><select value={form.companyType} onChange={(event) => setForm({ ...form, companyType: event.target.value })}>{COMPANY_TYPES.map((item) => <option key={item}>{item}</option>)}</select></label><label className="wide"><span>제출 여부</span><select value={form.submissionStatus} onChange={(event) => setForm({ ...form, submissionStatus: event.target.value })}>{SUBMISSION_STATUSES.map((item) => <option key={item}>{item}</option>)}</select></label><label className="wide"><span>JD 원문</span><textarea value={form.jd} onChange={(event) => setForm({ ...form, jd: event.target.value })} /></label></div><p className="calendar-message">{message}</p><div className="calendar-form-actions">{form.url && <a href={form.url} target="_blank" rel="noreferrer">공고 원문</a>}<button disabled={pending} onClick={save}>{pending ? '저장 중…' : '캘린더에 저장'}</button>{form.jobPostId && <button className="primary" disabled={pending} onClick={() => startTransition(() => startEssayForJobPost(form.jobPostId))}>자소서 작성 연결</button>}</div>
         {form.jobPostId && (
           <div className="calendar-stage-editor">
             <span>전형별 합불 · 클릭해서 순환(대기→합격→불합격)</span>
@@ -180,7 +234,19 @@ export function CalendarClient({ events, jobs, essays }: { events: CalendarEvent
               <tr key={job.id}>
                 <td><select disabled={pending} value={job.application_type} onChange={(event) => update(job.id, 'application_type', event.target.value)}>{APPLICATION_TYPES.map((item) => <option key={item}>{item}</option>)}</select></td>
                 <td><b>{job.company}</b><span>{job.role}</span></td>
-                <td><time>{job.deadline ? formatDate(`${job.deadline}T00:00:00`) : '미정'}</time></td>
+                <td>
+                  {job.deadline ? (
+                    <>
+                      <time>{formatDate(`${job.deadline}T00:00:00`)}</time>
+                      {(() => {
+                        const remaining = remainingLabel(calendarItemByJobId.get(job.id)?.startsAt ?? `${job.deadline}T12:00:00+09:00`, now);
+                        return <em className="deadline-remaining">{remaining.label}</em>;
+                      })()}
+                    </>
+                  ) : (
+                    '미정'
+                  )}
+                </td>
                 <td>{job.url ? <a href={job.url} target="_blank" rel="noreferrer">공고 원문</a> : <small>링크 없음</small>}</td>
                 <td><select disabled={pending} value={job.company_type} onChange={(event) => update(job.id, 'company_type', event.target.value)}>{COMPANY_TYPES.map((item) => <option key={item}>{item}</option>)}</select></td>
                 <td><select disabled={pending} className={`status-select ${progressTone({ ...job, result_status: '아직' })}`} value={job.submission_status} onChange={(event) => update(job.id, 'submission_status', event.target.value)}>{SUBMISSION_STATUSES.map((item) => <option key={item}>{item}</option>)}</select></td>
@@ -202,6 +268,6 @@ export function CalendarClient({ events, jobs, essays }: { events: CalendarEvent
         </table>
       </div>
     </section>
-    <section className="calendar-upcoming"><div className="calendar-upcoming-head"><div><h3>다가오는 지원 일정</h3></div><b>{upcoming.length}</b></div>{upcoming.length ? upcoming.map((item) => { const job = item.jobPostId ? jobs.find((row) => row.id === item.jobPostId) : undefined; const days = Math.ceil((new Date(item.startsAt).getTime() - now.getTime()) / 86_400_000); return <article key={item.id}><time><b>{Math.max(days, 0)}</b><span>{days <= 0 ? 'D-DAY' : 'DAYS'}</span></time><div><small>{formatDate(item.startsAt)}</small><h4>{item.company} · {job?.role || '지원 일정'}</h4>{job && <div className="upcoming-progress"><span className={progressTone({ ...job, result_status: '아직' })}>{job.submission_status}</span><span className={progressTone(job)}>{job.result_status}</span></div>}<p>{job?.description || item.memo || 'JD가 아직 입력되지 않았습니다.'}</p></div><div>{item.sourceUrl && <a href={item.sourceUrl} target="_blank" rel="noreferrer">채용 사이트</a>}<button onClick={() => chooseItem(item)}>일정 편집</button>{job && <button className="primary" disabled={pending} onClick={() => startTransition(() => startEssayForJobPost(job.id))}>자소서 작성</button>}</div></article>; }) : <p className="calendar-empty">등록된 지원 일정이 없습니다.</p>}</section>
+    <section className="calendar-upcoming"><div className="calendar-upcoming-head"><div><h3>다가오는 지원 일정</h3></div><b>{upcoming.length}</b></div>{upcoming.length ? upcoming.map((item) => { const job = item.jobPostId ? jobs.find((row) => row.id === item.jobPostId) : undefined; const remaining = remainingLabel(item.startsAt, now); return <article key={item.id}><time className="deadline-remaining"><b>{remaining.pastDue ? '' : remaining.value}</b><span>{remaining.unit}</span></time><div><small>{item.allDay ? formatDate(item.startsAt) : formatDateTime(item.startsAt)}</small><h4>{item.company} · {job?.role || '지원 일정'}</h4>{job && <div className="upcoming-progress"><span className={progressTone({ ...job, result_status: '아직' })}>{job.submission_status}</span><span className={progressTone(job)}>{job.result_status}</span></div>}<p>{job?.description || item.memo || 'JD가 아직 입력되지 않았습니다.'}</p></div><div>{item.sourceUrl && <a href={item.sourceUrl} target="_blank" rel="noreferrer">채용 사이트</a>}<button onClick={() => chooseItem(item)}>일정 편집</button>{job && <button className="primary" disabled={pending} onClick={() => startTransition(() => startEssayForJobPost(job.id))}>자소서 작성</button>}</div></article>; }) : <p className="calendar-empty">등록된 지원 일정이 없습니다.</p>}</section>
   </>;
 }

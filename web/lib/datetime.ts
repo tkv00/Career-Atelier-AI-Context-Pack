@@ -11,3 +11,42 @@ export function formatDateTime(value: string | number | Date): string {
 export function formatDate(value: string | number | Date): string {
   return new Date(value).toLocaleDateString('ko-KR', { timeZone: TIME_ZONE });
 }
+
+export function formatTime(value: string | number | Date): string {
+  return new Date(value).toLocaleTimeString('ko-KR', { timeZone: TIME_ZONE, hour: '2-digit', minute: '2-digit' });
+}
+
+/** <input type="time"> 값("HH:MM", 24시간제, KST)으로 되돌린다 — 편집기에
+    기존 마감 시각을 다시 채워 넣을 때 쓴다. */
+export function timeInputValue(value: string | number | Date): string {
+  const parts = new Intl.DateTimeFormat('en-GB', {
+    timeZone: TIME_ZONE,
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(new Date(value));
+  const hour = parts.find((part) => part.type === 'hour')?.value ?? '00';
+  const minute = parts.find((part) => part.type === 'minute')?.value ?? '00';
+  return `${hour}:${minute}`;
+}
+
+/** 마감까지 남은 시간 — 요청 2026-09-06(각 공고마다 남은 기간을 D-3/1시간전/
+    3분전처럼 자동 표시). 하루 넘게 남았으면 날짜 단위, 하루 안쪽이면 시간
+    단위, 그보다 가까우면 분 단위로 스스로 전환한다. value/unit은 큰 숫자 +
+    작은 단위로 나눠 보여주는 배지(예: 다가오는 지원 일정 카드)를 위한 것이고,
+    label은 그 둘을 합친 한 문장이 필요한 곳(표 안 등)을 위한 것이다. */
+export type RemainingTime = { value: number; unit: string; label: string; pastDue: boolean };
+
+export function remainingLabel(value: string | number | Date, now: Date = new Date()): RemainingTime {
+  const diffMs = new Date(value).getTime() - now.getTime();
+  if (diffMs <= 0) return { value: 0, unit: '마감', label: '마감', pastDue: true };
+
+  const diffMinutes = Math.ceil(diffMs / 60_000);
+  if (diffMinutes < 60) return { value: diffMinutes, unit: '분 전', label: `${diffMinutes}분 전`, pastDue: false };
+
+  const diffHours = Math.ceil(diffMs / 3_600_000);
+  if (diffHours < 24) return { value: diffHours, unit: '시간 전', label: `${diffHours}시간 전`, pastDue: false };
+
+  const diffDays = Math.ceil(diffMs / 86_400_000);
+  return { value: diffDays, unit: '일 남음', label: `D-${diffDays}`, pastDue: false };
+}
