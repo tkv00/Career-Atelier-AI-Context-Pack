@@ -161,6 +161,9 @@ Mac과 완전히 동일합니다.
 **"Supabase 관리 토큰을 읽지 못했습니다" 또는 HTTP 401/403이 나옵니다**
 → `supabase login`으로 로그인한 후 다시 실행하세요. 공식 `supabase` 프로필만 지원하며, 다른 프로필이면 `supabase login --profile supabase`를 사용하세요. Windows 자격 증명 관리자·macOS 키체인·Linux `secret-tool`을 읽을 수 없는 환경에서는 관리용 액세스 토큰을 현재 셸의 `SUPABASE_ACCESS_TOKEN`에 설정할 수 있습니다. 웹·러너 `.env`에 저장하지 마세요. HTTP 403은 해당 계정의 프로젝트 접근 및 SQL 실행 권한도 확인해야 합니다. anon 키나 `service_role` 키로 대체하지 마세요.
 
+**Auth 설정에서 `smtp_admin_email` 이메일 형식 오류가 납니다**
+→ Resend를 설정하지 않은 경우 설치기가 로컬 `config.toml`의 SMTP를 일시적으로 끄고 원격에 올립니다. Windows CRLF 파일에서도 이 설정이 정확히 꺼져야 하므로, 최신 저장소를 받은 뒤 `npm run setup`을 다시 실행하세요. Resend를 쓰려면 `supabase/.env`에 유효한 `RESEND_ADMIN_EMAIL`을 입력해야 합니다.
+
 **"기존 public 테이블이 있지만 적용 이력이 없습니다" 또는 `profiles already exists`가 나옵니다**
 → 테이블 존재만으로 전체 설치 완료를 판단할 수 없습니다. 이전에 수동 SQL을 실행했거나 SQL 실행 후 이력 기록이 누락됐을 수 있습니다. `supabase_migrations.schema_migrations` 이력과 실제 테이블·컬럼·RLS·함수를 로컬 `supabase/migrations`와 대조하고, 적용이 확인된 버전만 이력을 복구해야 합니다. 설치기는 자동 초기화나 이력 추정을 하지 않습니다. 기존 `career-atelier-migrations-manual.sql` 전체를 다시 실행하지 마세요. `--skip-migrations`는 적용 상태를 별도로 검증한 경우에만 사용하세요.
 

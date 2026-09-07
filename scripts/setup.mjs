@@ -297,7 +297,8 @@ async function main() {
   let restoreConfig = null;
   if (!hasResend) {
     const original = readFileSync(configPath, 'utf8');
-    const disabled = original.replace(/(\[auth\.email\.smtp\]\nenabled = )true/, '$1false');
+    // Windows 체크아웃은 CRLF일 수 있어 `\n`만 고정하면 SMTP가 켜진 채 원격 검증으로 넘어간다.
+    const disabled = original.replace(/(\[auth\.email\.smtp\]\r?\nenabled = )true/, '$1false');
     if (disabled !== original) {
       writeFileSync(configPath, disabled, 'utf8');
       restoreConfig = () => writeFileSync(configPath, original, 'utf8');
