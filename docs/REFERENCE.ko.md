@@ -13,7 +13,7 @@
   <img alt="api billing" src="https://img.shields.io/badge/API%20billing-none-5cc98f?style=flat-square">
 </p>
 
-**[English](../README.md)** · 한국어
+**[English](../README.en.md)** · 한국어
 
 ---
 

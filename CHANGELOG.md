@@ -4,6 +4,11 @@ User-facing changes are recorded here before release. See [the release policy](d
 
 ## [Unreleased]
 
+### Changed
+
+- Make Korean the default README, retain an English edition, and introduce features through example screens and common application-writing frustrations. Add copy-ready agent installation requests for both new and existing clones.
+- 기본 README를 한국어로 전환하고 영문판을 유지합니다. 취업 준비의 불편과 예시 화면으로 기능을 소개하고, clone 전후에 복사해 사용할 에이전트 설치 요청문을 제공합니다.
+
 ### Added
 
 - Choose provider-specific models from dropdowns in Prompt Lab and source imports, while retaining CLI defaults and custom model IDs.

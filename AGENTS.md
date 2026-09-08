@@ -133,10 +133,10 @@ Do not narrate what the next line obviously does.
 **Commit messages are in English**, imperative mood, with the reasoning in the
 body. See [CONTRIBUTING.md](CONTRIBUTING.md) and [CONTRIBUTING.ko.md](CONTRIBUTING.ko.md).
 
-**`README.md` and `README.ko.md` change together.** They are two languages of
-the same document, not two documents. A change to one — a new section, an
-updated screenshot, a corrected fact — goes into the other in the same pass.
-Never leave one ahead of the other.
+**Keep all README language editions synchronized.** `README.md` is the Korean
+default, `README.ko.md` mirrors it for existing links, and `README.en.md` is the
+English translation. A new section, updated screenshot, or corrected fact goes
+into all three in the same pass. Never leave one edition ahead of another.
 
 **No new dependencies** without a reason the standard library cannot meet.
 

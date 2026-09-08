@@ -28,4 +28,4 @@ Static checks (`tsc`, `lint`) are necessary but not sufficient. Describe what yo
 - [ ] `web/` passes static checks: `npx tsc --noEmit && npm run lint && npm run build`
 - [ ] No API keys, credentials, or secrets are exposed or required in `web/`
 - [ ] If changing database schema, migrations are append-only (`supabase/migrations/00NN_*.sql`) and RLS is enabled
-- [ ] If changing documentation, `README.md` and `README.ko.md` are updated in parallel with zero emojis
+- [ ] If changing documentation, Korean `README.md` and `README.ko.md` match, and `README.en.md` is updated in parallel with zero emojis
