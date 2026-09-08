@@ -6,6 +6,8 @@ import { createImport, retryImport, commitImport, prepareImportUpload, finishImp
 import { createClient } from '@/lib/supabase/client';
 import { IMPORT_KINDS, KIND_LABELS, type ImportCandidate, type ImportChunk, type ImportRow } from '@/lib/imports';
 import type { Json } from '@/lib/supabase/database.types';
+import { isProvider, PROVIDERS, PROVIDER_META } from '@/lib/agent-providers';
+import { ModelSelect } from '../model-select';
 import styles from './imports.module.css';
 
 const LABELS:Record<string,string>={context:'상황',problem:'문제',role_scope:'내 역할',judgment:'판단',action:'행동',result:'결과',trial_error:'시행착오',reflection:'회고',metrics:'정량 지표',tags:'태그',school_type:'학교 구분',major:'전공',secondary_major:'부·복수전공',gpa:'학점',period:'기간',started_on:'시작일',ended_on:'종료일',status:'상태',hanja_name:'한자 이름',memo:'메모',registration_number:'등록번호',acquired_on:'취득일',issuer:'발급·주관기관',grade:'등급',organizer:'기관',role:'역할',detail:'상세 내용',repo_url:'저장소 주소',employment_type:'고용 형태',leave_reason:'퇴사 사유',awarded_on:'수상일',display_name:'이름',target_roles:'목표 직무',interests:'관심사',summary:'소개'};
@@ -15,6 +17,8 @@ const active=(s:string)=>['queued','analyzing','committing'].includes(s);
 function asObject(value:Json):Record<string,Json|undefined>{return value && typeof value==='object'&&!Array.isArray(value)?value:{};}
 
 function ImportOptions({options={}}:{options?:Record<string,Json|undefined>}) {
+  const [provider,setProvider]=useState(isProvider(options.provider)?options.provider:'codex');
+  const [model,setModel]=useState(String(options.model||''));
   const [section,setSection]=useState(String(options.section||''));
   const [mapping,setMapping]=useState<Array<{source:string;target:string}>>(()=>Object.entries(asObject(options.column_map||{})).map(([source,target])=>({source,target:String(target)})));
   return <details><summary>분류·시트·열 맞추기 및 AI 설정</summary>
@@ -22,9 +26,10 @@ function ImportOptions({options={}}:{options?:Record<string,Json|undefined>}) {
       <label>자료 분류<select name="section" value={section} onChange={e=>setSection(e.target.value)}><option value="">자동 분류</option>{IMPORT_KINDS.map(k=><option key={k} value={k}>{KIND_LABELS[k]}</option>)}</select></label>
       <label>엑셀 시트 이름 (비우면 전체)<input name="sheet" defaultValue={String(options.sheet||'')}/></label>
       <label>표 제목이 있는 행<input name="header_row" type="number" min="1" defaultValue={Number(options.header_row||1)}/></label>
-      <label>AI 실행 도구<select name="provider" defaultValue={String(options.provider||'codex')}><option value="codex">Codex</option><option value="claude">Claude Code</option><option value="gemini">Antigravity</option></select></label>
-      <label>모델 (비우면 CLI 기본값)<input name="model" defaultValue={String(options.model||'')}/></label>
+      <label>AI 실행 도구<select name="provider" value={provider} onChange={e=>{if(isProvider(e.target.value)){setProvider(e.target.value);setModel('');}}}>{PROVIDERS.map(p=><option key={p} value={p}>{PROVIDER_META[p].label}</option>)}</select></label>
+      <ModelSelect key={provider} provider={provider} value={model} onChange={setModel} name="model"/>
     </div>
+    <p className={styles.muted}>모델 사용 가능 여부는 연결한 계정과 CLI 버전에 따라 달라집니다. 목록에 없으면 직접 입력하거나 CLI 기본 모델을 사용하세요.</p>
     <label className={styles.check}><input name="ai_enabled" type="checkbox" defaultChecked={options.ai_enabled!==false}/>자유로운 기록은 로컬 AI로 정리</label>
     <p className={styles.muted}>해석이 필요한 부분만 전달합니다. 분석 한 번에 최대 20개 조각을 처리하며, 나머지는 다음 분석에서 이어서 처리할 수 있습니다.</p>
     <p>내 표의 열 이름 맞추기</p>

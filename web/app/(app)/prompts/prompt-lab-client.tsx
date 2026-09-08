@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation';
 import type { Database } from '@/lib/supabase/database.types';
 import { formatDateTime } from '@/lib/datetime';
 import { restorePromptVersion, savePromptVersion, setAgentEffort, setAgentModel, setAgentProvider } from './actions';
-import { EFFORT_OPTIONS, MODEL_SUGGESTIONS, PROVIDERS, PROVIDER_META, isProvider } from '@/lib/agent-providers';
+import { EFFORT_OPTIONS, PROVIDERS, PROVIDER_META, isProvider } from '@/lib/agent-providers';
+import { ModelSelect } from '../model-select';
 
 type Template = Database['public']['Tables']['prompt_templates']['Row'];
 type Version = Database['public']['Tables']['prompt_versions']['Row'];
@@ -40,7 +41,6 @@ export function PromptLabClient({ templates, versions }: { templates: Template[]
   const body = selected ? (drafts[selected.id] ?? selected.body) : '';
   const dirty = selected ? body !== selected.body : false;
   const modelDraft = selected ? (modelDrafts[selected.id] ?? selected.model) : '';
-  const modelDirty = selected ? modelDraft !== selected.model : false;
   const selectedVersions = selected ? versions.filter((item) => item.template_id === selected.id) : [];
   const provider = selected && isProvider(selected.provider) ? selected.provider : 'codex';
 
@@ -101,15 +101,17 @@ export function PromptLabClient({ templates, versions }: { templates: Template[]
     setModelDrafts((prev) => ({ ...prev, [selected.id]: next }));
   }
 
-  async function handleModelSave() {
-    if (!selected || !modelDirty) return;
+  async function handleModelSave(next: string) {
+    if (!selected || next.trim() === selected.model) return;
     setSaving(true);
     setMessage('');
     try {
-      await setAgentModel(selected.id, modelDraft);
-      setMessage(modelDraft.trim() ? `모델을 ${modelDraft.trim()}(으)로 바꿨습니다.` : '모델 지정을 지웠습니다 — CLI 기본 모델을 씁니다.');
+      await setAgentModel(selected.id, next);
+      setModelDrafts(prev => ({ ...prev, [selected.id]: next.trim() }));
+      setMessage(next.trim() ? `모델을 ${next.trim()}(으)로 바꿨습니다.` : '모델 지정을 지웠습니다 — CLI 기본 모델을 씁니다.');
       router.refresh();
     } catch (error) {
+      setModelDrafts(prev => ({ ...prev, [selected.id]: selected.model }));
       setMessage(error instanceof Error ? error.message : '모델을 바꾸지 못했습니다.');
     } finally {
       setSaving(false);
@@ -202,24 +204,7 @@ export function PromptLabClient({ templates, versions }: { templates: Template[]
               ))}
             </select>
           </label>
-          <label>
-            <span>모델</span>
-            <input
-              type="text"
-              list="prompt-lab-model-suggestions"
-              value={modelDraft}
-              onChange={(event) => setModelDraft(event.target.value)}
-              onBlur={handleModelSave}
-              placeholder="비워두면 CLI 기본 모델"
-              disabled={saving}
-              className="prompt-lab-model-input"
-            />
-            <datalist id="prompt-lab-model-suggestions">
-              {MODEL_SUGGESTIONS[provider].map((name) => (
-                <option key={name} value={name} />
-              ))}
-            </datalist>
-          </label>
+          <ModelSelect key={`${selected.id}:${provider}`} provider={provider} value={modelDraft} onChange={setModelDraft} onCommit={handleModelSave} disabled={saving}/>
           <label>
             <span>사용량</span>
             <select value={selected.effort} onChange={(event) => handleEffortChange(event.target.value)} disabled={saving}>
@@ -232,6 +217,7 @@ export function PromptLabClient({ templates, versions }: { templates: Template[]
             </select>
           </label>
           <small>{isProvider(selected.provider) ? PROVIDER_META[selected.provider].requires : ''}</small>
+          <small>모델 사용 가능 여부는 연결한 계정과 CLI 버전에 따라 달라집니다. 목록에 없으면 직접 입력하거나 CLI 기본 모델을 사용하세요.</small>
         </div>
         <textarea
           className="prompt-lab-body"

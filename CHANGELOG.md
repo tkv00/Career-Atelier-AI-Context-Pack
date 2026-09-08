@@ -6,6 +6,9 @@ User-facing changes are recorded here before release. See [the release policy](d
 
 ### Added
 
+- Choose provider-specific models from dropdowns in Prompt Lab and source imports, while retaining CLI defaults and custom model IDs.
+- 프롬프트 관리와 자료 가져오기에서 AI 종류별 모델을 드롭다운으로 선택하고, CLI 기본값과 직접 입력 모델도 사용할 수 있습니다.
+
 - Start the local web app and runner with `npm start` on Windows, macOS, and Linux, including dependency setup, interactive login when needed, and shared shutdown.
 - Windows·macOS·Linux에서 `npm start` 하나로 패키지 준비, 웹·러너 실행, 필요한 로그인 안내와 동시 종료를 제공합니다.
 

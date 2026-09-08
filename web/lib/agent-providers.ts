@@ -28,19 +28,34 @@ export function isProvider(value: unknown): value is Provider {
   return typeof value === 'string' && (PROVIDERS as readonly string[]).includes(value);
 }
 
-/**
- * 모델명 — CLI마다 표기가 다르다(요청 2026-09-05). 직접 입력란이라 목록에
- * 없는 값도 쓸 수 있다. 여기 있는 건 자동완성 후보일 뿐, DB에 강제하지 않는다.
- *
- * Claude만 실제 모델 ID를 적어 뒀다(이 세션이 돌고 있는 환경 정보로 확인
- * 가능). Codex(GPT)·Gemini는 CLI 버전마다 모델명이 바뀌고 이 저장소 안에서
- * 실측된 적이 없어서, 틀린 이름을 자동완성으로 내미는 대신 빈 목록으로 둔다
- * — 비워 두면 각 CLI의 기본 모델이 그대로 쓰인다.
- */
-export const MODEL_SUGGESTIONS: Record<Provider, string[]> = {
-  codex: [],
-  claude: ['claude-opus-5', 'claude-sonnet-5', 'claude-haiku-4-5-20251001', 'claude-fable-5-1'],
-  gemini: [],
+// 모델 이름과 CLI 인자를 분리한다. 목록은 계정 권한 조회 결과가 아니므로
+// 기본값·직접 입력을 유지해 새 모델과 기존에 저장한 모델도 사용할 수 있게 한다.
+// 2026-09-08: OpenAI 모델 문서, Claude 기존 후보, Google CLI 안내를 확인했다.
+// https://developers.openai.com/api/docs/models/gpt-5.6-sol
+// https://code.claude.com/docs/en/model-config
+// https://codelabs.developers.google.com/antigravity-cli-hands-on?hl=en
+export const MODEL_OPTIONS: Record<Provider, { value: string; label: string }[]> = {
+  codex: [
+    { value: 'gpt-5.6-sol', label: 'GPT-5.6 Sol' },
+    { value: 'gpt-5.6-terra', label: 'GPT-5.6 Terra' },
+    { value: 'gpt-5.6-luna', label: 'GPT-5.6 Luna' },
+  ],
+  claude: [
+    { value: 'claude-opus-5', label: 'Claude Opus 5' },
+    { value: 'claude-sonnet-5', label: 'Claude Sonnet 5' },
+    { value: 'claude-haiku-4-5-20251001', label: 'Claude Haiku 4.5' },
+    { value: 'claude-fable-5-1', label: 'Claude Fable 5.1' },
+    { value: 'opus', label: 'Opus (CLI 별칭)' },
+    { value: 'sonnet', label: 'Sonnet (CLI 별칭)' },
+    { value: 'haiku', label: 'Haiku (CLI 별칭)' },
+  ],
+  gemini: [
+    { value: 'gemini-3.8-flash-high', label: 'Gemini 3.8 Flash (High)' },
+    { value: 'gemini-3.8-flash-medium', label: 'Gemini 3.8 Flash (Medium)' },
+    { value: 'gemini-3.8-flash-low', label: 'Gemini 3.8 Flash (Low)' },
+    { value: 'gemini-3.1-pro-high', label: 'Gemini 3.1 Pro (High)' },
+    { value: 'gemini-3.1-pro-low', label: 'Gemini 3.1 Pro (Low)' },
+  ],
 };
 
 /**
