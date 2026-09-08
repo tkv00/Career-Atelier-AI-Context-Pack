@@ -8,7 +8,8 @@ import { createServer } from 'node:http';
 import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 import { setTimeout as delay } from 'node:timers/promises';
-import { dependencyFingerprint, ensureDependencies, hasConfiguration, checkPort, waitForWeb } from '../start.mjs';
+import { dependencyFingerprint, ensureDatabaseCurrent, ensureDependencies, hasConfiguration, checkPort, waitForWeb } from '../start.mjs';
+import { databaseIsCurrent, markDatabaseCurrent, projectRefFromUrl } from '../lib/database-version.mjs';
 import { createProcessGroup } from '../lib/local-processes.mjs';
 
 function fixture(t) {
@@ -72,6 +73,29 @@ test('configuration checks only the requested components and accepts environment
   assert.equal(hasConfiguration(root, 'runner', { SUPABASE_URL: 'https://example.supabase.co', SUPABASE_ANON_KEY: 'example' }), true);
 });
 
+test('database updates run once per migration fingerprint and use the configured project', async t => {
+  const root = fixture(t);
+  const projectRef = 'a'.repeat(20);
+  put(root, 'runner/.env', `SUPABASE_URL=https://${projectRef}.supabase.co\nSUPABASE_ANON_KEY=public\n`);
+  put(root, 'supabase/migrations/0001_example.sql', 'select 1;\n');
+  const calls = [];
+  const run = async (args, options) => { calls.push({ args, options }); };
+
+  assert.equal(await ensureDatabaseCurrent(root, 'runner', run, {}), true);
+  assert.deepEqual(calls[0].args, [resolve(root, 'scripts/setup.mjs'), '--project-ref', projectRef, '--migrate-only']);
+  assert.equal(calls[0].options.cwd, root);
+  assert.equal(databaseIsCurrent(root, projectRef), true);
+  assert.equal(await ensureDatabaseCurrent(root, 'runner', run, {}), false);
+  assert.equal(calls.length, 1);
+
+  put(root, 'supabase/migrations/0002_changed.sql', 'select 2;\n');
+  assert.equal(databaseIsCurrent(root, projectRef), false);
+  assert.equal(await ensureDatabaseCurrent(root, 'runner', run, {}), true);
+  assert.equal(calls.length, 2);
+  assert.equal(projectRefFromUrl(`https://${projectRef}.supabase.co`), projectRef);
+  assert.throws(() => projectRefFromUrl('https://custom.example.com'), /ref/);
+});
+
 test('web readiness requires a successful response and detects startup failure', async t => {
   let status = 503;
   const server = createServer((_, res) => { res.writeHead(status); res.end('fixture'); });
@@ -118,7 +142,9 @@ test(`combined launcher starts web before runner and cleans up on ${scenario}`, 
     put(root, `${part}/node_modules/.career-atelier-dependencies`, dependencyFingerprint(resolve(root, part)));
   }
   put(root, 'web/.env.local', 'NEXT_PUBLIC_SUPABASE_URL=https://example.supabase.co\nNEXT_PUBLIC_SUPABASE_ANON_KEY=example\n');
-  put(root, 'runner/.env', 'SUPABASE_URL=https://example.supabase.co\nSUPABASE_ANON_KEY=example\n');
+  put(root, 'supabase/migrations/0001_example.sql', 'select 1;\n');
+  put(root, 'runner/.env', `SUPABASE_URL=https://${'a'.repeat(20)}.supabase.co\nSUPABASE_ANON_KEY=example\n`);
+  markDatabaseCurrent(root, 'a'.repeat(20));
   put(root, 'web/node_modules/next/package.json', '{"type":"module"}');
   put(root, 'web/node_modules/next/dist/bin/next', `import { createServer } from 'node:http';
 import { writeFileSync } from 'node:fs';

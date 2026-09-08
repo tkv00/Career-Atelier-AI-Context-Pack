@@ -5,6 +5,7 @@ import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseEnv } from 'node:util';
 import { setTimeout as delay } from 'node:timers/promises';
+import { databaseIsCurrent, markDatabaseCurrent, projectRefFromUrl } from './lib/database-version.mjs';
 import { createProcessGroup } from './lib/local-processes.mjs';
 
 const projectRoot = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -38,6 +39,23 @@ export function hasConfiguration(root, mode, environment = process.env) {
     const prefix = part === 'web' ? 'NEXT_PUBLIC_' : '';
     return Boolean(values[`${prefix}SUPABASE_URL`] && values[`${prefix}SUPABASE_ANON_KEY`]);
   });
+}
+
+function configuredSupabaseUrl(root, mode, environment = process.env) {
+  const part = mode === 'web' ? 'web' : 'runner';
+  const path = resolve(root, part, part === 'web' ? '.env.local' : '.env');
+  const values = { ...(existsSync(path) ? parseEnv(readFileSync(path, 'utf8')) : {}), ...environment };
+  return values[part === 'web' ? 'NEXT_PUBLIC_SUPABASE_URL' : 'SUPABASE_URL'];
+}
+
+export async function ensureDatabaseCurrent(root, mode, run, environment = process.env) {
+  const projectRef = projectRefFromUrl(configuredSupabaseUrl(root, mode, environment));
+  if (databaseIsCurrent(root, projectRef)) return false;
+  console.log('\n새 버전의 데이터베이스 변경 사항을 확인합니다.');
+  await run([resolve(root, 'scripts/setup.mjs'), '--project-ref', projectRef, '--migrate-only'], { cwd: root });
+  // setup도 기록하지만 테스트 대역과 비정상 종료 직전의 성공을 같은 기준으로 남긴다.
+  markDatabaseCurrent(root, projectRef);
+  return true;
 }
 
 export async function checkPort(port) {
@@ -84,6 +102,9 @@ export async function main(argv = process.argv.slice(2), root = projectRoot) {
       console.log('처음 실행합니다. Supabase 설정을 안내합니다.');
       await group.run([resolve(root, 'scripts/setup.mjs')], { cwd: root });
       if (!hasConfiguration(root, mode)) throw new Error('설정이 완성되지 않았습니다. npm run setup으로 확인하세요.');
+    }
+    if (['all', 'web', 'runner'].includes(mode)) {
+      await ensureDatabaseCurrent(root, mode, group.run);
     }
     const directories = mode === 'all' ? ['web', 'runner'] : mode === 'web' ? ['web'] : ['runner'];
     for (const directory of directories) await ensureDependencies(resolve(root, directory), group.run);

@@ -59,6 +59,11 @@ the CLI, applies every migration, and writes `web/.env.local` and
 `ap-northeast-2`, and `--project-ref` with `--anon-key` skips discovery when
 the user hands you the values.
 
+For an existing configured installation, `npm start` fingerprints the local
+migration set before launching services. When it changes after an update, the
+launcher runs the wizard's migration-only path against the project already in
+the local env files; it never creates a replacement project during this path.
+
 ### 3. Install dependencies
 
 ```bash

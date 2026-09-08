@@ -14,10 +14,24 @@ User-facing changes are recorded here before release. See [the release policy](d
 - Choose provider-specific models from dropdowns in Prompt Lab and source imports, while retaining CLI defaults and custom model IDs.
 - 프롬프트 관리와 자료 가져오기에서 AI 종류별 모델을 드롭다운으로 선택하고, CLI 기본값과 직접 입력 모델도 사용할 수 있습니다.
 
+- Offer GPT-6 Astra as a Codex model choice and pass the selection to the local Codex CLI.
+- GPT-6 Astra를 Codex 모델로 선택하고 로컬 Codex CLI에서 실행할 수 있습니다.
+
 - Start the local web app and runner with `npm start` on Windows, macOS, and Linux, including dependency setup, interactive login when needed, and shared shutdown.
 - Windows·macOS·Linux에서 `npm start` 하나로 패키지 준비, 웹·러너 실행, 필요한 로그인 안내와 동시 종료를 제공합니다.
 
 - Show each available Codex subscription-limit window, its remaining percentage, and reset time from the signed-in local runner.
+
+### Fixed
+
+- Apply new database migrations automatically before `npm start`, and restore missing `authenticated` privileges on existing installations so runner login no longer fails at the `runners` table.
+- `npm start` 전에 새 DB 마이그레이션을 자동 적용하고 기존 설치의 `authenticated` 권한을 복구해 러너 로그인이 `runners` 테이블에서 실패하지 않도록 했습니다.
+
+- Use the Supabase CLI login session for migration queries instead of reading its management token from the operating-system keychain.
+- 운영체제 키링에서 관리 토큰을 직접 읽는 대신 Supabase CLI 로그인 세션으로 마이그레이션을 실행합니다.
+
+- Declare the Turbopack workspace root so development startup does not warn about the repository and web lockfiles.
+- 저장소와 웹 잠금 파일이 함께 있을 때 개발 서버가 경고하지 않도록 Turbopack 작업공간 루트를 명시했습니다.
 
 ## [0.2.0-beta.1] - 2026-09-07
 

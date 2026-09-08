@@ -31,11 +31,12 @@ export function isProvider(value: unknown): value is Provider {
 // 모델 이름과 CLI 인자를 분리한다. 목록은 계정 권한 조회 결과가 아니므로
 // 기본값·직접 입력을 유지해 새 모델과 기존에 저장한 모델도 사용할 수 있게 한다.
 // 2026-09-08: OpenAI 모델 문서, Claude 기존 후보, Google CLI 안내를 확인했다.
-// https://developers.openai.com/api/docs/models/gpt-5.6-sol
+// https://developers.openai.com/api/docs/models/gpt-6-astra
 // https://code.claude.com/docs/en/model-config
 // https://codelabs.developers.google.com/antigravity-cli-hands-on?hl=en
 export const MODEL_OPTIONS: Record<Provider, { value: string; label: string }[]> = {
   codex: [
+    { value: 'gpt-6-astra', label: 'GPT-6 Astra' },
     { value: 'gpt-5.6-sol', label: 'GPT-5.6 Sol' },
     { value: 'gpt-5.6-terra', label: 'GPT-5.6 Terra' },
     { value: 'gpt-5.6-luna', label: 'GPT-5.6 Luna' },

@@ -109,8 +109,11 @@ Supabase 로그인, 웹 가입, 기기 승인, AI CLI 로그인은 본인이 직
 **`npm run setup`에서 DB 연결 시간 초과가 발생합니다**
 → 현재 설치기는 DB 포트(5432/6543)에 연결하지 않고 Management API의 HTTPS(443)로 마이그레이션을 적용합니다. `db push` 또는 SQL 복사 안내가 보이면 이전 설치 스크립트인지 확인하세요. HTTPS 요청도 실패한다면 `api.supabase.com:443` 접근과 프록시·프로젝트 상태를 확인한 뒤 `npm run setup`을 다시 실행하세요. 응답을 못 받았어도 서버에서 적용됐을 수 있으므로 재실행 시 이력을 먼저 확인합니다.
 
-**"Supabase 관리 토큰을 읽지 못했습니다" 또는 HTTP 401/403이 나옵니다**
-→ `supabase login`으로 로그인한 후 다시 실행하세요. 공식 `supabase` 프로필만 지원하며, 다른 프로필이면 `supabase login --profile supabase`를 사용하세요. Windows 자격 증명 관리자·macOS 키체인·Linux `secret-tool`을 읽을 수 없는 환경에서는 관리용 액세스 토큰을 현재 셸의 `SUPABASE_ACCESS_TOKEN`에 설정할 수 있습니다. 웹·러너 `.env`에 저장하지 마세요. HTTP 403은 해당 계정의 프로젝트 접근 및 SQL 실행 권한도 확인해야 합니다. anon 키나 `service_role` 키로 대체하지 마세요.
+**"Supabase CLI SQL 실행이 실패" 또는 HTTP 401/403이 나옵니다**
+→ `supabase login`으로 로그인한 후 다시 실행하세요. 최신 설치기는 CLI의 로그인 세션으로 `supabase db query --linked`를 실행하므로 macOS 키체인 등의 토큰을 직접 읽지 않습니다. `supabase db query`가 없는 구형 CLI에서만 "Supabase 관리 토큰을 읽지 못했습니다"가 나올 수 있으므로 CLI를 업데이트하세요. 업데이트할 수 없는 환경에서는 관리용 액세스 토큰을 현재 셸의 `SUPABASE_ACCESS_TOKEN`에만 설정할 수 있습니다. 웹·러너 `.env`에 저장하지 마세요. HTTP 403은 해당 계정의 프로젝트 접근 및 SQL 실행 권한도 확인해야 합니다. anon 키나 `service_role` 키로 대체하지 마세요.
+
+**`git pull` 뒤 `permission denied for table runners`가 나옵니다**
+→ 예전 DB에 새 마이그레이션 또는 `authenticated` 테이블 권한 보정이 적용되지 않은 상태입니다. 최신 버전에서는 저장소 최상위의 `npm start`가 웹을 켜기 전에 변경된 마이그레이션을 확인해 적용합니다. Supabase 로그인을 요청하면 본인 계정으로 브라우저 로그인을 끝낸 뒤 같은 명령을 계속 실행하세요. 다른 프로젝트를 새로 만들거나 `service_role` 키를 넣어 우회하지 마세요.
 
 **Auth 설정에서 `smtp_admin_email` 이메일 형식 오류가 납니다**
 → Resend를 설정하지 않은 경우 설치기가 로컬 `config.toml`의 SMTP를 일시적으로 끄고 원격에 올립니다. Windows CRLF 파일에서도 이 설정이 정확히 꺼져야 하므로, 최신 저장소를 받은 뒤 `npm run setup`을 다시 실행하세요. Resend를 쓰려면 `supabase/.env`에 유효한 `RESEND_ADMIN_EMAIL`을 입력해야 합니다.

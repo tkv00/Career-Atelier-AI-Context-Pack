@@ -28,8 +28,9 @@ import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseEnv } from 'node:util';
 import { checkLocalWebProject } from './lib/auth-target.mjs';
+import { markDatabaseCurrent } from './lib/database-version.mjs';
 import { loadManagementToken } from './lib/supabase-token.mjs';
-import { createManagementQuery } from './lib/supabase-management.mjs';
+import { createCliManagementQuery, createManagementQuery, supportsSupabaseDbQuery } from './lib/supabase-management.mjs';
 import { applyMigrations } from './lib/setup-migrations.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -48,6 +49,7 @@ function parseArgs(argv) {
     else if (flag === '--db-password') { out.dbPassword = value; i += 1; }
     else if (flag === '--owner-email') { out.ownerEmail = value; i += 1; }
     else if (flag === '--skip-migrations') { out.skipMigrations = true; }
+    else if (flag === '--migrate-only') { out.migrateOnly = true; }
     else if (flag === '--yes' || flag === '-y') { out.yes = true; }
   }
   return out;
@@ -174,6 +176,21 @@ async function main() {
   let projectRef = args.projectRef;
   let dbPassword = args.dbPassword;
 
+  // 기존 설치의 npm start가 새 스키마만 적용할 때도 CLI 로그인은 필요하다.
+  // 브라우저 승인은 사람만 끝낼 수 있으므로 tty가 있을 때만 로그인 흐름을 연다.
+  if (args.migrateOnly && !(await supabaseLoggedIn())) {
+    if (!interactive) {
+      fail('DB 업데이트에 Supabase 로그인이 필요합니다. 먼저 실행하세요: supabase login');
+      process.exit(1);
+    }
+    console.log('DB 업데이트를 위해 Supabase에 로그인합니다. 브라우저가 열립니다.\n');
+    const login = spawnSync('supabase', ['login'], { stdio: 'inherit', shell: process.platform === 'win32' });
+    if (login.status !== 0) {
+      fail('supabase login 실패.');
+      process.exit(1);
+    }
+  }
+
   // ref를 안 줬으면 대시보드를 오가며 키를 복사하게 하지 않는다. CLI가
   // 프로젝트 목록 조회·생성·키 조회를 전부 할 수 있어서, 로그인 한 번이면
   // 나머지는 여기서 끝난다.
@@ -258,26 +275,42 @@ async function main() {
 
   // anon 키도 CLI로 가져온다. 사용자가 대시보드에서 복사해 올 이유가 없다.
   let anonKey = args.anonKey;
-  if (!anonKey) {
+  if (!args.migrateOnly && !anonKey) {
     const keys = supabaseJson(['projects', 'api-keys', '--project-ref', projectRef]) ?? [];
     anonKey = keys.find((k) => k.name === 'anon')?.api_key;
   }
-  if (!anonKey) {
+  if (!args.migrateOnly && !anonKey) {
     fail('anon key를 가져오지 못했습니다. --anon-key로 직접 넘기세요.');
     process.exit(1);
   }
-  ok('anon key 확보');
+  if (!args.migrateOnly) ok('anon key 확보');
 
-  // CLI의 link/query는 버전에 따라 DB 포트에 접속하므로 HTTPS API를 직접 호출한다.
+  // 최신 CLI의 db query --linked는 DB 포트 대신 Management API(HTTPS)를 사용한다.
   console.log(c.bold('\n\n데이터베이스 준비\n'));
   if (args.skipMigrations) {
     warn('--skip-migrations — 적용 상태를 검증하지 않고 건너뜁니다. 모든 마이그레이션 적용을 별도로 확인한 경우에만 사용하세요.');
+    // 이 플래그는 사용자가 원격 적용을 별도로 검증했다는 선언이다. 표시를 남기지
+    // 않으면 다음 npm start가 같은 파일 집합을 다시 적용하려 든다.
+    markDatabaseCurrent(root, projectRef);
   } else {
-    const token = loadManagementToken();
-    const query = createManagementQuery({ projectRef, token });
-    console.log('Management API(HTTPS)로 적용 이력을 확인합니다.');
+    // 최신 CLI는 로그인 자격 증명을 외부에 꺼내지 않고 Management API SQL을
+    // 실행한다. 키체인 구현을 설치기가 흉내 내면 CLI 저장 형식 변경 때 깨진다.
+    const cliQuery = supportsSupabaseDbQuery();
+    const query = cliQuery
+      ? createCliManagementQuery({ projectRef })
+      : createManagementQuery({ projectRef, token: loadManagementToken() });
+    console.log(cliQuery
+      ? 'Supabase CLI 로그인 세션으로 적용 이력을 확인합니다.'
+      : 'Management API(HTTPS)로 적용 이력을 확인합니다.');
     const result = await applyMigrations({ root, query, onProgress: ok });
     ok(`마이그레이션 이력 검증 완료: 신규 ${result.applied}개, 기존 ${result.skipped}개`);
+    markDatabaseCurrent(root, projectRef);
+  }
+
+  if (args.migrateOnly) {
+    console.log(c.bold('\nDB 업데이트 확인 완료. 서비스를 시작합니다.\n'));
+    rl?.close();
+    return;
   }
 
   const supabaseEnv = { ...process.env };

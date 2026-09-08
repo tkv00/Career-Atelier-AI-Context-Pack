@@ -83,11 +83,13 @@ Useful flags:
 - `--db-password <password>` — optional when creating a new project; otherwise a random password is generated. Existing-project migrations use the HTTPS Management API and do not require a database password.
 - `--skip-migrations` — bypass migration application and verification only when the complete installation was independently verified. Never use it to suppress a schema/history mismatch.
 
-The wizard reuses the Supabase CLI management token from the OS credential store or the CLI fallback file; `SUPABASE_ACCESS_TOKEN` in the current shell takes precedence. Never write this token into project environment files, logs, or messages. Only the official `supabase` cloud profile is supported. If credentials cannot be read, have the human run `supabase login` again or set the management token in their shell. SQL runs directly through `https://api.supabase.com`, without `supabase link`, `db push`, or `db query`. Pending SQL and its migration-history entry commit together. Existing tables without history require schema/history reconciliation; do not reset the database, mark unverified migrations as applied, or paste the old full migration bundle.
+On current Supabase CLI versions, the wizard runs `supabase db query --linked` so the CLI can use its own login session without exposing or copying the management token. It does not run `supabase link` or `db push`, and it does not need a database password. Older CLI versions without `db query` fall back to the OS credential store or the CLI token file; `SUPABASE_ACCESS_TOKEN` in the current shell takes precedence only on that legacy path. Never write this token into project environment files, logs, or messages. Pending SQL and its migration-history entry commit together. Existing tables without history require schema/history reconciliation; do not reset the database, mark unverified migrations as applied, or paste the old full migration bundle.
 
 Existing env files are kept unless `--yes` is passed, which overwrites them. If the user has an installation they care about, confirm before overwriting.
 
 The wizard never reads or stores the `service_role` key, and the database password it generates for a new project is random and kept nowhere.
+
+After an existing installation pulls a version with changed migration files, `npm start` invokes the wizard's migration-only path before launching services. It derives the project ref from the existing local Supabase URL, verifies remote history, applies only pending migrations, and leaves environment and Auth configuration untouched. A local fingerprint avoids remote checks on ordinary restarts.
 
 ### 5. Set up an AI subscription CLI
 

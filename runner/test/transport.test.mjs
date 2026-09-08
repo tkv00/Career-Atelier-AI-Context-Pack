@@ -9,11 +9,12 @@ test('provider options exclude prompt text and retain search and JSON flags', ()
   const prompt = 'FIRST\nSEARCH\nLAST';
   const schema = JSON.stringify({ type: 'object', properties: {} });
   const claude = buildClaudeArgs({ prompt, jsonSchema: schema });
-  const codex = buildCodexArgs({ workspace: process.cwd(), prompt, liveWebSearch: true });
+  const codex = buildCodexArgs({ workspace: process.cwd(), prompt, model: 'gpt-6-astra', liveWebSearch: true });
   assert.ok(!claude.includes(prompt) && !codex.includes(prompt));
   assert.ok(claude.includes('stream-json') && claude.includes(schema));
   assert.ok(claude.includes('WebSearch') && claude.includes('Read'));
   assert.deepEqual(codex.slice(0, 2), ['--search', 'exec']);
+  assert.deepEqual(codex.slice(codex.indexOf('-m'), codex.indexOf('-m') + 2), ['-m', 'gpt-6-astra']);
   assert.equal(codex.at(-1), '-');
 });
 

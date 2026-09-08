@@ -2,13 +2,24 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { applyMigrations, migrationFiles, inspectMigrations } from '../lib/setup-migrations.mjs';
-import { createManagementQuery } from '../lib/supabase-management.mjs';
+import { createCliManagementQuery, createManagementQuery, supportsSupabaseDbQuery } from '../lib/supabase-management.mjs';
 import { loadManagementToken } from '../lib/supabase-token.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const files = migrationFiles(root);
 const token = 'sbp_' + 'a'.repeat(40);
 const projectRef = 'a'.repeat(20);
+
+test('every application table grants authenticated access before RLS filtering', () => {
+  const sql = files.map(file => file.sql).join('\n');
+  const grants = [...sql.matchAll(/grant\s+select,\s*insert,\s*update,\s*delete\s+on\s+table([\s\S]*?)to\s+authenticated\s*;/gi)]
+    .map(match => match[1]).join('\n');
+  const tables = [...sql.matchAll(/create\s+table(?:\s+if\s+not\s+exists)?\s+(?:public\.)?([a-z_]+)/gi)]
+    .map(match => match[1])
+    .filter(name => name !== 'schema_migrations');
+  for (const table of tables) assert.match(grants, new RegExp(`(?:public\\.)?${table}\\b`), `${table} 권한이 없습니다.`);
+  assert.match(sql, /grant\s+usage,\s*select\s+on\s+sequence\s+public\.run_events_id_seq\s+to\s+authenticated/i);
+});
 
 test('HTTPS request uses only the official API and returns rows', async () => {
   const query = createManagementQuery({ projectRef, token, fetchImpl: async (url, options) => {
@@ -20,6 +31,38 @@ test('HTTPS request uses only the official API and returns rows', async () => {
     return new Response('[{"ok":1}]', { status: 201 });
   } });
   assert.deepEqual(await query('select 1', { readOnly: true }), [{ ok: 1 }]);
+});
+
+test('CLI query reuses login without exposing SQL in argv', async () => {
+  const calls = [];
+  const run = (command, argv, options) => {
+    calls.push({ command, argv, options });
+    return { status: 0, stdout: '[{"ok":1}]', stderr: '' };
+  };
+  assert.equal(supportsSupabaseDbQuery({ run }), true);
+  const query = createCliManagementQuery({ projectRef, run });
+  assert.deepEqual(await query('select 1', { readOnly: true }), [{ ok: 1 }]);
+  assert.deepEqual(calls[0].argv, ['db', 'query', '--help']);
+  assert.deepEqual(calls[1].argv, [
+    'db', 'query', '--linked', '--project-ref', projectRef,
+    '--output', 'json', '--agent', 'no',
+  ]);
+  assert.equal(calls[1].options.input, 'select 1');
+  assert.ok(!calls[1].argv.includes('select 1'));
+  assert.equal(calls[1].options.shell, false);
+});
+
+test('CLI query errors redact credentials and malformed output is rejected', async () => {
+  const secret = 'sbp_' + 'b'.repeat(40);
+  const failed = createCliManagementQuery({ projectRef, run: () => ({ status: 1, stdout: '', stderr: `failure ${secret}` }) });
+  await assert.rejects(failed('select 1'), (error) => {
+    assert.ok(!error.message.includes(secret));
+    assert.match(error.message, /다시 실행/);
+    return true;
+  });
+  const malformed = createCliManagementQuery({ projectRef, run: () => ({ status: 0, stdout: 'not-json', stderr: '' }) });
+  await assert.rejects(malformed('select 1'), /JSON/);
+  assert.equal(supportsSupabaseDbQuery({ run: () => ({ status: 1 }) }), false);
 });
 
 test('HTTP errors redact credentials and do not retry writes', async () => {

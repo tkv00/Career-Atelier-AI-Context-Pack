@@ -189,7 +189,7 @@ cd Career-Atelier-AI-Context-Pack
 npm start
 ```
 
-Already cloned? Run only `npm start` from that folder. It opens the setup wizard when configuration is missing, installs the locked web/runner dependencies when needed, and starts both services. Existing configuration is reused. The first launch needs internet access and can take a few minutes.
+Already cloned? Run only `npm start` from that folder. It opens the setup wizard when configuration is missing, installs the locked web/runner dependencies when needed, and starts both services. Existing configuration is reused. When `git pull` adds migrations, startup applies them to the configured Supabase project before launching services. If the Supabase CLI login has expired, it asks you to complete browser login once. The first launch needs internet access and can take a few minutes.
 
 ### 2. Complete your account steps
 
@@ -263,7 +263,7 @@ Save an experience under **경험 카드**, then request an assistant task and c
 npm start
 ```
 
-Open the web address printed in the terminal. Press **Ctrl+C once** to stop both the local web app and runner. Installation and signup do not need to be repeated.
+Open the web address printed in the terminal. After an update, the same command checks for unapplied database changes first. Press **Ctrl+C once** to stop both the local web app and runner. Installation and signup do not need to be repeated.
 
 <details>
 <summary>Optional commands — run from the same repository folder</summary>
@@ -274,9 +274,9 @@ Open the web address printed in the terminal. Press **Ctrl+C once** to stop both
 | Manage data with only the local web app | `npm run web` |
 | Sign in to the runner again or change the service account | `npm run login` |
 | Diagnose the runner connection | `npm run doctor` |
-| Reconfigure Supabase or apply migrations after updating | `npm run setup` |
+| Reconfigure Supabase or manually recheck database updates | `npm run setup` |
 
-Normal startup reuses environment files and does not apply new migrations. Follow the [upgrade guide](docs/UPGRADING.md) when updating. Existing commands inside `web/` and `runner/` remain available for development.
+Normal startup reuses environment files and checks remote migration history only when the local migration set changes. Follow the [upgrade guide](docs/UPGRADING.md) for backup and code/database compatibility precautions. Existing commands inside `web/` and `runner/` remain available for development.
 
 </details>
 
