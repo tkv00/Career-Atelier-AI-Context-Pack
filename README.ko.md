@@ -57,91 +57,70 @@ Notion의 경험, 엑셀의 이력, 채용공고, 자소서를 한곳에서 관�
 
 ## 시작하기
 
-**처음에는 아래 1 → 2 → 3까지만 진행하세요.** 자료를 저장할 수 있으면 설치 성공입니다. AI 연결은 4번, 외부 접속과 MCP는 이후 선택 사항입니다.
+**저장소 폴더에서 `npm start`만 실행하세요.** Windows·macOS·Linux 모두 같은 명령으로, 터미널 하나에서 웹과 러너를 함께 켭니다.
 
-### 1. 준비물 확인
+### 1. 최초 한 번 준비
 
-| 준비물 | 확인 방법 |
-|---|---|
-| Git | 터미널에서 `git --version` |
-| Node.js 22.13 이상 | `node -v`와 `npm -v`. 없으면 [Node.js](https://nodejs.org/en/download) 설치 |
-| 본인 Supabase 계정 | [Supabase](https://supabase.com)에서 가입 |
-| Supabase CLI | [공식 설치 안내](https://supabase.com/docs/guides/local-development/cli/getting-started)의 운영체제별 설치 후 `supabase --version` |
+Git, [Node.js 22.13 이상](https://nodejs.org/en/download), PATH에서 실행 가능한 [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started)를 설치하고 본인의 [Supabase 계정](https://supabase.com)을 준비하세요. CLI는 운영체제에 맞는 공식 설치 방법을 따르세요.
 
-설치 마법사는 `supabase` 명령을 직접 실행하므로 PATH에서 사용할 수 있어야 합니다. 전역 설치는 macOS의 Homebrew, Windows의 Scoop 또는 공식 바이너리를 사용하세요. npm 프로젝트 의존성 설치와 전역 설치는 다릅니다. 기존의 `npm install -g supabase` 안내 대신 [공식 설치 방식](https://supabase.com/docs/guides/local-development/cli/getting-started)을 사용하세요.
-
-### 2. 프로젝트 연결 — 터미널 A
-
-Windows는 PowerShell, macOS·Linux는 터미널에서 **한 줄씩** 실행하세요.
+Windows는 PowerShell 또는 명령 프롬프트, macOS·Linux는 터미널에서 실행합니다.
 
 ```bash
 git clone https://github.com/tkv00/Career-Atelier-AI-Context-Pack.git
 cd Career-Atelier-AI-Context-Pack
-npm run setup
+npm start
 ```
 
-이미 저장소를 받았다면 해당 폴더에서 마지막 명령만 실행합니다. 마법사에서 본인 Supabase 계정으로 로그인하고 사용할 프로젝트를 선택하세요. 기존 프로젝트를 선택하면 **DB 비밀번호**를 물을 수 있습니다. 새 프로젝트를 만들려면 선택 안내에 따르세요.
+이미 내려받았다면 해당 폴더에서 `npm start`만 실행하세요. 설정이 없으면 설치 마법사를 안내하고, 필요한 웹·러너 패키지를 잠금 파일 기준으로 설치한 뒤 둘을 함께 시작합니다. 기존 설정은 재사용합니다. 첫 실행에는 인터넷 연결이 필요하며 몇 분 걸릴 수 있습니다.
 
-**완료 확인:** 설정 적용이 끝나고 웹 실행·가입 링크 안내가 나옵니다. 오류로 끝났다면 다음 단계로 넘어가지 마세요. [설치 상세](docs/USER-GUIDE.md) · [다른 계정으로 전환](docs/AUTH-TROUBLESHOOTING.md#다른-supabase-계정으로-전환하기)
+### 2. 본인 계정으로 마무리
 
-### 3. 웹 실행 후 내 계정 만들기 — 터미널 A와 브라우저
+1. 처음 설정할 때 Supabase 로그인과 프로젝트 선택 안내를 따르세요. 마법사가 프로젝트 정보를 찾고 데이터베이스 마이그레이션을 적용합니다.
+2. 출력된 웹 주소(기본 `http://localhost:3000`)를 열고 **처음이에요 · 계정 만들기**에서 본인 이메일과 직접 정한 비밀번호로 가입하세요. 첫 계정만 소유자로 가입할 수 있고, 기존 사용자는 로그인하면 됩니다.
+3. 같은 터미널에서 러너 로그인을 요청하면 **웹에서 정한 이메일·비밀번호**를 입력하세요. 비밀번호는 화면에 표시되지 않습니다. Supabase 대시보드 계정이나 DB 비밀번호와는 다릅니다.
+4. 웹 **관제실**의 러너 목록에서 이 기기를 승인하세요.
 
-방금 사용한 터미널 A에서 실행합니다.
+Supabase 로그인·최초 가입·기기 승인은 본인이 직접 해야 합니다. 유효한 러너 세션이 있으면 재사용하고, 본인 터미널에서 로그인이 필요한 경우에만 입력을 요청합니다.
+
+### 3. 사용하는 AI 연결
+
+지원하는 [AI CLI](docs/REFERENCE.md#requirements)를 하나 이상 설치하고 본인 구독 계정으로 로그인하세요. 웹 **프롬프트**에서 사용할 비서의 제공자를 해당 CLI로 지정하세요. AI CLI 로그인은 웹·러너 계정과 별개입니다.
+
+**경험 카드**에 경험을 저장한 뒤 비서 작업을 요청하고 **실행 기록**에서 결과를 확인하세요. AI 작업 중에는 이 터미널과 컴퓨터를 켜 두세요.
+
+### 매일 실행
 
 ```bash
-cd web
-npm install
-npm run dev
+npm start
 ```
 
-터미널을 켜 둔 채 **브라우저**에서 출력된 Local 주소를 여세요. 보통 `http://localhost:3000`이며 포트가 다르면 출력된 주소를 사용합니다.
-
-1. **처음이에요 · 계정 만들기**를 선택합니다.
-2. 본인의 이메일과 직접 정한 비밀번호로 가입합니다. 이메일 확인 안내가 나오면 확인을 마칩니다.
-3. 관제실이 열리면 **경험 카드** 메뉴에서 경험 하나를 저장해 보세요.
-
-**완료 확인:** 새로고침 후에도 경험이 남아 있습니다. 여기까지면 AI 없이 자료를 관리할 수 있습니다.
-
-> 웹·Runner에서는 **여기서 정한 같은 이메일·비밀번호**를 사용합니다. Supabase 관리 계정이나 DB 비밀번호를 입력하는 곳이 아닙니다. 프로젝트마다 첫 소유자 계정 하나만 가입할 수 있습니다. 이미 가입했다면 로그인 또는 비밀번호 재설정을 이용하세요.
-
-### 4. AI 비서 연결 — 사용할 때만
-
-**AI CLI**는 AI 계정을 터미널에서 사용하는 프로그램이고, **Runner**는 웹의 작업 요청을 받아 그 프로그램을 실행하는 로컬 프로세스입니다. 두 프로그램의 로그인은 서로 다릅니다.
-
-1. 사용할 AI CLI **하나**를 설치하고 본인 계정으로 로그인합니다. [제공자별 설치 안내](docs/REFERENCE.ko.md#준비물)를 참고하세요.
-2. 웹의 **프롬프트** 메뉴에서 실행할 비서들의 AI 제공자를 로그인한 CLI로 지정하고 저장합니다. 모든 비서를 같은 제공자로 지정해도 됩니다.
-3. **새 터미널 B**를 열고, 저장소 최상위 폴더로 이동한 뒤 실행합니다.
-
-```bash
-cd runner
-npm install
-npm run login
-npm run start
-```
-
-`npm run login`에는 **3번에서 웹 가입 시 정한 이메일·비밀번호**를 입력합니다. 비밀번호는 화면에 표시되지 않습니다.
-
-4. 브라우저의 **관제실 → 러너 목록**에서 이 기기를 **승인**합니다.
-
-**완료 확인:** 관제실에서 연결·승인 상태를 확인하고, 비서 작업 하나를 요청해 **실행 기록**에서 결과를 확인합니다. 연결만으로 비서가 계속 실행되는 것은 아닙니다. AI 작업 중에는 터미널 B와 PC를 켜 두세요.
+터미널에 출력된 웹 주소를 열면 됩니다. **Ctrl+C 한 번**으로 로컬 웹과 러너를 함께 종료합니다. 설치나 가입을 반복할 필요는 없습니다.
 
 <details>
-<summary>다음 날 다시 실행할 때</summary>
+<summary>필요할 때만 쓰는 명령 — 모두 같은 저장소 폴더에서 실행</summary>
 
-설치·가입은 반복하지 않습니다. 저장소 폴더에서 터미널 A는 `cd web` → `npm run dev`, 새 터미널 B는 `cd runner` → `npm run start`를 실행하세요. Runner 세션이 만료됐을 때만 `npm run login`을 다시 실행합니다.
+| 필요 | 명령 |
+|---|---|
+| 이미 배포한 웹을 쓰며 로컬 러너만 켜기 | `npm run runner` |
+| 로컬 웹만 켜서 자료 관리하기 | `npm run web` |
+| 러너 재로그인 또는 서비스 계정 변경 | `npm run login` |
+| 러너 연결 진단 | `npm run doctor` |
+| Supabase 재설정 또는 업데이트 후 마이그레이션 적용 | `npm run setup` |
+
+일반 실행은 기존 환경 파일을 재사용하며 새 마이그레이션을 적용하지 않습니다. 업데이트 시 [업그레이드 가이드](docs/UPGRADING.md)를 따르세요. 개발용 `web/`·`runner/` 내부 명령은 계속 사용할 수 있습니다.
 
 </details>
 
 <details>
-<summary>터미널 사용이 어려워 AI에게 설치를 맡기고 싶다면</summary>
+<summary>AI 코딩 에이전트에게 설치를 맡기려면</summary>
 
-내 PC의 터미널에 접근할 수 있는 코딩 에이전트에 아래 문장을 입력하세요. Supabase 로그인·웹 첫 가입·기기 승인은 본인이 진행합니다.
+컴퓨터의 터미널을 사용할 수 있는 코딩 에이전트에게 아래 내용을 전달하세요. Supabase 로그인·최초 웹 가입·기기 승인은 본인이 직접 합니다.
 
 ```text
-다음 설치 지침을 읽고 Career Atelier를 설치해 줘: https://raw.githubusercontent.com/tkv00/Career-Atelier-AI-Context-Pack/refs/heads/main/docs/AI-INSTALL.md
+다음 안내를 읽고 Career Atelier를 설치해줘: https://raw.githubusercontent.com/tkv00/Career-Atelier-AI-Context-Pack/refs/heads/main/docs/AI-INSTALL.md
 ```
 
-[에이전트 설치 상세](docs/AI-INSTALL.md)
+[에이전트용 설치 절차](docs/AI-INSTALL.md)
 
 </details>
 
@@ -196,8 +175,8 @@ npm run start
 | 비밀번호가 틀리다고 나옴 | 웹 가입 여부, 서비스 비밀번호, 이메일 확인 상태. [로그인 가이드](docs/AUTH-TROUBLESHOOTING.md) |
 | 웹은 되는데 Runner 로그인 실패 | 웹과 Runner의 Supabase 프로젝트가 같은지 확인 |
 | 비서가 계속 대기함 | Runner 실행 → 기기 승인 → 해당 AI CLI 로그인 → 프롬프트의 제공자 설정 순서로 확인 |
-| `cd web` 또는 `cd runner` 실패 | 현재 위치가 저장소 최상위 폴더인지 확인. 터미널 A와 B는 별도 창 |
-| 설치 중 DB 비밀번호를 물음 | 기존 프로젝트에 접속하는 DB 비밀번호. 웹 계정 비밀번호와 다름 |
+| 실행 실패 또는 포트 사용 중 | 저장소 폴더에서 `npm start` 실행. 3000번 포트를 쓰는 기존 로컬 웹이 있으면 종료 |
+| 패키지 설치 실패 | Node.js 22.13 이상·인터넷 연결·출력된 npm 오류를 확인하고 `npm start` 재실행 |
 
 ## 기존 기록 가져오기
 

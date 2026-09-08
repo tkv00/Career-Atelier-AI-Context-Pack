@@ -144,7 +144,8 @@ async function main() {
 
   if (!has('supabase')) {
     fail('Supabase CLI가 없습니다.');
-    console.log('  설치: npm install -g supabase');
+    console.log('  설치: https://supabase.com/docs/guides/local-development/cli/getting-started');
+    console.log('  운영체제에 맞게 설치한 뒤 PATH에서 supabase를 실행할 수 있어야 합니다.');
     console.log('  설치 후 이 명령을 다시 실행하세요.\n');
     process.exit(1);
   }
@@ -367,30 +368,16 @@ async function main() {
   signupUrl.searchParams.set('mode', 'signup');
   if (args.ownerEmail) signupUrl.searchParams.set('email', args.ownerEmail);
 
-  // 7. 다음 단계 -------------------------------------------------------------
-  // 명령을 한 줄씩 따로 찍는다 — &&로 이으면 Windows 기본 PowerShell(5.1)에서
-  // 그대로 붙여넣었을 때 파싱 에러가 난다.
-  console.log(c.bold('\n\n설치 완료. 다음 순서로 실행하세요.\n'));
-  console.log(`  ${c.bold('1)')} 웹 앱 실행`);
-  console.log(`     ${c.dim('cd web')}`);
-  console.log(`     ${c.dim('npm install')}`);
-  console.log(`     ${c.dim('npm run dev')}`);
-  console.log(c.dim(`     브라우저에서 열기: ${signupUrl.href}`));
-  console.log(c.dim('     처음이면 본인 이메일과 직접 정한 비밀번호로 가입하세요. 기존 계정은 로그인하세요.'));
-  console.log(c.dim('     DB 비밀번호와 서비스 비밀번호는 다릅니다. 임시 서비스 비밀번호는 발급하지 않습니다.'));
-  console.log(c.dim('     첫 가입 계정만 허용됩니다. 웹 서버가 다른 포트를 안내하면 그 주소를 사용하세요.'));
-  console.log(`\n  ${c.bold('2)')} 러너 로그인`);
-  console.log(`     ${c.dim('cd runner')}`);
-  console.log(`     ${c.dim('npm install')}`);
-  console.log(`     ${c.dim('npm run login')}`);
-  console.log(c.dim('     웹 가입 시 정한 같은 이메일·비밀번호를 입력하세요. 새 계정을 만들 필요가 없습니다.'));
-  console.log(`\n  ${c.bold('3)')} 러너 실행`);
-  console.log(`     ${c.dim('cd runner')}`);
-  console.log(`     ${c.dim('npm run start')}`);
-  console.log(`     ${c.dim('웹 관제실 화면 아래 "러너" 목록에서 이 기기를 승인해야 작업을 받습니다.')}`);
-  console.log(`\n  ${c.bold('선택)')} 집·회사 밖에서도 웹으로 보고 싶다면`);
-  console.log(`     ${c.dim('npm run deploy')}`);
-  console.log(`     ${c.dim('러너가 꺼져 있어도 웹은 그대로 열립니다(새 에이전트 실행만 못 함).')}`);
+  // 통합 실행 중에도 같은 안내를 사용해 다음부터 외울 명령을 하나로 유지한다.
+  console.log(c.bold('\n\n설정 완료. 실행 명령은 저장소 폴더에서 npm start입니다.\n'));
+  console.log(c.dim('  npm start로 시작했다면 패키지 준비와 웹·러너 실행이 이어집니다.'));
+  console.log(c.dim(`  브라우저에서 열기: ${signupUrl.href}`));
+  console.log(c.dim('  처음이면 본인 이메일과 직접 정한 비밀번호로 가입하세요. 첫 계정만 허용됩니다.'));
+  console.log(c.dim('  같은 터미널의 러너 로그인에 웹에서 정한 이메일·비밀번호를 입력하세요.'));
+  console.log(c.dim('  Supabase 대시보드 계정이나 DB 비밀번호와는 다릅니다.'));
+  console.log(c.dim('  웹 관제실의 러너 목록에서 이 기기를 승인해야 작업을 받습니다.'));
+  console.log(c.dim('  웹 주소는 실행 시 출력되는 주소를 사용하세요. 종료는 Ctrl+C 한 번입니다.'));
+  console.log(c.dim('  배포된 웹을 쓴다면 npm run runner로 러너만 실행할 수 있습니다.'));
   console.log(`\n자세한 내용: ${c.dim('docs/USER-GUIDE.md')}\n`);
 
   rl?.close();

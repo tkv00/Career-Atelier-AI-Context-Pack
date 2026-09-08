@@ -1070,7 +1070,13 @@ async function processJob(supabase, ownerId, job) {
 }
 
 async function startLoop() {
-  const { supabase, authenticated, user } = await connectAsRunner();
+  let connection = await connectAsRunner();
+  // 통합 실행에서만 사람이 직접 로그인한다. 무인 러너는 입력 대기로 멈추지 않는다.
+  if (!connection.authenticated && process.argv.includes('--login-if-needed') && process.stdin.isTTY) {
+    await loginInteractive();
+    connection = await connectAsRunner();
+  }
+  const { supabase, authenticated, user } = connection;
   if (!authenticated) {
     console.error('로그인이 안 되어 있습니다. 먼저 실행하세요: npm run login');
     process.exitCode = 1;

@@ -57,78 +57,57 @@ Find postings with Moka, then run **Sol → Muse → Lens → Comma** from the c
 
 ## Getting started
 
-**Complete steps 1 → 2 → 3 first.** If you can save a record, the basic installation works. Connect AI in step 4; deployment and MCP are optional later steps. The current application UI is Korean; Korean menu labels below match the screen.
+**Run `npm start` from the repository folder.** Windows, macOS, and Linux use the same command and one terminal for both the web app and runner.
 
-### 1. Check the requirements
+### 1. Prepare once
 
-| Requirement | How to check |
-|---|---|
-| Git | Run `git --version` |
-| Node.js 22.13 or newer | Run `node -v` and `npm -v`; install [Node.js](https://nodejs.org/en/download) if needed |
-| Your own Supabase account | Sign up at [Supabase](https://supabase.com) |
-| Supabase CLI | Follow the OS-specific [official installation guide](https://supabase.com/docs/guides/local-development/cli/getting-started), then run `supabase --version` |
+Install Git, [Node.js 22.13+](https://nodejs.org/en/download), and the [Supabase CLI](https://supabase.com/docs/guides/local-development/cli/getting-started) available on PATH. You also need your own [Supabase account](https://supabase.com). Follow the CLI's official installation method for your OS.
 
-The wizard invokes `supabase` directly, so it must be available on PATH. Use Homebrew on macOS, Scoop on Windows, or an official binary for a global installation. An npm project dependency is a different installation method. Use the [official installation methods](https://supabase.com/docs/guides/local-development/cli/getting-started) instead of the older `npm install -g supabase` instructions.
-
-### 2. Connect a project — terminal A
-
-Use PowerShell on Windows or Terminal on macOS/Linux. Run each line separately.
+Use PowerShell or Command Prompt on Windows, or Terminal on macOS/Linux:
 
 ```bash
 git clone https://github.com/tkv00/Career-Atelier-AI-Context-Pack.git
 cd Career-Atelier-AI-Context-Pack
-npm run setup
+npm start
 ```
 
-If you already cloned the repository, run only the last command from its root. Sign in with your own Supabase account and select a project when prompted. An existing project may require its **database password**. Follow the selection prompt to create a new project instead.
+Already cloned? Run only `npm start` from that folder. It opens the setup wizard when configuration is missing, installs the locked web/runner dependencies when needed, and starts both services. Existing configuration is reused. The first launch needs internet access and can take a few minutes.
 
-**Checkpoint:** setup finishes applying configuration and prints web startup/signup instructions. If it ends with an error, resolve it before continuing. [Installation details](docs/USER-GUIDE.md) · [Switch Supabase accounts](docs/AUTH-TROUBLESHOOTING.md#다른-supabase-계정으로-전환하기) (Korean)
+### 2. Complete your account steps
 
-### 3. Start the web app and create your account — terminal A and browser
+1. On first setup, follow the Supabase sign-in and project selection prompts. The wizard discovers the project details and applies database migrations.
+2. Open the printed web address (normally `http://localhost:3000`). Choose **처음이에요 · 계정 만들기** and register with your own email and a password. Only the first account becomes the instance owner; existing users should sign in.
+3. In the same terminal, enter **the email and password you chose in the web app** when the runner asks. Password input is hidden. These are different from your Supabase dashboard credentials or database password.
+4. Approve this device in the **관제실** (Dashboard) runner list.
 
-Continue in terminal A:
+Supabase sign-in, first signup, and device approval require you. The launcher reuses a valid runner session and asks for login only when needed in an interactive terminal.
+
+### 3. Connect the AI you use
+
+Install and sign in to at least one supported [AI CLI](docs/REFERENCE.md#requirements) with your own subscription. In **프롬프트** (Prompts), assign the assistants you want to use to that provider. AI CLI login is separate from the web/runner account.
+
+Save an experience under **경험 카드**, then request an assistant task and check **실행 기록**. Keep this terminal and your computer running during AI work.
+
+### Every day
 
 ```bash
-cd web
-npm install
-npm run dev
+npm start
 ```
 
-Leave it running and open its printed Local address **in your browser**. Usually this is `http://localhost:3000`; use the printed port if different.
-
-1. Choose **처음이에요 · 계정 만들기** (Create account).
-2. Sign up with your email and a password you choose. Complete email confirmation if prompted.
-3. Once the dashboard opens, save one experience through **경험 카드** (Experience cards).
-
-**Checkpoint:** the experience remains after refreshing. You can now manage data without AI.
-
-> Web and runner use **the same email and password chosen here**. These are not your Supabase dashboard credentials or database password. Only the first owner account can register in each project. Existing users should sign in or reset their password.
-
-### 4. Connect AI assistants — only when needed
-
-An **AI CLI** runs your AI account from a terminal. The **runner** is a local process that receives web requests and executes that CLI. Their logins are separate.
-
-1. Install **one** supported AI CLI and sign in with your own account. See [provider setup](docs/REFERENCE.md#requirements).
-2. Open **프롬프트** (Prompts) in the web app. Assign the assistants you intend to run to that signed-in provider and save. All assistants can use the same provider.
-3. Open a **new terminal B**, navigate to the repository root, and run:
-
-```bash
-cd runner
-npm install
-npm run login
-npm run start
-```
-
-For `npm run login`, enter **the web account from step 3**. Password input is hidden.
-
-4. In the browser, find the runner list under **관제실** (Dashboard) and approve this device with **승인**.
-
-**Checkpoint:** confirm the connected/approved state, request one assistant task, and check its outcome under **실행 기록** (Activity). Connection alone does not keep assistants continuously running. Keep terminal B and your PC running during AI work.
+Open the web address printed in the terminal. Press **Ctrl+C once** to stop both the local web app and runner. Installation and signup do not need to be repeated.
 
 <details>
-<summary>Starting again the next day</summary>
+<summary>Optional commands — run from the same repository folder</summary>
 
-Do not repeat installation or signup. From the repository root, use `cd web` → `npm run dev` in terminal A, and `cd runner` → `npm run start` in a new terminal B. Run `npm run login` again only when the runner session expires.
+| Need | Command |
+|---|---|
+| Use an already deployed web app; start only the local runner | `npm run runner` |
+| Manage data with only the local web app | `npm run web` |
+| Sign in to the runner again or change the service account | `npm run login` |
+| Diagnose the runner connection | `npm run doctor` |
+| Reconfigure Supabase or apply migrations after updating | `npm run setup` |
+
+Normal startup reuses environment files and does not apply new migrations. Follow the [upgrade guide](docs/UPGRADING.md) when updating. Existing commands inside `web/` and `runner/` remain available for development.
 
 </details>
 
@@ -196,8 +175,8 @@ These labels match the application's left navigation.
 | Incorrect password | Web signup, service password, and email confirmation. [Login guide](docs/AUTH-TROUBLESHOOTING.md) |
 | Web login works; runner login fails | Verify both use the same Supabase project |
 | Assistants stay queued | Runner running → device approved → provider CLI signed in → matching provider in Prompts |
-| `cd web` or `cd runner` fails | Start from the repository root. A and B are separate terminal windows |
-| Setup asks for a DB password | It connects to an existing project's database; this is not your web password |
+| Startup fails or a port is occupied | Run `npm start` from the repository root; stop the previous local web process if port 3000 is occupied |
+| Dependency installation fails | Check Node.js 22.13+, internet access, and the printed npm error; retry `npm start` |
 
 ## Import your existing records
 

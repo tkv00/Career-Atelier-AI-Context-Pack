@@ -15,9 +15,9 @@ Career Atelier는 두 부분으로 이루어져 있습니다.
 
 ### 모든 OS 공통
 
-- **Node.js 22 이상** — https://nodejs.org 에서 LTS 설치. 설치 후 `node -v`로 확인.
-- **Supabase 계정** — https://supabase.com 무료 가입 후 새 프로젝트 하나 생성.
-- **Supabase CLI** — `npm install -g supabase`
+- **Node.js 22.13 이상** — https://nodejs.org 에서 LTS 설치. 설치 후 `node -v`로 확인.
+- **Supabase 계정** — https://supabase.com 본인 계정 준비. 프로젝트는 설치 마법사에서 선택하거나 생성합니다.
+- **Supabase CLI** — [운영체제별 공식 설치 안내](https://supabase.com/docs/guides/local-development/cli/getting-started)를 따라 PATH에서 `supabase`를 실행할 수 있게 준비하세요.
 - **AI CLI (쓸 것만)** — 아래 중 최소 하나. 전부 설치할 필요는 없고, 로그인해 둔 CLI에 해당하는 비서만 동작합니다.
 
 | CLI | 담당 비서 | 설치 및 로그인 |
@@ -30,91 +30,42 @@ Career Atelier는 두 부분으로 이루어져 있습니다.
 
 ---
 
-## 2. 설치 (최초 1회)
+## 2. 처음 실행
 
-리포를 받은 뒤 설치 마법사를 실행합니다. **Windows·Mac·Linux 모두 같은 명령**입니다.
+Windows·macOS·Linux 모두 저장소 폴더에서 같은 명령을 사용합니다.
 
 ```bash
 git clone https://github.com/tkv00/Career-Atelier-AI-Context-Pack.git
 cd Career-Atelier-AI-Context-Pack
-npm run setup
+npm start
 ```
 
-마법사가 하는 일:
+설정이 없으면 Supabase 로그인·프로젝트 선택 마법사가 실행됩니다. 프로젝트 ref·anon 키는 자동으로 찾고, 데이터베이스 마이그레이션과 웹·러너 환경 파일을 준비합니다. 이어서 필요한 패키지를 설치하고 웹과 러너를 함께 켭니다. 첫 실행에는 인터넷 연결이 필요합니다.
 
-1. Node·Supabase CLI·AI CLI 설치 상태 확인
-2. Supabase 프로젝트 연결 (프로젝트 ref와 anon key를 물어봅니다)
-3. 데이터베이스 테이블·보안 정책·기본 프롬프트 적용
-4. `web/.env.local`과 `runner/.env` 자동 생성
+## 3. 본인 계정 연결
 
-**Supabase 프로젝트 ref와 anon key 찾는 법**: Supabase 대시보드 → 해당 프로젝트 → Settings → Data API. `service_role` 키는 **어디에도 넣지 마세요** — 이 프로젝트는 그 키를 쓰지 않습니다.
+1. 터미널에 출력된 주소(기본 http://localhost:3000)를 열고 본인 이메일·비밀번호로 가입하세요. **첫 가입 계정만 인스턴스 소유자가 됩니다.**
+2. 같은 터미널의 로그인 안내에 웹 가입 때 정한 이메일·비밀번호를 입력하세요. 비밀번호 입력은 숨겨집니다. Supabase 대시보드 계정이나 DB 비밀번호를 넣는 곳이 아닙니다.
+3. 웹 **관제실 → 러너** 목록에서 이 기기를 승인하세요.
+4. 사용할 AI CLI에 본인 구독으로 로그인하고 웹 **프롬프트**에서 해당 제공자를 선택하세요. AI 로그인은 서비스 로그인과 별개입니다.
 
----
+Supabase 로그인, 웹 가입, 기기 승인, AI CLI 로그인은 본인이 직접 해야 합니다. 기존 러너 세션이 유효하면 입력 없이 재사용합니다.
 
-## 3. 실행
+## 4. 필요한 경우만 개별 실행
 
-### 웹 앱
+모두 저장소 폴더에서 실행합니다. Windows는 PowerShell 또는 명령 프롬프트, macOS·Linux는 기본 터미널을 사용하세요.
 
-```bash
-cd web
-npm install
-npm run dev
-```
+| 필요 | 명령 |
+|---|---|
+| 웹과 러너 함께 실행 | `npm start` |
+| 배포된 웹을 쓰며 러너만 실행 | `npm run runner` |
+| 로컬 웹만 실행 | `npm run web` |
+| 러너 로그인 변경 | `npm run login` |
+| 연결 진단 | `npm run doctor` |
+| Supabase 재설정·마이그레이션 적용 | `npm run setup` |
+| 웹을 Vercel에 배포 | `npm run deploy` |
 
-브라우저에서 http://localhost:3000 접속 → 본인 이메일과 비밀번호로 계정 만들기.
-
-> **가장 먼저 가입한 계정이 이 인스턴스의 소유자**가 되고, 그 뒤로는 아무도 가입할 수 없습니다. 첫 가입을 본인 이메일로 하세요.
-
-### 러너
-
-새 터미널 창을 하나 더 열고:
-
-```bash
-cd runner
-npm install
-npm run login    # 이메일 입력 → 비밀번호 입력 (웹 로그인과 같은 계정)
-npm run start
-```
-
-### 러너 승인 (최초 1회)
-
-`npm run start`를 처음 실행하면 이 컴퓨터가 "승인 대기" 상태로 등록됩니다. 웹 앱 **관제실 화면 아래 "러너" 목록**에서 [승인]을 눌러야 실제로 작업을 받습니다. 기기마다 한 번만 하면 됩니다.
-
-### 집·회사 밖에서도 웹으로 보고 싶다면 (선택)
-
-여기까지만 해도 `localhost:3000`에서 웹 앱을 완전히 쓸 수 있습니다. 다만 그 주소는 이 컴퓨터 안에서만 열립니다. 다른 곳에서도 캘린더나 작성 중인 자소서를 보고 싶다면(러너가 꺼져 있어도 웹은 그대로 동작합니다):
-
-```bash
-npm run deploy
-```
-
-리포 루트에서 실행합니다. GitHub에 저장소를 올리거나 Vercel에서 Import할 필요가 없습니다 — `web/` 폴더를 Vercel CLI로 직접 프로젝트에 연결하고, `npm run setup`이 이미 써 둔 Supabase 값을 그대로 넣어 배포까지 끝냅니다. 처음 한 번만 Vercel 로그인 창이 뜹니다.
-
----
-
-## 4. OS별 참고
-
-대부분 동일하지만 몇 가지만 다릅니다.
-
-### Windows
-
-PowerShell을 쓰세요. 경로 구분자만 `\`로 바뀝니다.
-
-```powershell
-cd Career-Atelier-AI-Context-Pack\web
-npm install
-npm run dev
-```
-
-백업 폴더 경로를 지정할 때도 Windows 형식으로 적습니다: `C:\career-atelier-backups`
-
-### Mac
-
-기본 터미널(Terminal.app)로 충분합니다. 백업 경로는 `~/career-atelier-backups` 형식.
-
-### Linux
-
-Mac과 완전히 동일합니다.
+일반 실행은 기존 설정을 재사용하며 DB 마이그레이션을 반복 적용하지 않습니다. 업데이트할 때는 [업그레이드 가이드](UPGRADING.md)를 따르세요. 배포된 웹에서도 AI 작업을 하려면 로컬 러너가 켜져 있어야 합니다.
 
 ---
 
@@ -135,9 +86,9 @@ Mac과 완전히 동일합니다.
 
 ## 6. 매일 쓰는 법
 
-- 비서를 쓰고 싶을 때 `runner` 폴더에서 `npm run start` — 켜져 있는 동안만 작업을 처리합니다.
-- Ctrl+C로 끄면 러너가 멈춥니다. 웹 앱(캘린더, 글 보기/수정)은 러너 없이도 항상 쓸 수 있습니다.
-- 로그인은 한 번만 하면 되고, 이후에는 `npm run start`만 다시 실행하면 됩니다.
+저장소 폴더에서 `npm start` 한 줄로 실행하고, 터미널에 출력된 웹 주소를 여세요. **Ctrl+C 한 번으로 로컬 웹과 러너를 함께 종료**합니다. 다음 날도 같은 명령을 사용합니다.
+
+러너 세션이 만료되면 본인 터미널에서 로그인을 안내합니다. 배포된 웹을 사용하는 경우에는 `npm run runner`만 실행해도 됩니다.
 
 ---
 
@@ -147,10 +98,10 @@ Mac과 완전히 동일합니다.
 → 그 비서가 쓰는 CLI에 로그인이 안 돼 있을 가능성이 큽니다. 터미널에서 `codex login` / `claude auth login` / `agy`로 다시 로그인하세요.
 
 **러너를 껐다 켰는데 다시 로그인하라고 합니다**
-→ `npm run login`을 다시 실행하세요. 로그인 정보는 `~/.career-atelier/session.json`에 저장되며, 이 파일을 지우거나 다른 컴퓨터로 옮기면 다시 로그인해야 합니다.
+→ `npm start` 또는 `npm run runner`를 본인 터미널에서 실행하면 필요한 로그인을 안내합니다. 계정을 바꾸려면 저장소 폴더에서 `npm run login`을 실행하세요. 로그인 정보는 `~/.career-atelier/session.json`에 저장되며, 이 파일을 지우거나 다른 컴퓨터로 옮기면 다시 로그인해야 합니다.
 
 **`npm install`이 실패합니다**
-→ Node.js 버전이 22 미만일 가능성이 큽니다. `node -v`로 확인하세요.
+→ Node.js 22.13 이상인지, 인터넷 연결과 출력된 npm 오류를 확인하세요. 설치가 실패했다면 `npm start`를 다시 실행할 수 있습니다. `node -v`로 확인하세요.
 
 **로그인하려는데 "이미 소유자가 있습니다"라고 나옵니다**
 → 그 Supabase 프로젝트에는 이미 다른 계정이 등록돼 있습니다. 본인 프로젝트를 새로 만들어 `npm run setup`을 다시 실행하세요.
@@ -177,4 +128,4 @@ Mac과 완전히 동일합니다.
 → 러너가 켜져 있어야 하고, 승인된 상태여야 하며, 경로가 절대 경로여야 합니다. 관제실의 러너 항목에 실패 사유가 표시됩니다.
 
 **가입/비밀번호 재설정 시 "email rate limit exceeded"가 나옵니다**
-→ Resend를 설정하지 않은 상태라면 Supabase 기본 메일 서비스(시간당 2통)를 쓰고 있는 것입니다. 가입 흐름을 여러 번 반복 테스트하면 금방 막힙니다. 1시간쯤 기다리면 풀리고, 더 넉넉하게 쓰려면 `README.md`의 "Install — three commands" 안내대로 [Resend](https://resend.com)를 무료로 연결하세요.
+→ Resend를 설정하지 않은 상태라면 Supabase 기본 메일 서비스(시간당 2통)를 쓰고 있는 것입니다. 가입 흐름을 여러 번 반복 테스트하면 금방 막힙니다. 1시간쯤 기다리면 풀리고, 더 넉넉하게 쓰려면 설치 마법사의 SMTP 안내대로 [Resend](https://resend.com)를 무료로 연결하세요.

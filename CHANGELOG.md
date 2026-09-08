@@ -6,6 +6,9 @@ User-facing changes are recorded here before release. See [the release policy](d
 
 ### Added
 
+- Start the local web app and runner with `npm start` on Windows, macOS, and Linux, including dependency setup, interactive login when needed, and shared shutdown.
+- Windows·macOS·Linux에서 `npm start` 하나로 패키지 준비, 웹·러너 실행, 필요한 로그인 안내와 동시 종료를 제공합니다.
+
 - Show each available Codex subscription-limit window, its remaining percentage, and reset time from the signed-in local runner.
 
 ## [0.2.0-beta.1] - 2026-09-07

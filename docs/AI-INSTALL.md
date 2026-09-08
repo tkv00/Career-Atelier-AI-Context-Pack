@@ -116,20 +116,18 @@ If a check fails, diagnose it without weakening the privacy or billing safeguard
 
 ### 7. Hand control back to the user
 
-Report what was installed, which AI CLIs are available, and any checks that failed. Give the two start commands:
+Report what was installed, which AI CLIs are available, and any checks that failed. Give one command, run from the repository root on Windows, macOS, or Linux:
 
 ```bash
-npm run dev --prefix web
+npm start
 ```
 
-```bash
-npm run start --prefix runner
-```
+It installs missing/changed dependencies, starts the web app, then starts the runner and requests service login only when needed in an interactive terminal. Ctrl+C stops both. For an already deployed web app, use `npm run runner` instead.
 
 Remind the user that they must:
 
-1. Open `http://localhost:3000` and make their own email the first account.
-2. Run `npm run login --prefix runner` and complete the email-code login.
+1. Open the printed web address (normally `http://localhost:3000`) and make their own email the first account.
+2. Enter that same web email and password in the running terminal when prompted. Password input is hidden; this is not an email-code or Supabase database login.
 3. Approve this runner once from the dashboard.
 
 Do not claim installation is complete until dependency installation, the setup wizard, and the verification checks have either succeeded or been clearly reported as remaining work.

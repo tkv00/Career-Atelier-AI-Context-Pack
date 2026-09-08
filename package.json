@@ -7,10 +7,13 @@
     "node": ">=22.13.0"
   },
   "scripts": {
+    "start": "node scripts/start.mjs",
+    "web": "node scripts/start.mjs web",
+    "login": "node scripts/start.mjs login",
     "setup": "node scripts/setup.mjs",
     "deploy": "node scripts/deploy.mjs",
-    "doctor": "node runner/index.mjs doctor",
-    "runner": "node runner/index.mjs start",
+    "doctor": "node scripts/start.mjs doctor",
+    "runner": "node scripts/start.mjs runner",
     "check:version": "node scripts/release.mjs check",
     "release:prepare": "node scripts/release.mjs prepare",
     "test:tooling": "node scripts/test-tooling.mjs",

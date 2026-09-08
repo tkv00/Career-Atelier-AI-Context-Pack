@@ -32,9 +32,10 @@ Run these in order. Steps 1 and 4 need a human — do not pretend otherwise.
 ### 1. Sign in to Supabase (human required)
 
 ```bash
-npm install -g supabase          # if `supabase` is missing
 supabase login                   # opens a browser; only they can finish it
 ```
+
+If `supabase` is missing, follow the [official OS-specific installation guide](https://supabase.com/docs/guides/local-development/cli/getting-started) and make it available on PATH.
 
 Do not ask them for a project ref or an anon key. The wizard finds both.
 
@@ -71,14 +72,16 @@ npm install
 
 Two things you cannot do:
 
-- **First sign-up.** Start the web app (`cd web`, then `npm run dev`), then the
+- **First sign-up.** Have them run `npm start` from the repository root on Windows, macOS, or Linux. It prepares dependencies and starts the web app and runner together. Then the
   human opens http://localhost:3000 and creates an account with their own email
   and a password. **The first account to sign up becomes the owner of that
   instance and every later signup is rejected**, so this must be them.
-- **Runner login and approval.** `cd runner`, then `npm run login` needs the
+- **Runner login and approval.** The same `npm start` terminal requests login if its session is missing or expired. It needs the
   email and password they chose in the web signup form. The password input is hidden.
-  Supabase dashboard and database passwords are different credentials. After `npm run start`, they approve the
+  Supabase dashboard and database passwords are different credentials. They approve the
   device in the dashboard's runner list.
+
+Ctrl+C stops both local services. For a deployed web app, `npm run runner` starts only the local runner. Existing subdirectory commands remain available for development and unattended use.
 
 Agents also need their own CLI subscriptions signed in (`codex login`,
 `claude auth login`, `agy`). Those are the human's accounts; do not attempt to
