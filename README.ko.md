@@ -84,7 +84,53 @@ Supabase 로그인·최초 가입·기기 승인은 본인이 직접 해야 합�
 
 ### 3. 사용하는 AI 연결
 
-지원하는 [AI CLI](docs/REFERENCE.md#requirements)를 하나 이상 설치하고 본인 구독 계정으로 로그인하세요. 웹 **프롬프트**에서 사용할 비서의 제공자를 해당 CLI로 지정하세요. AI CLI 로그인은 웹·러너 계정과 별개입니다.
+AI 기능을 쓰려면 AI CLI 하나 이상을 설치하고, **본인의 구독 계정**으로 로그인해야 합니다. 웹·러너 로그인과 AI CLI 로그인은 서로 별개입니다. 셋을 모두 설치할 필요는 없습니다.
+
+| 설치할 CLI | 맡길 수 있는 비서 |
+|---|---|
+| Codex (ChatGPT) | 루미 · 모카 · 뮤즈 · 에코 |
+| Claude Code | 솔 · 렌즈 |
+| Antigravity (Google) | 콤마 |
+
+#### Codex로 시작하기
+
+ChatGPT 계정으로 로그인합니다.
+
+```bash
+npm install -g @openai/codex
+codex --version
+codex login
+```
+
+브라우저가 열리면 **ChatGPT 계정 로그인**을 선택하세요. 이 서비스는 API 키 과금 방식을 사용하지 않으므로, API 키 로그인은 설정하지 마세요.
+
+#### Claude Code로 시작하기
+
+Claude Pro 또는 Max 구독 계정으로 로그인합니다.
+
+```bash
+npm install -g @anthropic-ai/claude-code
+claude --version
+claude auth login
+```
+
+브라우저에서 Claude 계정으로 로그인하고 구독 로그인을 완료하세요.
+
+#### Antigravity로 시작하기
+
+macOS·Linux에서는 다음 명령으로 설치한 뒤 Google 계정으로 로그인합니다.
+
+```bash
+curl -fsSL https://antigravity.google/cli/install.sh | bash
+agy --version
+agy
+```
+
+Windows에서는 [Antigravity 공식 사이트](https://antigravity.google)에서 설치 프로그램을 내려받아 안내를 따르세요. 처음 `agy`를 실행하면 Google 로그인을 요청합니다.
+
+설치 뒤 명령을 찾지 못한다면 터미널을 완전히 닫고 다시 열어 `--version` 명령을 다시 실행하세요. macOS·Linux에서 `npm install -g`가 권한 오류(`EACCES`)로 실패하면 `sudo`를 쓰지 말고 [nvm](https://github.com/nvm-sh/nvm)으로 Node.js를 다시 설치하세요.
+
+로그인이 끝나면 웹 **프롬프트**에서 사용할 비서의 제공자를 설치한 CLI로 지정하고 저장하세요. 로그인하지 않은 CLI에 배정한 비서는 실행할 수 없습니다. 자세한 제공자 안내는 [AI CLI 참고 문서](docs/REFERENCE.ko.md#시작하기)를 확인하세요.
 
 **경험 카드**에 경험을 저장한 뒤 비서 작업을 요청하고 **실행 기록**에서 결과를 확인하세요. AI 작업 중에는 이 터미널과 컴퓨터를 켜 두세요.
 

@@ -84,7 +84,53 @@ Supabase sign-in, first signup, and device approval require you. The launcher re
 
 ### 3. Connect the AI you use
 
-Install and sign in to at least one supported [AI CLI](docs/REFERENCE.md#requirements) with your own subscription. In **프롬프트** (Prompts), assign the assistants you want to use to that provider. AI CLI login is separate from the web/runner account.
+To use AI features, install at least one AI CLI and sign in with **your own subscription account**. AI CLI login is separate from the web and runner account. You do not need all three.
+
+| CLI | Assistants it can run |
+|---|---|
+| Codex (ChatGPT) | Lumi · Moka · Muse · Echo |
+| Claude Code | Sol · Lens |
+| Antigravity (Google) | Comma |
+
+#### Start with Codex
+
+Sign in with your ChatGPT account:
+
+```bash
+npm install -g @openai/codex
+codex --version
+codex login
+```
+
+When the browser opens, choose **ChatGPT account login**. This service does not use API-key billing, so do not configure an API-key login.
+
+#### Start with Claude Code
+
+Sign in with a Claude Pro or Max subscription account:
+
+```bash
+npm install -g @anthropic-ai/claude-code
+claude --version
+claude auth login
+```
+
+Complete the subscription login in your browser.
+
+#### Start with Antigravity
+
+On macOS or Linux, install it and sign in with your Google account:
+
+```bash
+curl -fsSL https://antigravity.google/cli/install.sh | bash
+agy --version
+agy
+```
+
+On Windows, download the installer from the [Antigravity website](https://antigravity.google) and follow its prompts. The first `agy` command asks you to sign in with Google.
+
+If a newly installed command is not found, close the terminal completely, reopen it, and retry its `--version` command. If `npm install -g` returns an `EACCES` permission error on macOS or Linux, do not use `sudo`; reinstall Node.js with [nvm](https://github.com/nvm-sh/nvm).
+
+After login, assign the assistants you want to use to that provider in **프롬프트** (Prompts) and save. An assistant assigned to a CLI you have not signed in to cannot run. See the [AI CLI reference](docs/REFERENCE.md#requirements) for further provider details.
 
 Save an experience under **경험 카드**, then request an assistant task and check **실행 기록**. Keep this terminal and your computer running during AI work.
 
