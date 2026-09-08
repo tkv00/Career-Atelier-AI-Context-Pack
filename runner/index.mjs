@@ -24,6 +24,7 @@ import {
 } from './context-pack.mjs';
 import { runProvider } from './execute.mjs';
 import { runBackup, shouldBackupNow } from './backup.mjs';
+import { readCodexRateLimits } from './providers/codex-usage.mjs';
 import {
   buildJobsDiscoveryPrompt,
   buildNewsDiscoveryPrompt,
@@ -39,6 +40,7 @@ import { buildSearchFormatPrompt } from './search-format.mjs';
 import { CONCURRENT_RUN_LIMIT, HEARTBEAT_INTERVAL_MS, assertSubscriptionProvider, childEnvironment, providerStatus } from './safety.mjs';
 
 const POLL_INTERVAL_MS = 5_000;
+const CODEX_USAGE_REFRESH_INTERVAL_MS = 120_000;
 // 자소서 수정 요청을 몇 개까지 함께 넘길지. 너무 많으면 서로 모순되는 지시가
 // 쌓여 모델이 갈피를 못 잡는다.
 const REVISION_HISTORY_LIMIT = 6;
@@ -1053,6 +1055,7 @@ async function startLoop() {
   let running = false;
   let stopped = false;
   let backingUp = false;
+  let refreshingCodexUsage = false;
   let lastPollNotice = '';
 
   // 5초마다 같은 경고를 찍지는 않되, 멈춘 이유가 바뀌면 즉시 한 번 알린다.
@@ -1060,6 +1063,22 @@ async function startLoop() {
     if (lastPollNotice === key) return;
     lastPollNotice = key;
     console.log(message);
+  }
+
+  async function refreshCodexUsage() {
+    if (refreshingCodexUsage) return;
+    refreshingCodexUsage = true;
+    try {
+      const limits = await readCodexRateLimits();
+      if (!limits) return;
+      const { error } = await supabase
+        .from('runners')
+        .update({ codex_rate_limits: limits, codex_rate_limits_checked_at: new Date().toISOString() })
+        .eq('id', runner.id);
+      if (error) console.error(`Codex 구독 한도 저장 실패: ${error.message}`);
+    } finally {
+      refreshingCodexUsage = false;
+    }
   }
 
   async function sendHeartbeat() {
@@ -1082,9 +1101,13 @@ async function startLoop() {
   // 첫 15초 동안 last_seen_at이 비어 있으면 이미 켜진 러너도 관제실에는
   // 오프라인으로 보인다. 시작 직후 갱신해 연결 상태와 실제 프로세스를 맞춘다.
   void sendHeartbeat();
+  void refreshCodexUsage();
   const heartbeatTimer = setInterval(() => {
     void sendHeartbeat();
   }, HEARTBEAT_INTERVAL_MS);
+  const codexUsageTimer = setInterval(() => {
+    void refreshCodexUsage();
+  }, CODEX_USAGE_REFRESH_INTERVAL_MS);
 
   // 백업 설정은 웹에서 언제든 바뀌므로 매번 러너 행을 다시 읽는다. 시작 시점 값을
   // 캐시해 두면 토글을 켜도 러너를 재시작하기 전까지 반영되지 않는다.
@@ -1153,6 +1176,8 @@ async function startLoop() {
       lastPollNotice = '';
       claimedJobId = job.id;
       await processJob(supabase, user.id, job);
+      // 작업이 끝난 직후 다시 읽어, 다음 주기까지 오래된 잔량을 보여주지 않는다.
+      void refreshCodexUsage();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       const target = claimedJobId ? `잡 ${claimedJobId}` : '큐';
@@ -1166,6 +1191,7 @@ async function startLoop() {
     process.on(signal, () => {
       stopped = true;
       clearInterval(heartbeatTimer);
+      clearInterval(codexUsageTimer);
       clearInterval(poll);
       console.log('\n러너를 종료합니다.');
       process.exit(0);

@@ -4,6 +4,10 @@ User-facing changes are recorded here before release. See [the release policy](d
 
 ## [Unreleased]
 
+### Added
+
+- Show each available Codex subscription-limit window, its remaining percentage, and reset time from the signed-in local runner.
+
 ## [0.2.0-beta.1] - 2026-09-07
 
 First public beta. Web, runner, installer, and MCP share this version.

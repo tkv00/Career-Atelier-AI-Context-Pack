@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server';
 import { isRunnerOnline } from '@/lib/runner-status';
 import { formatDateTime } from '@/lib/datetime';
 import { formatCompanyRating } from '@/lib/company-rating';
-import { formatResetsAt, parseClaudeWindows, sumCodexTokens } from '@/lib/llm-usage';
+import { formatResetsAt, parseClaudeWindows, parseCodexWindows } from '@/lib/llm-usage';
 import { createEssay, startEssayForJobPost } from '../essays/actions';
 import { approveRunner } from '../runners/actions';
 import { RunnerBackupForm } from './runner-backup-form';
@@ -33,7 +33,6 @@ export default async function DashboardPage() {
     { data: questionCounts },
     { data: agentRuns },
     { data: claudeLimitEvents },
-    { data: codexUsageEvents },
     { data: promptTemplates },
   ] = await Promise.all([
     supabase.from('profiles').select('*').maybeSingle(),
@@ -46,9 +45,8 @@ export default async function DashboardPage() {
     supabase.from('jobs').select('id, status').eq('kind', 'jobs').in('status', ['queued', 'running']).order('created_at', { ascending: false }).limit(1),
     supabase.from('essay_questions').select('job_post_id'),
     supabase.from('agent_runs').select('agent_id, provider, status, error, created_at').order('created_at', { ascending: false }).limit(50),
-    // 구독 잔량은 별도 테이블 없이 실행 스트림에서 되읽는다(web/lib/llm-usage.ts).
+    // Claude는 실행 스트림, Codex는 로컬 러너가 App Server에서 읽은 실제 창을 쓴다.
     supabase.from('run_events').select('payload').eq('kind', 'rate_limit_event').order('created_at', { ascending: false }).limit(1),
-    supabase.from('run_events').select('payload').eq('kind', 'turn.completed').order('created_at', { ascending: false }).limit(200),
     supabase.from('prompt_templates').select('agent_id, provider'),
   ]);
 
@@ -75,12 +73,11 @@ export default async function DashboardPage() {
   const claudeRuns = (agentRuns ?? []).filter((run) => run.provider === 'claude').length;
   const geminiRuns = (agentRuns ?? []).filter((run) => run.provider === 'gemini').length;
 
-  // Claude만 실제 잔량(창별 사용률)을 스트림으로 준다. Codex는 토큰 수만 주고
-  // 한도를 안 줘서 잔량 계산이 불가능하다 — 없는 값을 지어내지 않는다.
   const providerByAgent = Object.fromEntries((promptTemplates ?? []).map((row) => [row.agent_id, row.provider])) as Partial<Record<PilotId, string>>;
 
   const claudeWindows = parseClaudeWindows(claudeLimitEvents?.[0]?.payload ?? null);
-  const codexTokens = sumCodexTokens((codexUsageEvents ?? []).map((row) => row.payload));
+  const codexRunner = (runners ?? []).find((runner) => isRunnerOnline(runner.last_seen_at) && runner.codex_rate_limits) ?? null;
+  const codexWindows = parseCodexWindows(codexRunner?.codex_rate_limits ?? null);
 
   return (
     <>
@@ -131,10 +128,24 @@ export default async function DashboardPage() {
           </article>
           <article className="quota-block">
             <header><span className="cloud-provider-icon codex">OX</span><b>Codex · ChatGPT</b></header>
-            <div className="quota-window">
-              <p><span>누적 토큰</span><strong>{codexTokens.toLocaleString()}</strong></p>
-              <small>ChatGPT는 남은 한도를 알려주지 않습니다. 실제 사용량만 표시합니다.</small>
-            </div>
+            {codexWindows.length ? (
+              codexWindows.map((win) => {
+                const left = Math.round((1 - win.usedRatio) * 100);
+                const tone = left <= 10 ? 'danger' : left <= 30 ? 'warn' : 'ok';
+                return (
+                  <div className="quota-window" key={win.label}>
+                    <p><span>{win.label}</span><strong className={tone}>{left}% 남음</strong></p>
+                    <i><em className={tone} style={{ width: `${Math.round(win.usedRatio * 100)}%` }} /></i>
+                    <small>{formatResetsAt(win.resetsAt) ?? '초기화 시각 미상'}</small>
+                  </div>
+                );
+              })
+            ) : (
+              <p className="quota-empty">온라인 러너가 Codex 구독 한도를 확인하면 실제 잔량과 초기화 시각이 표시됩니다.</p>
+            )}
+            {codexRunner?.codex_rate_limits_checked_at && (
+              <small>마지막 확인 {formatDateTime(codexRunner.codex_rate_limits_checked_at)}</small>
+            )}
           </article>
           <article className="quota-block locked">
             <header><span className="cloud-provider-icon">00</span><b>API Fallback</b></header>

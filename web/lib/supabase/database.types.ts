@@ -1200,6 +1200,8 @@ export type Database = {
           backup_dir: string | null
           backup_enabled: boolean
           created_at: string
+          codex_rate_limits: Json | null
+          codex_rate_limits_checked_at: string | null
           device_name: string
           fingerprint: string
           id: string
@@ -1213,6 +1215,8 @@ export type Database = {
           backup_dir?: string | null
           backup_enabled?: boolean
           created_at?: string
+          codex_rate_limits?: Json | null
+          codex_rate_limits_checked_at?: string | null
           device_name: string
           fingerprint: string
           id?: string
@@ -1226,6 +1230,8 @@ export type Database = {
           backup_dir?: string | null
           backup_enabled?: boolean
           created_at?: string
+          codex_rate_limits?: Json | null
+          codex_rate_limits_checked_at?: string | null
           device_name?: string
           fingerprint?: string
           id?: string
