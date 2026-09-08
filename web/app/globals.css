@@ -51,6 +51,11 @@
   --amber: #f5a962;
   --amber-strong: #ffbe7d;
   --amber-dim: #8a5c30;
+  /* 주요 버튼의 그라데이션 아래쪽과 그 위에 얹는 글자색. 같은 두 값이 규칙
+     다섯 곳에 하드코딩돼 있었다 — 이 파일 머리말이 그걸 버그라고 못박는다. */
+  --amber-deep: #e2954f;
+  --on-amber: #1a1209;
+  --amber-wash: rgba(245, 169, 98, 0.12);
   --cyan: #58cfe4;
   --cyan-strong: #86e5f5;
   --cyan-dim: #2a6b7a;
@@ -68,6 +73,26 @@
   --info: #6ba8e5;
   --info-bg: #14202e;
   --info-line: #24384f;
+
+  /* 마감 긴급도 — 남은 시간을 네 단계로 가른다. 예전에는 D-45도 D-1도 모두
+     --danger 한 색이라 빨강이 "마감이 있다"는 뜻일 뿐 "급하다"는 신호가 되지
+     못했다(진단 2026-09-08). 단계 기준은 lib/datetime.ts의 urgencyTone이
+     단독으로 정하고, 여기서는 색만 준다. 색만으로 구분하지 않는 원칙은 그대로다
+     — 남은 숫자 텍스트가 항상 함께 붙는다. */
+  --urgency-now: #ef7d6e;
+  --urgency-now-bg: #2c1817;
+  --urgency-now-line: #4d2723;
+  --urgency-soon: #e5b45f;
+  --urgency-soon-line: #4a3a1c;
+  --urgency-plan: #6ba8e5;
+  --urgency-far: #8f9fb0;
+  --urgency-past: #778da7;
+
+  /* 캘린더 날짜 칸 표면 — 예전엔 #0a111a/#17110a가 규칙 안에 그대로 박혀
+     있었다(이 파일 머리말: "하드코딩된 색이 남아 있으면 그건 버그다"). */
+  --surface-cell: #0a111a;
+  --surface-cell-today: #17110a;
+  --surface-cell-weekend: #06090f;
 
   /* 간격 — 4px 배수. */
   --s1: 4px;
@@ -94,6 +119,11 @@
   --fs-sm: 12px;
   --fs-base: 13px;
   --fs-md: 14px;
+  /* 카드·행의 "정체성" 줄(회사명)용. 10·11·12·13·14가 5px 구간에 다 몰려 있어
+     인접 단계가 1px 차이라 위계로 안 읽히고 "다 작은 글씨"로 뭉개졌다 —
+     11 → 13 → 15로 벌려야 눈이 단계로 인식한다. 새 코드에서 10px(--fs-hud)은
+     쓰지 않는다. */
+  --fs-row: 15px;
   --fs-lg: 16px;
   --fs-xl: 20px;
   --fs-2xl: 26px;
@@ -440,8 +470,8 @@ body::after {
   padding: 0 var(--s4);
   border: 1px solid var(--amber-dim);
   border-radius: var(--r-control);
-  background: linear-gradient(180deg, var(--amber), #e2954f);
-  color: #1a1209;
+  background: linear-gradient(180deg, var(--amber), var(--amber-deep));
+  color: var(--on-amber);
   display: inline-flex;
   align-items: center;
   gap: var(--s2);
@@ -605,6 +635,56 @@ option {
   background: var(--danger-bg);
   border-color: var(--danger-line);
   color: var(--danger);
+}
+/* 지원 진행 상태(progressTone)용 변형. 캘린더 더보기 팝업이 이미
+   `status-pill ${progressTone(job)}`을 쓰고 있었는데 정작 이 다섯 개가
+   정의돼 있지 않아 무색으로 떨어지고 있었다(진단 2026-09-08). */
+.status-pill.pass {
+  background: var(--ok-bg);
+  border-color: var(--ok-line);
+  color: var(--ok);
+}
+.status-pill.fail {
+  background: var(--danger-bg);
+  border-color: var(--danger-line);
+  color: var(--danger);
+}
+.status-pill.submitted {
+  background: var(--info-bg);
+  border-color: var(--info-line);
+  color: var(--info);
+}
+.status-pill.working {
+  background: var(--warn-bg);
+  border-color: var(--warn-line);
+  color: var(--warn);
+}
+.status-pill.waiting {
+  background: var(--surface-2);
+  border-color: var(--line);
+  color: var(--text-3);
+}
+
+/* 마감까지 남은 시간 — 어디에 놓이든 같은 단계 색을 쓴다. */
+.urgency {
+  font-style: normal;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.urgency.now {
+  color: var(--urgency-now);
+}
+.urgency.soon {
+  color: var(--urgency-soon);
+}
+.urgency.plan {
+  color: var(--urgency-plan);
+}
+.urgency.far {
+  color: var(--urgency-far);
+}
+.urgency.past {
+  color: var(--urgency-past);
 }
 
 .banner {
@@ -1165,17 +1245,15 @@ option {
 
 /* ── 8. 캘린더 & 진행상황 ────────────────────────────────────────────── */
 
-.calendar-workspace {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
-  gap: var(--s4);
-  align-items: start;
-}
-
+/* 달력이 콘텐츠 전폭을 쓴다. 예전에는 340px 등록 폼이 오른쪽에 상시 붙어
+   있어 달력이 폭의 27%를 잃었고, 1440px 화면에서 날짜 칸이 121×82px까지
+   눌렸다 — 칩 하나에 남는 글자 폭이 86px(한글 7~8자)이라 회사명이 늘 잘렸고,
+   칩 2개를 넣으면 이미 min-height를 넘겨 세 번째 일정부터 무조건 "더보기"로
+   밀려났다(실측 2026-09-08). 폼은 날짜를 클릭하면 열리는 서랍으로 옮겼다 —
+   실제로 쓰이는 건 저장하는 순간뿐이라 상시 자리를 줄 이유가 없다.
+   같은 폭에서 칸이 172×124px가 된다(면적 약 2.1배). */
 .calendar-board,
-.calendar-editor,
-.application-status-board,
-.calendar-upcoming {
+.application-status-board {
   border: 1px solid var(--line-soft);
   border-radius: var(--r-panel);
   background: var(--surface-1);
@@ -1216,7 +1294,7 @@ option {
 
 .calendar-weekdays {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: var(--s1);
   margin-bottom: var(--s1);
 }
@@ -1226,55 +1304,95 @@ option {
   font-size: var(--fs-xs);
   font-weight: 600;
 }
+/* 주말은 배경 톤으로만 가른다. 한국 달력 관례대로 일요일을 빨갛게 칠하면
+   바로 옆 마감 배지의 빨강과 부딪힌다 — 이 화면에서 빨강은 "지금 급하다"
+   하나만 뜻하게 남겨 둔다. */
+.calendar-weekdays span:first-child,
+.calendar-weekdays span:last-child {
+  color: var(--text-dim);
+}
 
 .calendar-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   gap: var(--s1);
 }
 .calendar-day {
   position: relative;
-  min-height: 82px;
+  min-height: 124px;
   padding: var(--s2);
   border: 1px solid var(--line-soft);
   border-radius: var(--r-control);
-  background: #0a111a;
+  background: var(--surface-cell);
   display: flex;
   flex-direction: column;
-  gap: 3px;
+  gap: var(--s1);
   min-width: 0;
 }
+.calendar-day.weekend {
+  background: var(--surface-cell-weekend);
+}
+/* 빈 날짜를 클릭하면 그 날짜가 채워진 등록 서랍이 열린다. 예전 달력은 읽기
+   전용이라 "22일에 하나 추가"를 하려면 오른쪽 폼으로 눈을 옮겨 날짜를 직접
+   타이핑해야 했다 — 달력의 가장 기본적인 어포던스가 비어 있었다. 칩 위에
+   겹치지 않고 뒤(z-index:0)에 깔아 버튼 안에 버튼이 들어가는 마크업을 피한다. */
+.calendar-day-add {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  padding: 0;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  cursor: pointer;
+}
+.calendar-day-add:hover {
+  background: #ffffff08;
+}
+.calendar-day-add:focus-visible {
+  outline-offset: -3px;
+}
+/* 날짜 숫자·칩은 그 버튼 위에 그리되 빈 공간의 클릭은 그대로 통과시킨다. */
+.calendar-day > b,
+.calendar-day-items {
+  position: relative;
+  z-index: 1;
+  pointer-events: none;
+}
+.calendar-day-items > * {
+  pointer-events: auto;
+}
 .calendar-day > b {
-  color: var(--text-3);
-  font-size: var(--fs-xs);
+  color: var(--text-2);
+  font-size: var(--fs-base);
   font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
-.calendar-day > div {
+.calendar-day-items {
   display: grid;
   gap: 2px;
   min-width: 0;
 }
 .calendar-day.outside {
-  opacity: 0.3;
+  opacity: 0.35;
 }
 .calendar-day.today {
   border-color: var(--amber-dim);
-  background: #17110a;
+  background: var(--surface-cell-today);
 }
 .calendar-day.today > b {
   color: var(--amber);
 }
-/* 칸을 넘는 날은 "+N개 더보기"를 누른다 — 예전엔 옅은 회색 9px 텍스트라
-   잘 안 보인다는 지적을 받았다(2026-09-06). 실제로 누를 수 있는 링크처럼
-   시안 강조색을 주고 한 단계 키웠다. */
+/* 칸을 넘는 날은 "+N건"을 누른다 — 예전엔 옅은 회색 9px 텍스트라 잘 안
+   보인다는 지적을 받았고(2026-09-06), 10px까지만 올려 뒀던 걸 본문 라벨과
+   같은 11px로 맞췄다. */
 .calendar-day-more {
   justify-self: start;
   padding: 0;
   border: 0;
   background: transparent;
   color: var(--cyan-strong);
-  font-size: var(--fs-hud);
+  font-size: var(--fs-xs);
   font-weight: 600;
   text-decoration: underline;
   text-underline-offset: 2px;
@@ -1295,7 +1413,7 @@ option {
   left: 0;
   top: calc(100% + 6px);
   z-index: var(--z-float);
-  width: 236px;
+  width: 260px;
   padding: var(--s3);
   border: 1px solid var(--line);
   border-radius: var(--r-card);
@@ -1351,6 +1469,11 @@ option {
 .calendar-day-preview li button:hover {
   background: var(--surface-3);
 }
+/* li 버튼이 display:grid라 inline-flex인 알약이 칸 폭만큼 늘어나 입력창처럼
+   보였다 — 폭은 내용만큼만 준다. */
+.calendar-day-preview li .status-pill {
+  justify-self: start;
+}
 .calendar-day-preview li b {
   font-size: var(--fs-sm);
   font-weight: 600;
@@ -1360,16 +1483,26 @@ option {
   color: var(--text-3);
   font-size: var(--fs-xs);
 }
+/* 색은 .urgency가 준다 — 여기서는 자리만 잡는다. */
 .calendar-day-preview-remaining {
-  color: var(--danger);
   font-size: var(--fs-xs);
-  font-weight: 600;
-  font-style: normal;
 }
-/* 넷째 줄 이후 칸은 화면 아래로 넘칠 수 있어 위로 띄운다. */
-.calendar-grid > :nth-child(n+29) .calendar-day-preview {
-  top: auto;
-  bottom: calc(100% + 6px);
+/* 팝업(260px)은 칸(172px)보다 넓고 보드 한 줄보다 높다. 오른쪽 끝 두 열은
+   반대쪽으로 붙이고, 아래 두 줄은 위로 띄운다 — 어느 칸이 그에 해당하는지는
+   달마다 주 수가 달라 CSS가 알 수 없으므로 컴포넌트가 flip-left/flip-up으로
+   알려 준다. 예전 `:nth-child(n+29)`는 6주 달을 가정한 값이라 5주로 끝나는
+   달에서는 넷째 줄 팝업이 보드 밖으로 흘렀고, 가로 넘침은 아예 대응이 없어
+   금·토 칸 팝업이 옆 패널을 덮었다(진단 2026-09-08).
+   뒤집기는 데스크톱 전용이다 — 모바일에서는 팝업이 하단 시트로 바뀐다. */
+@media (min-width: 761px) {
+  .calendar-day-preview.flip-left {
+    left: auto;
+    right: 0;
+  }
+  .calendar-day-preview.flip-up {
+    top: auto;
+    bottom: calc(100% + 6px);
+  }
 }
 
 /* 전형 단계 토글 — 대기(회색)→합격(초록)→불합격(빨강)→대기로 순환한다. */
@@ -1384,7 +1517,7 @@ option {
   border-radius: var(--r-chip);
   background: var(--surface-2);
   color: var(--text-3);
-  font-size: 10px;
+  font-size: var(--fs-xs);
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -1405,6 +1538,19 @@ option {
   background: var(--danger-bg);
   color: var(--danger);
 }
+/* 카드 안에서는 같은 5개를 한 줄 가득 채운 등폭 트랙으로 세운다. 이 다섯은
+   실제로 순서가 있는 전형 단계라(서류 → … → 최종면접) 왼쪽에서 오른쪽으로
+   읽히는 형태가 곧 진척도가 된다 — 장식이 아니라 정보다. */
+.job-stage-track {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 2px;
+}
+.job-stage-track .stage-toggle {
+  width: 100%;
+  padding: 5px 2px;
+  text-align: center;
+}
 .calendar-stage-editor {
   padding-top: var(--s3);
   border-top: 1px solid var(--line-soft);
@@ -1420,18 +1566,28 @@ option {
 /* 진행 상태 칩 — 색만이 아니라 점 + 회사명 텍스트를 함께 보여준다. */
 .calendar-progress-chip {
   width: 100%;
-  padding: 2px var(--s1);
+  padding: 3px var(--s1);
   border: 1px solid var(--line);
   border-radius: var(--r-chip);
   background: var(--surface-2);
   color: var(--text-2);
-  font-size: 10px;
+  font-size: var(--fs-sm);
+  line-height: 1.35;
   text-align: left;
   cursor: pointer;
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 5px;
   overflow: hidden;
+  min-width: 0;
+}
+/* 회사명은 반드시 말줄임표로 잘린다. 예전에는 overflow:hidden + nowrap만
+   있고 text-overflow가 없어 이름이 칼같이 잘렸고, 잘린 건지 원래 그런
+   이름인지 구분할 수 없었다(진단 2026-09-08). flex 컨테이너의 익명 텍스트
+   노드에는 text-overflow가 걸리지 않아 <span>으로 감싸 여기에 건다. */
+.calendar-progress-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
   min-width: 0;
 }
@@ -1452,15 +1608,72 @@ option {
 .calendar-progress-chip.working { color: var(--warn); border-color: var(--warn-line); background: var(--warn-bg); }
 .calendar-progress-chip.waiting { color: var(--text-3); }
 
-.calendar-editor {
+/* 등록·편집 서랍. 예전에는 이 폼이 달력 옆에 340px 고정 폭으로 상시 붙어
+   있었지만, 실제로 쓰이는 건 저장하는 순간뿐인데 달력 폭의 27%를 늘 먹었다.
+   지금은 날짜·칩·"편집"을 눌렀을 때만 오른쪽에서 열린다. 편집 창구를 하나로
+   모아 두면 카드 쪽에 드롭다운을 다시 심을 필요도 없다. */
+.drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  background: #04070ccc;
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: flex-end;
+}
+.schedule-drawer {
+  width: min(420px, 100%);
+  height: 100%;
+  overflow-y: auto;
   padding: var(--s5);
+  border-left: 1px solid var(--line);
+  background: var(--surface-1);
   display: flex;
   flex-direction: column;
   gap: var(--s3);
-  align-self: start;
+  /* 사용자의 동작에 답하는 움직임 하나만 둔다 — 무엇이 열렸는지 보여주는
+     용도다. 전역 prefers-reduced-motion 규칙이 이걸 끈다. */
+  animation: drawer-in var(--dur) var(--ease);
 }
-.calendar-editor h3 {
+@keyframes drawer-in {
+  from {
+    transform: translateX(20px);
+    opacity: 0;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+.schedule-drawer-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--s3);
+}
+.schedule-drawer-head h3 {
   font-size: var(--fs-lg);
+}
+.schedule-drawer-head p {
+  margin: 2px 0 0;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+.schedule-drawer-close {
+  flex-shrink: 0;
+  width: 28px;
+  height: 28px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  background: var(--surface-2);
+  color: var(--text-3);
+  font-size: var(--fs-md);
+  line-height: 1;
+  cursor: pointer;
+}
+.schedule-drawer-close:hover {
+  background: var(--surface-3);
+  color: var(--text-1);
 }
 .researched-job-select,
 .calendar-form-grid label {
@@ -1514,8 +1727,8 @@ option {
 }
 .calendar-form-actions .primary {
   border-color: var(--amber-dim);
-  background: linear-gradient(180deg, var(--amber), #e2954f);
-  color: #1a1209;
+  background: linear-gradient(180deg, var(--amber), var(--amber-deep));
+  color: var(--on-amber);
 }
 .calendar-form-actions button:disabled {
   opacity: 0.45;
@@ -1526,17 +1739,22 @@ option {
   margin-top: var(--s4);
   padding: var(--s5);
 }
+/* 제목은 왼쪽, 조작부와 건수는 오른쪽으로 붙인다 — space-between으로 셋을
+   흩뿌리면 가운데 조작부가 어디에도 속하지 않은 것처럼 뜬다. */
 .application-status-head {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
   gap: var(--s3);
+  flex-wrap: wrap;
   margin-bottom: var(--s4);
+}
+.application-status-head .board-controls {
+  margin-left: auto;
 }
 .application-status-head h3 {
   font-size: var(--fs-lg);
 }
-.application-status-head span {
+.application-status-head > div:first-child > span {
   color: var(--text-3);
   font-size: var(--fs-sm);
 }
@@ -1545,12 +1763,68 @@ option {
   font-variant-numeric: tabular-nums;
   color: var(--text-2);
 }
+.board-controls {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  flex-wrap: wrap;
+}
+/* "다가오는 지원 일정"이 따로 있던 자리를 이 필터가 대신한다 — 같은 공고를
+   마감순으로 다시 늘어놓기만 했을 뿐이라 정보 증분이 없었다. */
+.filter-chips {
+  display: flex;
+  gap: var(--s1);
+  flex-wrap: wrap;
+}
+.filter-chip {
+  padding: 4px var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-chip);
+  background: transparent;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+.filter-chip:hover {
+  border-color: var(--line-strong);
+  color: var(--text-1);
+}
+.filter-chip[aria-pressed='true'] {
+  border-color: var(--cyan-dim);
+  background: var(--info-bg);
+  color: var(--cyan-strong);
+}
+/* 카드가 기본, 표는 여러 건을 한꺼번에 고칠 때 쓴다. */
+.view-toggle {
+  display: flex;
+  border: 1px solid var(--line);
+  border-radius: var(--r-control);
+  overflow: hidden;
+}
+.view-toggle button {
+  padding: 4px var(--s3);
+  border: 0;
+  background: transparent;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  cursor: pointer;
+}
+.view-toggle button[aria-pressed='true'] {
+  background: var(--surface-3);
+  color: var(--text-1);
+}
+
 .application-status-scroll {
   overflow-x: auto;
 }
+/* 열 폭을 내용에 맡기면 매 렌더 달라져, 행을 세로로 훑을 때 눈이 고정 위치를
+   못 잡는다 — colgroup으로 못 박는다. */
 .application-status-scroll table {
   width: 100%;
-  min-width: 880px; /* 자소서 열이 늘면서 780px로는 칸이 눌린다 */
+  min-width: 1160px; /* colgroup 합계와 같게 — 이보다 좁으면 가로 스크롤 */
+  table-layout: fixed;
   border-collapse: collapse;
 }
 /* 공고 행에서 바로 그 공고의 자소서로 건너뛴다. 이미 쓰던 자소서가 있으면
@@ -1568,7 +1842,7 @@ option {
   transition: background var(--dur-fast) var(--ease), border-color var(--dur-fast) var(--ease);
 }
 .essay-link-button:hover:not(:disabled) {
-  background: rgba(245, 169, 98, 0.12);
+  background: var(--amber-wash);
   border-color: var(--amber);
 }
 .essay-link-button:disabled {
@@ -1648,32 +1922,37 @@ option {
 }
 .application-status-scroll td b {
   display: block;
-  font-size: var(--fs-base);
+  font-size: var(--fs-row);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .application-status-scroll td span {
+  display: block;
   color: var(--text-3);
-  font-size: var(--fs-xs);
+  font-size: var(--fs-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 /* 잡플래닛 평점(요청 2026-09-06) — 출처를 항상 같이 적어서, 숫자만 보고
    어디서 조사한 값인지 헷갈리지 않게 한다. */
 .application-status-scroll td .company-rating {
   display: block;
   color: var(--text-dim);
-  font-size: var(--fs-hud);
+  font-size: var(--fs-xs);
 }
 .application-status-scroll time {
   font-variant-numeric: tabular-nums;
   color: var(--text-2);
 }
-/* 마감까지 남은 시간 — D-3/1시간전/3분전(요청 2026-09-06). 날짜 옆에 바로
-   붙는 배지라 항상 눈에 띄어야 해서 위험색(danger)을 쓴다. */
+/* 마감까지 남은 시간 — D-3/1시간전/3분전(요청 2026-09-06). 색은 이제
+   .urgency가 남은 시간에 따라 단계별로 준다(예전에는 D-45도 D-1도 똑같이
+   danger였다). 여기서는 자리와 크기만 잡는다. */
 .application-status-scroll td .deadline-remaining {
   display: block;
   margin-top: 1px;
-  color: var(--danger);
-  font-size: var(--fs-hud);
-  font-weight: 600;
-  font-style: normal;
+  font-size: var(--fs-xs);
 }
 .application-status-scroll a {
   color: var(--cyan);
@@ -1695,117 +1974,150 @@ option {
 .status-select.submitted { color: var(--info); border-color: var(--info-line); }
 .status-select.working { color: var(--warn); border-color: var(--warn-line); }
 
-.calendar-upcoming {
-  margin-top: var(--s4);
-  padding: var(--s5);
+/* 채용공고 카드. 예전에는 이 자리에 9열 표만 있었는데, 한 행의 실제 폭이
+   1260px에 높이가 56px — 가로:세로 22:1의 띠를 스무 번 위아래로 읽어야 했다.
+   게다가 정체성(회사)과 긴급도(D-day) 사이를 드롭다운 3개가 갈라놓고 있었고,
+   공고 20개면 화면에 <select>가 60개였다(진단 2026-09-08). 카드로 세우면
+   읽기 단위가 1260px → 409px(1440px 화면에서 3열)로 줄고, 상태 편집은
+   드롭다운 대신 서랍 한 곳으로 모인다. 여러 건을 한꺼번에 고칠 때만 표로
+   전환한다. */
+.job-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: var(--s3);
 }
-.calendar-upcoming-head {
+.job-card {
+  display: grid;
+  align-content: start;
+  gap: var(--s3);
+  padding: var(--s4);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-card);
+  background: var(--surface-2);
+}
+/* 대담함은 한 곳에만 쓴다 — 카드에서 튀는 건 D-day 숫자 하나다. 마감이
+   코앞인 카드만 테두리로 한 단계 더 올린다. */
+.job-card.now {
+  border-color: var(--urgency-now-line);
+}
+.job-card-head {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
-  margin-bottom: var(--s3);
+  gap: var(--s3);
 }
-.calendar-upcoming-head h3 {
-  font-size: var(--fs-lg);
-}
-.calendar-upcoming-head b {
-  font-size: var(--fs-2xl);
-  font-variant-numeric: tabular-nums;
-  color: var(--text-2);
-}
-.calendar-upcoming article {
-  display: grid;
-  grid-template-columns: 56px minmax(0, 1fr) auto;
-  gap: var(--s4);
-  align-items: center;
-  padding: var(--s3) 0;
-  border-top: 1px solid var(--line-soft);
-}
-.calendar-upcoming time {
-  display: grid;
-  justify-items: center;
-  padding: var(--s2);
-  border: 1px solid var(--line);
-  border-radius: var(--r-control);
-  background: var(--surface-2);
-}
-/* 마감까지 남은 시간 배지 — D-3/1시간전/3분전(요청 2026-09-06). 항상
-   위험색으로 표시해 다가오는 일정임을 놓치지 않게 한다. */
-.calendar-upcoming time.deadline-remaining b {
-  font-size: var(--fs-xl);
-  font-variant-numeric: tabular-nums;
-  color: var(--danger);
-}
-.calendar-upcoming time.deadline-remaining span {
-  color: var(--danger);
-  font-size: var(--fs-hud);
-}
-.calendar-upcoming article > div:nth-child(2) {
+.job-card-id {
   min-width: 0;
 }
-.calendar-upcoming h4 {
-  font-size: var(--fs-md);
-  margin: 2px 0;
+.job-card-id b {
+  display: block;
+  font-size: var(--fs-row);
+  font-weight: 640;
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
-.calendar-upcoming article small {
+.job-card-id span {
+  display: block;
+  color: var(--text-3);
+  font-size: var(--fs-sm);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.job-card-dday {
+  display: grid;
+  justify-items: end;
+  flex-shrink: 0;
+  text-align: right;
+  line-height: 1.15;
+}
+.job-card-dday b {
+  font-size: var(--fs-xl);
+  font-variant-numeric: tabular-nums;
+}
+.job-card-dday span {
+  font-size: var(--fs-xs);
+  opacity: 0.72;
+}
+.job-card-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex-wrap: wrap;
+  margin: 0;
+}
+.job-card-meta time {
+  color: var(--text-2);
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+}
+.job-card-meta small {
   color: var(--text-dim);
   font-size: var(--fs-xs);
 }
-.calendar-upcoming article p {
-  margin: var(--s1) 0 0;
-  color: var(--text-3);
-  font-size: var(--fs-xs);
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
-}
-.upcoming-progress {
-  display: flex;
-  gap: var(--s1);
-  margin-top: var(--s1);
-}
-.upcoming-progress span {
+.job-tag {
   padding: 2px var(--s2);
   border: 1px solid var(--line);
   border-radius: var(--r-chip);
-  font-size: 10px;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+}
+.job-card-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--s2);
+  flex-wrap: wrap;
+  padding-top: var(--s3);
+  border-top: 1px solid var(--line-soft);
+}
+.job-card-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--s2);
+  flex-wrap: wrap;
+}
+/* 카드에서 색을 쓰는 자리는 D-day 하나, 강조 동작은 "자소서 쓰기" 하나다.
+   삭제는 표에서처럼 상시 빨간 테두리를 두르면 카드 6장에 빨강이 6번 반복돼
+   정작 마감이 급한 카드가 묻힌다 — 평소엔 무채색으로 두고 마우스를 올릴 때만
+   위험색을 드러낸다. */
+.job-card-actions .inline-danger-button {
+  border-color: var(--line);
   color: var(--text-3);
 }
-.upcoming-progress .pass { color: var(--ok); border-color: var(--ok-line); }
-.upcoming-progress .fail { color: var(--danger); border-color: var(--danger-line); }
-.upcoming-progress .submitted { color: var(--info); border-color: var(--info-line); }
-.upcoming-progress .working { color: var(--warn); border-color: var(--warn-line); }
-.calendar-upcoming article > div:last-child {
-  display: flex;
-  gap: var(--s2);
-  flex-shrink: 0;
+.job-card-actions .inline-danger-button:hover:not(:disabled) {
+  border-color: var(--danger-line);
+  color: var(--danger);
 }
-.calendar-upcoming article > div:last-child a,
-.calendar-upcoming article > div:last-child button {
-  min-height: 30px;
-  padding: 0 var(--s3);
+.card-ghost-button {
+  padding: 6px var(--s3);
   border: 1px solid var(--line);
   border-radius: var(--r-control);
-  background: var(--surface-2);
-  color: var(--text-2);
+  background: transparent;
+  color: var(--text-3);
   font-size: var(--fs-xs);
   font-weight: 600;
+  white-space: nowrap;
   cursor: pointer;
   text-decoration: none;
   display: inline-flex;
   align-items: center;
-  white-space: nowrap;
+  transition: border-color var(--dur-fast) var(--ease), color var(--dur-fast) var(--ease);
 }
-.calendar-upcoming article > div:last-child .primary {
-  border-color: var(--amber-dim);
-  background: linear-gradient(180deg, var(--amber), #e2954f);
-  color: #1a1209;
+.card-ghost-button:hover:not(:disabled) {
+  border-color: var(--line-strong);
+  color: var(--text-1);
+}
+.card-ghost-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 .calendar-empty {
+  grid-column: 1 / -1;
   margin: 0;
-  padding: var(--s6) 0;
+  padding: var(--s8) 0;
   color: var(--text-dim);
   font-size: var(--fs-sm);
   text-align: center;
@@ -2547,8 +2859,8 @@ input.interview-question-title:focus {
   padding: 0 var(--s3);
   border: 1px solid var(--amber-dim);
   border-radius: var(--r-control);
-  background: linear-gradient(180deg, var(--amber), #e2954f);
-  color: #1a1209;
+  background: linear-gradient(180deg, var(--amber), var(--amber-deep));
+  color: var(--on-amber);
   font-size: var(--fs-sm);
   font-weight: 700;
   cursor: pointer;
@@ -3581,8 +3893,8 @@ input.interview-question-title:focus {
 }
 .focus-controls .primary {
   border-color: var(--amber-dim);
-  background: linear-gradient(180deg, var(--amber), #e2954f);
-  color: #1a1209;
+  background: linear-gradient(180deg, var(--amber), var(--amber-deep));
+  color: var(--on-amber);
 }
 .focus-tip {
   margin: 0;
@@ -3785,8 +4097,8 @@ input.interview-question-title:focus {
   height: 42px;
   border: 1px solid var(--amber-dim);
   border-radius: var(--r-control);
-  background: linear-gradient(180deg, var(--amber), #e2954f);
-  color: #1a1209;
+  background: linear-gradient(180deg, var(--amber), var(--amber-deep));
+  color: var(--on-amber);
   font-size: var(--fs-md);
   font-weight: 700;
   cursor: pointer;
@@ -3857,8 +4169,7 @@ input.interview-question-title:focus {
 /* ── 14. 반응형 ──────────────────────────────────────────────────────── */
 
 @media (max-width: 1320px) {
-  .cloud-mission-deck,
-  .calendar-workspace {
+  .cloud-mission-deck {
     grid-template-columns: minmax(0, 1fr);
   }
   .interview-layout {
@@ -3975,25 +4286,61 @@ input.interview-question-title:focus {
     overflow-x: auto;
   }
   .calendar-day {
-    min-height: 62px;
+    min-height: 78px;
     padding: var(--s1);
+    gap: 2px;
   }
-  /* 터치 기기는 호버가 불안정해 미리보기가 화면을 가리기 쉽다 — 탭하면
-     여는 기존 칩·현황판으로도 같은 정보를 볼 수 있으니 여기서는 끈다.
-     ".calendar-day > div"(display:grid)가 명시도로 이 규칙을 덮어써서
-     ".calendar-day-preview" 단독 선택자로는 먹지 않는다 — 부모까지 포함해
-     명시도를 맞춘다. */
+  .calendar-day > b {
+    font-size: var(--fs-xs);
+  }
+  .calendar-progress-chip {
+    font-size: var(--fs-xs);
+    padding: 2px 3px;
+    gap: 3px;
+  }
+  /* 예전에는 여기서 팝업을 통째로 display:none 했는데, "+N건" 버튼은 그대로
+     남아 눌러도 아무 일이 없는 죽은 버튼이 됐다(진단 2026-09-08). 지금은
+     같은 목록을 화면 아래에서 올라오는 시트로 보여준다 — 좁은 화면에서
+     121px 칸 옆에 260px 팝오버를 띄우는 것보다 이쪽이 맞다. 위 뒤집기
+     규칙(0,3,0)은 @media (min-width: 761px) 안에 있어 여기까지 오지 않는다. */
   .calendar-day > .calendar-day-preview {
-    display: none;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    top: auto;
+    width: auto;
+    max-height: 60vh;
+    overflow-y: auto;
+    border-radius: var(--r-panel) var(--r-panel) 0 0;
+    z-index: var(--z-modal);
+  }
+  .calendar-day-preview ul {
+    max-height: none;
   }
   .calendar-form-grid {
     grid-template-columns: 1fr;
   }
-  .calendar-upcoming article {
-    grid-template-columns: 48px minmax(0, 1fr);
+  .schedule-drawer {
+    width: 100%;
+    padding: var(--s4);
   }
-  .calendar-upcoming article > div:last-child {
-    grid-column: 1 / -1;
+  .job-card-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  /* 좁은 폭에서는 셋이 줄바꿈되면서 건수만 왼쪽에 홀로 한 줄을 차지했다 —
+     제목 옆으로 끌어올리고 조작부를 아래 한 줄로 내린다. */
+  .application-status-head > div:first-child {
+    flex: 1 1 auto;
+  }
+  .application-status-head > b {
+    order: 2;
+    align-self: center;
+  }
+  .application-status-head .board-controls {
+    order: 3;
+    flex-basis: 100%;
+    margin-left: 0;
   }
   .focus-launcher {
     right: var(--s3);

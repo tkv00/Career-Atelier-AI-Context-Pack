@@ -35,18 +35,32 @@ export function timeInputValue(value: string | number | Date): string {
     단위, 그보다 가까우면 분 단위로 스스로 전환한다. value/unit은 큰 숫자 +
     작은 단위로 나눠 보여주는 배지(예: 다가오는 지원 일정 카드)를 위한 것이고,
     label은 그 둘을 합친 한 문장이 필요한 곳(표 안 등)을 위한 것이다. */
-export type RemainingTime = { value: number; unit: string; label: string; pastDue: boolean };
+export type RemainingTime = { value: number; unit: string; label: string; pastDue: boolean; tone: UrgencyTone };
+
+/** 남은 시간의 "급함" 단계. 예전에는 화면 세 곳이 모두 남은 시간을 무조건
+    --danger로 칠했는데, D-45와 D-1이 같은 빨강이면 그 빨강은 "마감이 있다"는
+    뜻일 뿐 "급하다"는 신호가 되지 못한다 — 공고 20개가 전부 빨간 배지를 달고
+    있으면 눈이 그 색을 배경으로 처리해 버린다(진단 2026-09-08). 단계를 여기서
+    한 번만 정해 두고 캘린더·카드·표가 같은 기준을 쓴다. */
+export type UrgencyTone = 'now' | 'soon' | 'plan' | 'far' | 'past';
 
 export function remainingLabel(value: string | number | Date, now: Date = new Date()): RemainingTime {
   const diffMs = new Date(value).getTime() - now.getTime();
-  if (diffMs <= 0) return { value: 0, unit: '마감', label: '마감', pastDue: true };
+  if (diffMs <= 0) return { value: 0, unit: '마감', label: '마감', pastDue: true, tone: 'past' };
 
   const diffMinutes = Math.ceil(diffMs / 60_000);
-  if (diffMinutes < 60) return { value: diffMinutes, unit: '분 전', label: `${diffMinutes}분 전`, pastDue: false };
+  if (diffMinutes < 60) return { value: diffMinutes, unit: '분 전', label: `${diffMinutes}분 전`, pastDue: false, tone: 'now' };
 
   const diffHours = Math.ceil(diffMs / 3_600_000);
-  if (diffHours < 24) return { value: diffHours, unit: '시간 전', label: `${diffHours}시간 전`, pastDue: false };
+  if (diffHours < 24) return { value: diffHours, unit: '시간 전', label: `${diffHours}시간 전`, pastDue: false, tone: 'now' };
 
   const diffDays = Math.ceil(diffMs / 86_400_000);
-  return { value: diffDays, unit: '일 남음', label: `D-${diffDays}`, pastDue: false };
+  return { value: diffDays, unit: '일 남음', label: `D-${diffDays}`, pastDue: false, tone: urgencyTone(diffDays) };
+}
+
+function urgencyTone(days: number): UrgencyTone {
+  if (days <= 1) return 'now';
+  if (days <= 5) return 'soon';
+  if (days <= 14) return 'plan';
+  return 'far';
 }
