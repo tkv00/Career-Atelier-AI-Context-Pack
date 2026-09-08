@@ -13,6 +13,10 @@
 **Record your experience once. Give your next application a starting point.**
 Career Atelier brings your experience, resume, and job postings into a personal workspace for company research, cover-letter drafts, review, and interview preparation.
 
+<h2 align="center"><a href="https://tkv00.github.io/Career-Atelier-AI-Context-Pack/">🪐 Open the product site →</a></h2>
+
+<p align="center"><b>Installation, features, and measured numbers on one page.</b></p>
+
 [Let an agent install it](#let-an-agent-handle-installation) · [See the screens](#see-the-screens) · [Install manually](#getting-started) · [Write your first letter](#your-first-cover-letter) · [Troubleshooting](#when-you-get-stuck)
 
 <p>
