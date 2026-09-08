@@ -421,6 +421,7 @@ export type Database = {
           id: string
           job_id: string | null
           owner_id: string
+          pinned_experience_ids: string[]
           question: string
           revision: number
           status: string
@@ -435,6 +436,7 @@ export type Database = {
           id?: string
           job_id?: string | null
           owner_id: string
+          pinned_experience_ids?: string[]
           question?: string
           revision?: number
           status?: string
@@ -449,6 +451,7 @@ export type Database = {
           id?: string
           job_id?: string | null
           owner_id?: string
+          pinned_experience_ids?: string[]
           question?: string
           revision?: number
           status?: string
@@ -766,6 +769,27 @@ export type Database = {
           owner_id?: string
           provider_map?: Json
           updated_at?: string
+        }
+        Relationships: []
+      }
+      import_chunk_cache: {
+        Row: {
+          cache_key: string
+          created_at: string
+          owner_id: string
+          result: Json
+        }
+        Insert: {
+          cache_key: string
+          created_at?: string
+          owner_id: string
+          result: Json
+        }
+        Update: {
+          cache_key?: string
+          created_at?: string
+          owner_id?: string
+          result?: Json
         }
         Relationships: []
       }
@@ -1242,6 +1266,80 @@ export type Database = {
         }
         Relationships: []
       }
+      source_imports: {
+        Row: {
+          candidates: Json
+          chunks: Json
+          created_at: string
+          current_job_id: string | null
+          diagnostics: Json
+          digest: string
+          error: string
+          id: string
+          measurements: Json
+          name: string
+          options: Json
+          owner_id: string
+          receipts: Json
+          revision: number
+          source_ref: string
+          source_text: string
+          source_type: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          candidates?: Json
+          chunks?: Json
+          created_at?: string
+          current_job_id?: string | null
+          diagnostics?: Json
+          digest?: string
+          error?: string
+          id?: string
+          measurements?: Json
+          name: string
+          options?: Json
+          owner_id: string
+          receipts?: Json
+          revision?: number
+          source_ref?: string
+          source_text?: string
+          source_type: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          candidates?: Json
+          chunks?: Json
+          created_at?: string
+          current_job_id?: string | null
+          diagnostics?: Json
+          digest?: string
+          error?: string
+          id?: string
+          measurements?: Json
+          name?: string
+          options?: Json
+          owner_id?: string
+          receipts?: Json
+          revision?: number
+          source_ref?: string
+          source_text?: string
+          source_type?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "source_imports_current_job_id_fkey"
+            columns: ["current_job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       training_programs: {
         Row: {
           created_at: string
@@ -1344,7 +1442,29 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      commit_import_candidate: {
+        Args: {
+          p_data: Json
+          p_expected_updated_at?: string
+          p_import_id: string
+          p_index: number
+          p_revision: number
+          p_table: string
+          p_target?: string
+        }
+        Returns: Json
+      }
       expire_old_jobs: { Args: never; Returns: undefined }
+      queue_source_import: {
+        Args: {
+          p_candidates?: Json
+          p_id: string
+          p_mode: string
+          p_options?: Json
+          p_revision: number
+        }
+        Returns: string
+      }
       reap_stale_jobs: { Args: never; Returns: undefined }
       restrict_signup_to_owner: { Args: { event: Json }; Returns: Json }
       seed_default_prompts: {

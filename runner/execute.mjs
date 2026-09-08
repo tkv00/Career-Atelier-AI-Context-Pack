@@ -2,6 +2,7 @@ import { spawnClaude, extractOutput as extractClaudeOutput } from './providers/c
 import { spawnCodex, extractOutput as extractCodexOutput } from './providers/codex.mjs';
 import { spawnGemini, extractOutput as extractGeminiOutput } from './providers/gemini.mjs';
 import { TIMEOUT_MINUTES_CAP, detectPaidOverage, isUsageLimitError } from './safety.mjs';
+import { collectUsage } from './usage.mjs';
 
 const PROVIDERS = {
   codex: { spawn: spawnCodex, extractOutput: extractCodexOutput },
@@ -65,6 +66,8 @@ export function runProvider({
     let webSearchUsed = false;
     let providerError = '';
     const eventBuffer = [];
+    const usageEvents = [];
+    const finish = result => resolveRun({ ...result, usage: collectUsage(usageEvents, provider) });
     const flushTimer = setInterval(() => flushBuffer(supabase, runId, ownerId, eventBuffer), EVENT_FLUSH_MS);
     const timeout = setTimeout(() => child.kill('SIGTERM'), safeTimeoutMinutes * 60 * 1000);
 
@@ -79,6 +82,7 @@ export function runProvider({
         parsed = { type: 'text', text: line };
       }
       eventBuffer.push({ sequence: sequence++, kind: parsed.type || 'event', payload: parsed });
+      if (parsed.usage || parsed.model || parsed.message?.model) usageEvents.push(parsed);
       if (parsed.type === 'result' && parsed.is_error) {
         providerError = JSON.stringify(parsed.errors || parsed.result || parsed.subtype);
       }
@@ -117,7 +121,7 @@ export function runProvider({
       clearTimeout(timeout);
       clearInterval(flushTimer);
       flushBuffer(supabase, runId, ownerId, eventBuffer);
-      resolveRun({ status: 'failed', output: finalOutput, error: error.message, webSearchUsed });
+      finish({ status: 'failed', output: finalOutput, error: error.message, webSearchUsed });
     });
     child.once('close', (code, signal) => {
       clearTimeout(timeout);
@@ -126,14 +130,14 @@ export function runProvider({
       flushBuffer(supabase, runId, ownerId, eventBuffer);
 
       if (paidOverageBlocked) {
-        resolveRun({ status: 'blocked_paid_overage', output: finalOutput, error: '유료 초과 사용 가능성이 감지되어 실행을 중단했습니다.', webSearchUsed });
+        finish({ status: 'blocked_paid_overage', output: finalOutput, error: '유료 초과 사용 가능성이 감지되어 실행을 중단했습니다.', webSearchUsed });
       } else if (code === 0 && finalOutput && !providerError) {
-        resolveRun({ status: 'completed', output: finalOutput, error: '', webSearchUsed });
+        finish({ status: 'completed', output: finalOutput, error: '', webSearchUsed });
       } else {
         const errorText = providerError || stderr || (code === 0
           ? `${provider} CLI가 정상 종료했지만 결과 JSON 이벤트를 반환하지 않았습니다. CLI 출력 옵션과 프롬프트 전달 경로를 확인하세요.`
           : `프로세스가 code=${code}, signal=${signal || 'none'}로 종료되었습니다.`);
-        resolveRun({ status: isUsageLimitError(errorText) ? 'waiting_for_reset' : 'failed', output: finalOutput, error: errorText.slice(0, 12_000), webSearchUsed });
+        finish({ status: isUsageLimitError(errorText) ? 'waiting_for_reset' : 'failed', output: finalOutput, error: errorText.slice(0, 12_000), webSearchUsed });
       }
     });
   });

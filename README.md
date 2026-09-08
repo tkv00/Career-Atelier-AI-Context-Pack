@@ -199,6 +199,12 @@ These labels match the application's left navigation.
 | `cd web` or `cd runner` fails | Start from the repository root. A and B are separate terminal windows |
 | Setup asks for a DB password | It connects to an existing project's database; this is not your web password |
 
+## Import your existing records
+
+Open **자료 가져오기** (`/imports`) to upload Markdown/XLSX, paste text or Excel cells, or enter a Notion page/database URL. Review extracted fields beside their sources before saving. Structured content uses deterministic parsers; optional local CLI extraction handles free-form notes. Notion credentials remain on the runner. Apply migration `0032_source_imports.sql` and restart the runner after updating.
+
+Writing selects relevant experiences within a context budget and preserves pinned/cited evidence.
+
 ## Versions and updates
 
 See the version badge above or run `npm run check:version` for the current version. Web, runner, and installer share one product version. Check [GitHub Releases](https://github.com/tkv00/Career-Atelier-AI-Context-Pack/releases) for actual published versions and release files.

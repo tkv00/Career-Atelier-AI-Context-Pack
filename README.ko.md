@@ -199,6 +199,12 @@ npm run start
 | `cd web` 또는 `cd runner` 실패 | 현재 위치가 저장소 최상위 폴더인지 확인. 터미널 A와 B는 별도 창 |
 | 설치 중 DB 비밀번호를 물음 | 기존 프로젝트에 접속하는 DB 비밀번호. 웹 계정 비밀번호와 다름 |
 
+## 기존 기록 가져오기
+
+**자료 가져오기**(`/imports`)에서 Markdown·XLSX 업로드, 텍스트·엑셀 셀 붙여넣기, Notion 페이지·DB 주소 입력을 지원합니다. 원문과 추출 필드를 대조하고 저장하세요. 정형 자료는 규칙으로 처리하고, 자유 문서는 선택적으로 로컬 CLI가 정리합니다. Notion 인증은 러너에 유지합니다. 업데이트 후 `0032_source_imports.sql`을 적용하고 러너를 재시작해야 합니다.
+
+작성 시 관련 경험을 컨텍스트 예산 내에서 선별하고 고정·인용 근거를 유지합니다.
+
 ## 버전과 업데이트
 
 현재 버전은 상단의 버전 배지와 `npm run check:version`으로 확인합니다. 웹·Runner·설치 도구는 같은 제품 버전으로 관리합니다. 실제 발행 여부와 배포 파일은 [GitHub Releases](https://github.com/tkv00/Career-Atelier-AI-Context-Pack/releases)에서 확인하세요.

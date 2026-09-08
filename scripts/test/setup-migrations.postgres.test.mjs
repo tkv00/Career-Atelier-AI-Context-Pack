@@ -53,7 +53,7 @@ test('isolated PostgreSQL migration execution', { skip: !bin, timeout: 120_000 }
     create schema auth; create schema storage; create schema extensions;
     create table auth.users(id uuid primary key, email text);
     create function auth.uid() returns uuid language sql as 'select null::uuid';
-    create table storage.buckets(id text primary key, name text, public boolean);
+    create table storage.buckets(id text primary key, name text, public boolean, file_size_limit bigint);
     create table storage.objects(id uuid primary key, bucket_id text, name text);
     create function storage.foldername(text) returns text[] language sql as 'select string_to_array($1, ''/'')';`);
   const query = async (input, options) => options?.readOnly ? rows(input) : (sql(input), []);
@@ -70,6 +70,26 @@ test('isolated PostgreSQL migration execution', { skip: !bin, timeout: 120_000 }
     assert.ok(before.length > 0);
     assert.deepEqual(await applyMigrations({ root, query }), { applied: 0, skipped: files.length });
     assert.deepEqual(rows('select * from public.prompt_templates order by id'), before);
+  });
+  await t.test('source import owner boundary, atomic receipt, replay and stale update', () => {
+    const owner='00000000-0000-4000-8000-000000000001';
+    const other='00000000-0000-4000-8000-000000000002';
+    const batch='00000000-0000-4000-8000-000000000003';
+    sql(`create or replace function auth.uid() returns uuid language sql as 'select nullif(current_setting(''test.uid'',true),'''')::uuid';
+      grant usage on schema public,auth to authenticated; grant all on all tables in schema public to authenticated;
+      insert into auth.users(id,email) values ('${other}','other@example.invalid');
+      insert into source_imports(id,owner_id,name,source_type,status,revision,candidates) values('${batch}','${owner}','fixture','text','committing',1,'[{"kind":"experience","title":"합성 경험"},{"kind":"experience","title":"합성 경험"}]');`);
+    const asUser=(id,statement)=>sql(`set role authenticated;set test.uid='${id}';${statement}`);
+    assert.equal(asUser(other,`select count(*) from source_imports where id='${batch}';`),'0');
+    assert.throws(()=>asUser(other,`select commit_import_candidate('${batch}',1,0,'experience_cards','{"title":"합성 경험"}');`));
+    const call=`select commit_import_candidate('${batch}',1,0,'experience_cards','{"title":"합성 경험"}');`;
+    const first=JSON.parse(asUser(owner,call));
+    assert.equal(JSON.parse(asUser(owner,call)).id,first.id);
+    assert.equal(asUser(owner,"select count(*) from experience_cards where title='합성 경험';"),'1');
+    assert.throws(()=>asUser(owner,`select commit_import_candidate('${batch}',1,1,'experience_cards','{"title":"바뀜"}','${first.id}','2000-01-01');`),/기존 기록/);
+    assert.equal(asUser(owner,`select receipts ? '1' from source_imports where id='${batch}';`),'f');
+    assert.throws(()=>asUser(owner,`select commit_import_candidate('${batch}',1,1,'experience_cards','{"owner_id":"${other}"}');`),/허용되지/);
+    assert.throws(()=>asUser(owner,`select commit_import_candidate('${batch}',2,1,'experience_cards','{"title":"합성 경험"}');`),/버전/);
   });
   await t.test('DDL rolls back when a later SQL statement fails', () => {
     assert.throws(() => sql(migrationTransaction({ version: '9001', name: 'broken', sql: 'create table public.must_rollback(id int); select 1/0;' })), /division by zero/);

@@ -56,7 +56,7 @@ export async function loadSource(source, options = {}) {
   // 테스트는 fetch만 주입한다. 공개 도구에는 임의 API 주소나 인증 우회 옵션을 노출하지 않는다.
   const fetchImpl = options.fetchImpl || fetch;
   let requests = 0, blocks = 0;
-  const warnings = [], skipped = [];
+  const warnings = [], skipped = [], sourceBlocks = [], tables = [];
   async function request(path, init = {}) {
     if (++requests > 200) throw new Error('Notion 요청 200회 한도를 넘었습니다. 소스를 나눠 주세요.');
     const response = await fetchImpl('https://api.notion.com/v1' + path, { ...init, signal: AbortSignal.timeout(20000),
@@ -80,6 +80,7 @@ export async function loadSource(source, options = {}) {
       for (const block of page.results ?? []) {
         if (++blocks > 10000) throw new Error('Notion 블록 10,000개 한도를 넘었습니다.');
         const type = block.type, data = block[type] ?? {}, text = richText(data.rich_text);
+        sourceBlocks.push({ id: block.id, text });
         if (/^heading_[123]$/.test(type)) lines.push('#'.repeat(Number(type.at(-1))) + ' ' + text);
         else if (['bulleted_list_item', 'numbered_list_item', 'to_do'].includes(type)) lines.push('- ' + text);
         else if (['paragraph', 'quote', 'callout', 'code', 'toggle'].includes(type)) lines.push(text);
@@ -92,9 +93,9 @@ export async function loadSource(source, options = {}) {
   }
   if (spec.type === 'notion-page') {
     const lines = await readBlocks(spec.id);
-    return { markdown: lines.join('\n'), json: null, warnings, skipped, origin: source, kind: spec.type, requests };
+    return { markdown: lines.join('\n'), json: null, warnings, skipped, sourceBlocks, origin: source, kind: spec.type, requests };
   }
-  if (!options.section) throw new Error('Notion DB에는 section(예: 경험)을 지정하세요.');
+  if (!options.section && !options.raw) throw new Error('Notion DB에는 section(예: 경험)을 지정하세요.');
   let dataSourceId = spec.id;
   if (spec.type === 'notion-database') {
     const database = await request('/databases/' + spec.id);
@@ -117,12 +118,14 @@ export async function loadSource(source, options = {}) {
         headers.push(name); values.push(value);
         if (property.type === 'title') column_map[name] = 'title';
       }
+      tables.push({ name: row.id, matrix: [headers, values] });
+      if (options.raw) continue;
       const result = tableToItems(headers, [values], { ...options, column_map, origin: row.id });
       items.push(...result.items); skipped.push(...result.skipped); warnings.push(...result.warnings);
     }
     cursor = nextCursor(page, seen);
   } while (cursor);
-  return { markdown: null, json: { items }, warnings, skipped, origin: source, kind: spec.type, requests };
+  return { markdown: null, json: { items }, warnings, skipped, tables, origin: source, kind: spec.type, requests };
 }
 
 export function notionConfigured() {

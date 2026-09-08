@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { isRunnerOnline } from '@/lib/runner-status';
 import { EssayEditor } from './editor-client';
+import { ExperiencePins } from './experience-pins';
 
 export default async function EssayPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -78,7 +79,9 @@ export default async function EssayPage({ params }: { params: Promise<{ id: stri
       ])
     : [{ data: null }, { data: null }, { data: null }];
 
-  return (
+  const { data: pinChoices } = await supabase.from('experience_cards').select('id,title').order('title');
+  return (<>
+    <ExperiencePins essayId={essay.id} initialIds={essay.pinned_experience_ids??[]} experiences={pinChoices??[]}/>
     <EssayEditor
       essay={essay}
       initialVersions={versions ?? []}
@@ -97,5 +100,5 @@ export default async function EssayPage({ params }: { params: Promise<{ id: stri
       companyAttachments={companyAttachments ?? []}
       siblingEssays={siblingEssays ?? []}
     />
-  );
+  </>);
 }

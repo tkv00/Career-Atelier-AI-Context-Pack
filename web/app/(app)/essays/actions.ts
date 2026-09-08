@@ -15,6 +15,17 @@ async function requireUser() {
   return { supabase, user };
 }
 
+export async function saveExperiencePins(essayId: string, ids: string[]) {
+  const { supabase, user } = await requireUser();
+  if (!Array.isArray(ids) || ids.length > 100 || ids.some(id => typeof id !== 'string')) throw new Error('경험 선택을 확인하세요.');
+  if (ids.length) {
+    const { data, error } = await supabase.from('experience_cards').select('id').eq('owner_id', user.id).in('id', ids);
+    if (error || new Set(data?.map(row => row.id)).size !== new Set(ids).size) throw new Error('선택한 경험을 찾을 수 없습니다.');
+  }
+  const { error } = await supabase.from('essay_projects').update({ pinned_experience_ids: [...new Set(ids)] }).eq('id', essayId).eq('owner_id', user.id);
+  if (error) throw new Error(error.message);
+}
+
 export async function createEssay(formData: FormData) {
   const title = ((formData.get('title') as string) || '').trim() || '제목 없는 자소서';
   const { supabase, user } = await requireUser();

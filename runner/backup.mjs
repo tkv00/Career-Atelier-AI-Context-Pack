@@ -28,6 +28,7 @@ const OWNED_TABLES = [
   'interview_questions',
   'artifacts',
   'agent_runs',
+  'source_imports',
 ];
 
 const BACKUP_INTERVAL_MS = 2 * 60 * 60 * 1000; // 2시간마다 한 번.

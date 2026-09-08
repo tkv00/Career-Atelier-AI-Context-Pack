@@ -9,7 +9,7 @@ export async function readExcel(path, options = {}) {
   await workbook.xlsx.readFile(path);
   const sheets = options.sheet ? [workbook.getWorksheet(options.sheet)] : workbook.worksheets.filter(s => s.state === 'visible');
   if (!sheets.length || sheets.some(s => !s)) throw new Error('읽을 시트가 없습니다. sheet 이름을 확인하세요.');
-  const items = [], skipped = [], warnings = [];
+  const items = [], skipped = [], warnings = [], tables = [];
   for (const sheet of sheets) {
     if (!sheet.rowCount) continue;
     if (sheet.rowCount > 10001 || sheet.columnCount > 100) throw new Error('시트당 10,000개 데이터 행·100개 열까지 지원합니다.');
@@ -26,8 +26,10 @@ export async function readExcel(path, options = {}) {
     };
     const matrix = Array.from({ length: sheet.rowCount }, (_, i) =>
       Array.from({ length: sheet.columnCount }, (_, j) => cellText(sheet.getRow(i + 1).getCell(j + 1))));
+    tables.push({ name: sheet.name, matrix });
+    if (options.raw) continue;
     const result = tableToItems(matrix[0], matrix.slice(1), { ...options, section: options.section || sheet.name, origin: sheet.name });
     items.push(...result.items); skipped.push(...result.skipped); warnings.push(...result.warnings);
   }
-  return { markdown: null, json: { items }, skipped, warnings, origin: path, kind: 'file-xlsx', source_bytes: info.size };
+  return { markdown: null, json: { items }, skipped, warnings, tables, origin: path, kind: 'file-xlsx', source_bytes: info.size };
 }

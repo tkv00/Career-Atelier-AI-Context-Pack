@@ -40,6 +40,7 @@ const FIELD_ALIASES = {
     school_type: ['구분', '학교구분', '종류', 'type', 'schooltype'],
     major: ['전공', '학과', 'major'],
     secondary_major: ['부전공', '복수전공', '이중전공', 'secondarymajor'],
+    secondary_major_type: ['부복수전공구분', 'secondarymajortype'],
     gpa: ['학점', '평점', 'gpa', '성적'],
     period: ['기간', '재학기간', 'period'],
     started_on: ['입학', '입학일', '시작', 'startedon'],

@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server';
+import Link from 'next/link';
 import { SECTIONS } from './schema';
 import { RecordsClient, type RecordRow, type AttachmentRow, type CourseRow } from './records-client';
 
@@ -38,6 +39,7 @@ export default async function RecordsPage() {
           </p>
         </div>
       </div>
+      <Link href="/imports" className="secondary-button">파일·Notion에서 이력 가져오기</Link>
       <RecordsClient
         sections={SECTIONS}
         rowsBySection={rowsBySection}

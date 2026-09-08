@@ -11,6 +11,7 @@ const NAV = [
   { id: '지원 일정', href: '/calendar' },
   { id: '경험 카드', href: '/experiences' },
   { id: '이력 정보', href: '/records' },
+  { id: '자료 가져오기', href: '/imports' },
   { id: '면접 준비', href: '/interviews' },
   { id: '프롬프트', href: '/prompts' },
   { id: '실행 기록', href: '/activity' },

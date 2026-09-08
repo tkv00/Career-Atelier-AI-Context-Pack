@@ -23,6 +23,9 @@ import {
   createWriterContextPack,
 } from './context-pack.mjs';
 import { runProvider } from './execute.mjs';
+import { processImportJob } from './imports/jobs.mjs';
+import { selectExperiences } from './context-selection.mjs';
+import { experienceCardMarkdown } from './context-pack.mjs';
 import { runBackup, shouldBackupNow } from './backup.mjs';
 import { readCodexRateLimits } from './providers/codex-usage.mjs';
 import {
@@ -109,9 +112,10 @@ async function ensureRunnerRow(supabase, userId) {
 
 // 잡 하나를 agent_runs에 기록하면서 실행하고, 완료되면 jobs/agent_runs 상태를
 // 갱신한다. 두 경로(범용 payload.prompt / kind별 전용 로직) 모두 이걸 쓴다.
-async function recordAndRun(supabase, ownerId, job, { provider, prompt, workspace, contextDir, model, effort, timeoutMinutes, outputSchema, jsonSchema, liveWebSearch, onComplete }) {
+async function recordAndRun(supabase, ownerId, job, { provider, prompt, workspace, contextDir, model, effort, timeoutMinutes, outputSchema, jsonSchema, liveWebSearch, contextManifest, onComplete }) {
+  let subscription;
   try {
-    await assertSubscriptionProvider(provider);
+    subscription = await assertSubscriptionProvider(provider);
   } catch (error) {
     await supabase.from('jobs').update({ status: 'blocked_auth' }).eq('id', job.id);
     // 웹 대시보드는 jobs가 아니라 agent_runs에서 에이전트별 최신 상태를 읽는다
@@ -148,6 +152,10 @@ async function recordAndRun(supabase, ownerId, job, { provider, prompt, workspac
     .single();
   if (runError) throw runError;
 
+  if (contextManifest) {
+    const { error } = await supabase.from('run_events').insert({owner_id:ownerId,run_id:run.id,sequence:0,kind:'context_selection',payload:contextManifest});
+    if (error) throw error;
+  }
   await supabase.from('jobs').update({ status: 'running' }).eq('id', job.id);
   console.log(`잡 ${job.id} 실행 시작 (provider=${provider}, run=${run.id})`);
 
@@ -168,6 +176,7 @@ async function recordAndRun(supabase, ownerId, job, { provider, prompt, workspac
   });
 
   let finalResult = result;
+  await supabase.from('run_events').insert({owner_id:ownerId,run_id:run.id,sequence:2147483647,kind:'execution_metrics',payload:{usage:result.usage??null,requested_model:model||null,provider,cli_version:subscription.version,context:contextManifest??null}});
   if (result.status === 'completed' && onComplete) {
     try {
       // 저장·검증까지 끝나야 completed다. 예전에는 CLI 종료 직후 completed로
@@ -442,7 +451,6 @@ async function processWriterJob(supabase, ownerId, job) {
     jobPost = data;
   }
 
-  const knownExperienceIds = new Set(experiences.map((item) => item.id));
   const runIdForWorkspace = randomUUID();
   // 오래된 것부터 읽혀야 "그다음에 이렇게 고쳐달라"는 순서가 살아난다.
   const revisionRequests = [...(revisions ?? [])].reverse();
@@ -451,13 +459,28 @@ async function processWriterJob(supabase, ownerId, job) {
   const currentDraft = job.payload?.currentDraft ?? essay.draft ?? '';
   const revising = Boolean(currentDraft.trim()) && revisionRequests.length > 0;
 
+  let requiredIds = [];
+  if (currentDraft.trim()) {
+    const { data: previous, error } = await supabase.from('artifacts').select('metadata').eq('kind','draft').contains('metadata',{essayId}).order('created_at',{ascending:false}).limit(1);
+    if (error) throw error;
+    requiredIds = (previous?.[0]?.metadata?.parsed?.evidence ?? []).map(item=>item.experience_id);
+    // 수동 초안에는 구조화된 인용 목록이 없으므로 기존 근거 전체를 유지한다.
+    if (!requiredIds.length) requiredIds = experiences.map(item=>item.id);
+  }
+  const selection = selectExperiences(experiences, {
+    query: [essay.question,jobPost?.role,jobPost?.description,(jobPost?.requirements??[]).join(' '),...revisionRequests.map(r=>r.instruction)].filter(Boolean).join('\n'),
+    pinnedIds:essay.pinned_experience_ids??[],requiredIds,
+    serialize:item=>experienceCardMarkdown(item,{includeId:true}),
+  });
+  const knownExperienceIds = new Set(selection.experiences.map(item=>item.id));
   const { workspace, contextDir, schemaPath } = createWriterContextPack(runIdForWorkspace, {
     essay,
-    experiences,
+    experiences: selection.experiences,
     jobPost,
     currentDraft,
     revisionRequests,
   });
+  writeFileSync(resolve(workspace,'context-selection.json'),JSON.stringify(selection.manifest,null,2));
 
   const prompt = revising
     ? `${template.body}\n\n${systemRulesFor('writer')}\n\n[수정 대상]\ncontext/07-current-draft.md가 지금 본문이다. context/08-revision-requests.md의 요청을 반영해 **고쳐 쓴다**. 백지에서 새로 쓰지 말고, 요청과 무관한 문장은 그대로 둔다.\ncontext/01-questions.md, context/02-job-description.md, context/04-experiences.md, context/06-style-guide.md도 함께 읽고 스키마에 맞는 JSON으로만 답하라.`
@@ -471,6 +494,7 @@ async function processWriterJob(supabase, ownerId, job) {
     workspace,
     contextDir,
     ...schemaArgsFor(provider, WRITER_OUTPUT_SCHEMA, schemaPath, writeSchema),
+    contextManifest: selection.manifest,
     onComplete: async (result, run) => {
       let parsed = null;
       try {
@@ -988,6 +1012,10 @@ async function processSubtitleJob(supabase, ownerId, job) {
 }
 
 async function processJob(supabase, ownerId, job) {
+  if (job.kind === 'import_analyze' || job.kind === 'import_commit') {
+    await processImportJob(supabase, ownerId, job);
+    return;
+  }
   if (job.kind === 'review') {
     await processReviewJob(supabase, ownerId, job);
     return;

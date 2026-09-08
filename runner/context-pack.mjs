@@ -25,7 +25,7 @@ export function createWorkspace(runId, job) {
   return { workspace, contextDir, outputDir };
 }
 
-function experienceCardMarkdown(item, { includeId = false } = {}) {
+export function experienceCardMarkdown(item, { includeId = false } = {}) {
   const heading = includeId ? `### [id: ${item.id}] ${item.title}` : `### ${item.title}`;
   return [
     heading,
@@ -123,7 +123,7 @@ export const WRITER_OUTPUT_SCHEMA = {
         properties: {
           paragraph_index: { type: 'integer' },
           experience_id: { type: 'string' },
-          quoted_fact: { type: 'string' },
+          quoted_fact: { type: 'string', description: '해당 경험 원문에 연속해서 존재하는 문자열을 글자 그대로 복사한다. 행동과 결과를 / 등으로 합치거나 재서술하지 않는다. 여러 근거는 같은 paragraph_index의 evidence 항목으로 나누어 기록한다.' },
         },
       },
     },

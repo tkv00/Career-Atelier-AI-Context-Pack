@@ -14,13 +14,11 @@
 // stdout은 JSON-RPC 전용이다 — 로그를 한 줄이라도 여기 쓰면 클라이언트의
 // 프레이밍이 깨진다. 모든 로그는 stderr로 보낸다.
 
-import { buildRows, connect, countRows, writeRows } from './store.mjs';
-import { loadSource, notionConfigured } from './sources.mjs';
+import { connect, countRows, writeRows } from './store.mjs';
+import { notionConfigured } from './sources.mjs';
+import { planImport } from './plan.mjs';
 import { measure, record } from './metrics.mjs';
-import { parseMarkdown } from './parse.mjs';
-import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
-import { performance } from 'node:perf_hooks';
 import { readFileSync } from 'node:fs';
 
 const SERVER_NAME = 'career-atelier';
@@ -97,40 +95,7 @@ export const TOOLS = [
 
 // 파이프라인 ---------------------------------------------------------------
 // 소스를 읽고 파싱해 저장할 행까지 만든다. 저장은 하지 않는다.
-export async function planImport({ source, section, only, sheet, column_map, expected_digest }) {
-  const started = performance.now();
-  const loaded = await loadSource(source, { section, sheet, column_map });
-
-  const parsed = loaded.json
-    ? normalizeJsonItems(loaded.json)
-    : parseMarkdown(loaded.markdown);
-  parsed.skipped.push(...(loaded.skipped ?? []));
-
-  const filtered = Array.isArray(only) && only.length
-    ? parsed.items.filter((item) => only.includes(item.kind))
-    : parsed.items;
-
-  const { rows, rejected, warnings } = buildRows(filtered);
-  warnings.push(...(loaded.warnings ?? []));
-  const sourceText = loaded.markdown ?? JSON.stringify(loaded.json);
-  const digest = createHash('sha256').update(JSON.stringify({ sourceText, section, sheet, column_map })).digest('hex');
-  if (expected_digest && digest !== expected_digest) throw new Error('미리보기 이후 소스 또는 매핑이 변경되었습니다. 다시 미리보기 하세요.');
-
-  return { loaded, parsed, rows, rejected, warnings, sourceText, digest, processing_ms: performance.now() - started };
-}
-
-// JSON 소스는 [{kind, title, fields}] 형태를 그대로 받는다.
-function normalizeJsonItems(json) {
-  const list = Array.isArray(json) ? json : json?.items;
-  if (!Array.isArray(list)) throw new Error('JSON은 [{kind,title,fields}] 또는 {items:[...]} 형식이어야 합니다.');
-  const items = [], skipped = [];
-  list.forEach((item, i) => {
-    if (!item || typeof item.kind !== 'string' || typeof item.title !== 'string' || !item.title.trim() || !item.fields || typeof item.fields !== 'object' || Array.isArray(item.fields)) {
-      skipped.push({ line: i + 1, reason: 'JSON 항목에 kind·title·fields가 필요합니다.' });
-    } else items.push({ kind: item.kind, title: item.title, fields: item.fields, line: i + 1 });
-  });
-  return { items, skipped };
-}
+export { planImport } from './plan.mjs';
 
 function summarize(rows) {
   const byTable = {};
