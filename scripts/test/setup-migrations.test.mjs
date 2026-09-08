@@ -33,23 +33,26 @@ test('HTTPS request uses only the official API and returns rows', async () => {
   assert.deepEqual(await query('select 1', { readOnly: true }), [{ ok: 1 }]);
 });
 
-test('CLI query reuses login without exposing SQL in argv', async () => {
-  const calls = [];
-  const run = (command, argv, options) => {
-    calls.push({ command, argv, options });
-    return { status: 0, stdout: '[{"ok":1}]', stderr: '' };
-  };
-  assert.equal(supportsSupabaseDbQuery({ run }), true);
-  const query = createCliManagementQuery({ projectRef, run });
-  assert.deepEqual(await query('select 1', { readOnly: true }), [{ ok: 1 }]);
-  assert.deepEqual(calls[0].argv, ['db', 'query', '--help']);
-  assert.deepEqual(calls[1].argv, [
-    'db', 'query', '--linked', '--project-ref', projectRef,
-    '--output', 'json', '--agent', 'no',
-  ]);
-  assert.equal(calls[1].options.input, 'select 1');
-  assert.ok(!calls[1].argv.includes('select 1'));
-  assert.equal(calls[1].options.shell, false);
+test('CLI query uses each platform shell contract without exposing SQL in argv', async () => {
+  for (const [platform, shell] of [['linux', false], ['win32', true]]) {
+    const calls = [];
+    const run = (command, argv, options) => {
+      calls.push({ command, argv, options });
+      return { status: 0, stdout: '[{"ok":1}]', stderr: '' };
+    };
+    assert.equal(supportsSupabaseDbQuery({ run, platform }), true);
+    const query = createCliManagementQuery({ projectRef, run, platform });
+    assert.deepEqual(await query('select 1', { readOnly: true }), [{ ok: 1 }]);
+    assert.deepEqual(calls[0].argv, ['db', 'query', '--help']);
+    assert.deepEqual(calls[1].argv, [
+      'db', 'query', '--linked', '--project-ref', projectRef,
+      '--output', 'json', '--agent', 'no',
+    ]);
+    assert.equal(calls[0].options.shell, shell);
+    assert.equal(calls[1].options.shell, shell);
+    assert.equal(calls[1].options.input, 'select 1');
+    assert.ok(!calls[1].argv.includes('select 1'));
+  }
 });
 
 test('CLI query errors redact credentials and malformed output is rejected', async () => {
