@@ -1,10 +1,11 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, existsSync, rmSync, realpathSync, symlinkSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { createServer } from 'node:http';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { once } from 'node:events';
 import { setTimeout as delay } from 'node:timers/promises';
 import { dependencyFingerprint, ensureDependencies, hasConfiguration, checkPort, waitForWeb } from '../start.mjs';
@@ -29,6 +30,15 @@ async function until(predicate, timeout = 10000) {
     await delay(50);
   }
 }
+
+test('launcher also executes through a linked repository folder', t => {
+  const root = fixture(t);
+  const alias = resolve(root, 'linked scripts');
+  symlinkSync(fileURLToPath(new URL('../', import.meta.url)), alias, 'junction');
+  const child = spawnSync(process.execPath, [resolve(alias, 'start.mjs'), '--help'], { encoding: 'utf8', windowsHide: true });
+  assert.equal(child.status, 0, child.stderr);
+  assert.match(child.stdout, /npm start/);
+});
 
 test('dependency setup reuses successful installs and retries changes or failures', async t => {
   const root = fixture(t);
@@ -141,7 +151,7 @@ main([], ${JSON.stringify(root)}).catch(error => { console.error(error.message);
   if (scenario === 'runner failure') assert.match(output, /코드 7/);
   const runner = JSON.parse(readFileSync(resolve(root, 'runner-args'), 'utf8'));
   assert.deepEqual(runner.args, ['start', '--login-if-needed']);
-  assert.equal(runner.cwd, resolve(root, 'runner'));
+  assert.equal(realpathSync(runner.cwd), realpathSync(resolve(root, 'runner')));
   await checkPort(port);
 });
 }

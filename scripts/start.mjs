@@ -1,4 +1,4 @@
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, readFileSync, writeFileSync, realpathSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:net';
 import { resolve, dirname } from 'node:path';
@@ -125,6 +125,7 @@ export async function main(argv = process.argv.slice(2), root = projectRoot) {
   }
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
+// macOS /var 별칭이나 사용자의 폴더 링크도 같은 진입점으로 인식해야 한다.
+if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.meta.url)) {
   main().catch(error => { console.error(error.message); process.exitCode = 1; });
 }
