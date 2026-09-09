@@ -8,8 +8,10 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { databaseIsCurrent, markDatabaseCurrent, projectRefFromUrl } from './lib/database-version.mjs';
 import { createProcessGroup } from './lib/local-processes.mjs';
 import { assertSameAuthProject } from './lib/auth-target.mjs';
+import { printCareerBanner } from './lib/career-banner.mjs';
 
 const projectRoot = dirname(dirname(fileURLToPath(import.meta.url)));
+const version = JSON.parse(readFileSync(resolve(projectRoot, 'package.json'), 'utf8')).version;
 
 export function dependencyFingerprint(directory) {
   return createHash('sha256')
@@ -94,6 +96,7 @@ export async function main(argv = process.argv.slice(2), root = projectRoot) {
   if (argv.length > 1 || !['all', 'web', 'runner', 'login', 'doctor'].includes(mode)) throw new Error('알 수 없는 실행 옵션입니다. npm start -- --help를 확인하세요.');
   const [major, minor] = process.versions.node.split('.').map(Number);
   if (major < 22 || (major === 22 && minor < 13)) throw new Error('Node.js 22.13 이상을 설치한 뒤 npm start를 실행하세요.');
+  printCareerBanner({ version, mode });
   const group = createProcessGroup();
   const onSignal = () => { void group.stop(); };
   process.on('SIGINT', onSignal);
