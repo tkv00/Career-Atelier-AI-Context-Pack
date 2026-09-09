@@ -127,6 +127,18 @@ test('history gaps, foreign versions, names, and malformed rows fail closed', as
   }
 });
 
+test('accepts the historical source-imports name for the renumbered 0031 migration', async () => {
+  const history = files.map(({ version, name }) => ({
+    version,
+    name: version === '0031' ? 'source_imports' : name,
+  }));
+  const result = await inspectMigrations({ root, query: async (sql, options) => {
+    assert.equal(options?.readOnly, true);
+    return sql.includes('to_regclass') ? [{ history_exists: true, has_tables: true }] : history;
+  } });
+  assert.equal(result.history[30].name, 'source_imports');
+});
+
 test('after an ambiguous write failure, the next run resumes from committed history', async () => {
   const history = files.slice(0, files.length - 2);
   let loseResponse = true;

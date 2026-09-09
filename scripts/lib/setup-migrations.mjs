@@ -7,6 +7,14 @@ create table if not exists ${HISTORY} (version text primary key, statements text
 revoke all on schema supabase_migrations from public, anon, authenticated;
 revoke all on ${HISTORY} from public, anon, authenticated;`;
 
+// 초기 가져오기 기능을 먼저 배포한 인스턴스는 0031_source_imports를 기록한다.
+// 이후 저장소에서 0031을 Codex 한도 컬럼으로 재배치하고 호환 마이그레이션을
+// 추가했으므로, 해당 원격 이력은 이미 적용된 것으로 인정하되 새 설치 순서는
+// 현재 파일을 따른다.
+const HISTORICAL_NAMES = new Map([
+  ['0031', new Set(['source_imports'])],
+]);
+
 function literal(value) {
   return "E'" + value.replaceAll('\\', '\\\\').replaceAll("'", "''") + "'";
 }
@@ -68,7 +76,9 @@ export async function inspectMigrations({ root, query }) {
     if (!files.some((file) => file.version === row.version)) {
       throw new Error(`원격 DB에만 있는 마이그레이션 이력: ${row.version}${row.name ? `_${row.name}` : ''}. 해당 파일이 포함된 저장소 버전을 먼저 확보하세요. 원격 이력을 삭제하거나 전체 SQL을 재실행하지 마세요.`);
     }
-    if (row.version !== files[index]?.version || (row.name && row.name !== files[index].name)) {
+    const local = files[index];
+    const historicalName = row.name && HISTORICAL_NAMES.get(row.version)?.has(row.name);
+    if (row.version !== local?.version || (row.name && row.name !== local.name && !historicalName)) {
       throw new Error(`마이그레이션 이력이 로컬 파일 순서와 다릅니다: ${row.version}. 프로젝트와 적용 이력을 대조하세요. 자동 복구하지 않습니다.`);
     }
   }

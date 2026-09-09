@@ -4,6 +4,8 @@ User-facing changes are recorded here before release. See [the release policy](d
 
 ## [Unreleased]
 
+## [0.2.0-beta.2] - 2026-09-10
+
 ### Changed
 
 - Make Korean the default README, retain an English edition, and introduce features through example screens and common application-writing frustrations. Add copy-ready agent installation requests for both new and existing clones.
@@ -32,6 +34,21 @@ User-facing changes are recorded here before release. See [the release policy](d
 
 - Declare the Turbopack workspace root so development startup does not warn about the repository and web lockfiles.
 - 저장소와 웹 잠금 파일이 함께 있을 때 개발 서버가 경고하지 않도록 Turbopack 작업공간 루트를 명시했습니다.
+
+- Accept the historical `0031_source_imports` migration name when upgrading an instance that recorded the earlier migration order.
+- 이전 마이그레이션 순서를 기록한 인스턴스를 업데이트할 때 과거의 `0031_source_imports` 이름도 호환합니다.
+
+### Upgrade notes
+
+- No database migration is required for this release. Keep the web and local Runner on the same version.
+- 데이터베이스 마이그레이션은 필요하지 않습니다. 웹과 로컬 Runner를 같은 버전으로 유지하세요.
+
+### Known limitations and verification
+
+- This is a prerelease for beta testing. AI tasks still require an approved local runner and a signed-in provider CLI.
+- 이번 릴리스는 베타 테스트용 프리릴리스입니다. AI 작업에는 승인된 로컬 Runner와 로그인된 CLI가 필요합니다.
+- `npm run verify` passed with CI-style placeholder Supabase settings; live provider authentication and browser smoke checks were not run.
+- CI용 Supabase placeholder 설정으로 `npm run verify`를 통과했으며, 실제 provider 인증과 브라우저 smoke test는 실행하지 않았습니다.
 
 ## [0.2.0-beta.1] - 2026-09-07
 
