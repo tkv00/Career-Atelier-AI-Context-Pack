@@ -27,7 +27,9 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.58.0",
     "cross-spawn": "^7.0.6",
-    "exceljs": "4.4.0"
+    "exceljs": "4.4.0",
+    "jszip": "3.10.1",
+    "saxes": "5.0.1"
   },
   "license": "MIT",
   "repository": {

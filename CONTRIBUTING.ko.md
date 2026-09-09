@@ -14,6 +14,7 @@ Career Atelier 프로젝트에 관심을 갖고 기여해 주셔서 감사합니
 
 - [행동 강령](#행동-강령)
 - [개발 환경 설정](#개발-환경-설정)
+- [AI 에이전트로 기여하기](#ai-에이전트로-기여하기)
 - [프로젝트 구조 및 분리 원칙](#프로젝트-구조-및-분리-원칙)
 - [버그 제보 방법](#버그-제보-방법)
 - [기능 제안 방법](#기능-제안-방법)
@@ -45,6 +46,16 @@ npm run setup
 ```
 
 `npm run setup`은 로컬 환경 도구를 점검하고, 본인의 Supabase 프로젝트를 연동하며, 마이그레이션을 적용한 뒤 `web/.env.local`과 `runner/.env` 파일을 자동으로 작성합니다. 전체 설치 절차는 [docs/USER-GUIDE.md](docs/USER-GUIDE.md)를 참고하세요.
+
+---
+
+## AI 에이전트로 기여하기
+
+에이전트가 작성한 Pull Request도 환영하며, 사람이 직접 작성한 것과 완전히 같은 기준으로 검토합니다. 주요 코딩 에이전트가 모두 읽는 [AGENTS.md](AGENTS.md)와, 이 문서의 규약을 실행되는 검사로 옮긴 [docs/AGENT-RULES.md](docs/AGENT-RULES.md)를 먼저 읽히세요.
+
+작업 흐름과 `.claude/commands/`에 들어 있는 공용 명령(`/verify`, `/migration`, `/new-agent`, `/new-provider`, `/new-rule`), 그리고 검사가 잡아낼 수 **없는** 것들은 [docs/AGENT-CONTRIBUTING.md](docs/AGENT-CONTRIBUTING.md)에 정리되어 있습니다.
+
+한 가지만은 꼭 지켜 주세요. 앱을 직접 실행해 보지 못한 에이전트는 그 사실을 밝혀야 합니다. 실행하지 않은 것을 실행한 것처럼 적은 보고서는 검토를 훨씬 어렵게 만듭니다.
 
 ---
 
@@ -95,6 +106,15 @@ npm run setup
 2. 하나의 Pull Request에는 논리적으로 연결된 하나의 변경사항만 담습니다. 리팩토링과 버그 수정이 섞여 있다면 두 개의 PR로 나누어 주세요.
 3. 아래의 정적 검사를 실행합니다.
 4. 단순히 작성한 코드를 나열하는 데 그치지 않고, **실제로 무엇을 실행해 검증했는지** 서술해 주세요.
+
+```bash
+npm run rules -- --base origin/main   # 규약을 실행 가능한 검사로 옮긴 것
+npm run verify                        # 규칙 + 테스트 + 타입 검사 + 린트 + 빌드
+```
+
+`npm run rules`는 CI가 가장 먼저 돌리는 검사입니다. `npm install` 없이 수 초 만에 끝나며, 걸린 항목마다 파일과 문제와 조치를 함께 출력합니다. 규칙 전체와 그 이유는 [docs/AGENT-RULES.md](docs/AGENT-RULES.md)에 있습니다. 규칙이 틀렸다고 판단되면 검사 코드를 고쳐 통과시키지 말고 PR 설명에 근거를 적어 주세요.
+
+`web/`만 수정했다면 정적 검사만 따로 돌려도 됩니다.
 
 ```bash
 cd web && npx tsc --noEmit && npm run lint && npm run build

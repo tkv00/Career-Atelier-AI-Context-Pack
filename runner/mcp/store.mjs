@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseDate, parseGpa, parseList, parsePeriod } from './parse.mjs';
+import { parseDate, parseGpa, parseList, parsePeriod, parseTags } from './parse.mjs';
 
 // 러너와 같은 사용자 세션으로 로그인한다 — service_role 키는 쓰지 않는다
 // (§19.2 #2·#3). 그래서 이 서버가 쓸 수 있는 행은 RLS가 허용하는 자기 행뿐이다.
@@ -92,7 +92,7 @@ export const TARGETS = {
         trial_error: text(f.trial_error),
         reflection: text(f.reflection),
         metrics: parseList(f.metrics),
-        tags: parseList(f.tags),
+        tags: parseTags(f.tags),
         updated_at: new Date().toISOString(),
       };
     },

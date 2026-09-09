@@ -16,6 +16,34 @@ permissions:
   contents: read
 
 jobs:
+  # 규칙 검사는 의존성 설치 없이 Node 표준 라이브러리만으로 돌아간다. 기여자가
+  # 몇 초 안에 무엇이 틀렸는지 보게 하려고 나머지 잡과 병렬로 가장 먼저 둔다.
+  rules:
+    name: Project rules
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # 마이그레이션 추가 전용 규칙, 커밋 제목 규칙, 새 의존성 검토는 히스토리를
+          # 본다. 얕은 클론에서는 통과가 아니라 "건너뜀"으로 보고되므로 전체를 받는다.
+          fetch-depth: 0
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.13.0'
+      - name: Resolve the base revision
+        id: base
+        run: |
+          if [ -n "${{ github.base_ref }}" ]; then
+            echo "ref=origin/${{ github.base_ref }}" >> "$GITHUB_OUTPUT"
+          elif git rev-parse --verify HEAD~1 >/dev/null 2>&1; then
+            echo "ref=HEAD~1" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Check the project rules
+        run: node scripts/verify-rules.mjs ${{ steps.base.outputs.ref && format('--base {0}', steps.base.outputs.ref) || '' }} --github --summary
+
   tests:
     name: Tests (${{ matrix.os }}, Node ${{ matrix.node }})
     runs-on: ${{ matrix.os }}

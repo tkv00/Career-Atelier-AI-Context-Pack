@@ -27,6 +27,25 @@ test('모르는 열과 제목 없는 행은 자동 폐기하지 않는다',()=>{
   const p=analyzeDocument({tables:[{name:'경험',matrix:[['제목','알수없는열'],['A','특수 기록'],['','누락 제목']]}]});
   assert.equal(p.pending.length,2);assert.equal(p.chunks.length,2);assert.equal(p.candidates.length,0);
 });
+
+test('하드·소프트 스킬 열을 모두 태그로 저장하고 원본 행을 근거로 남긴다',()=>{
+  const p=analyzeDocument({tables:[{name:'경험',matrix:[
+    ['제목','하드 스킬','소프트 스킬','행동'],
+    ['배포 개선','Java, Spring Boot','문제해결, 팀워크','로그 분석\n재배포'],
+  ]}]});
+  assert.equal(p.pending.length,0);
+  assert.equal(p.candidates.length,1);
+  const item=p.candidates[0];
+  assert.deepEqual(candidatePayload(item).row.data.tags,['Java','Spring Boot','문제해결','팀워크']);
+  assert.equal(item.fields.action,'로그 분석\n재배포');
+  assert.equal(item.evidence.tags.quote,p.chunks[0].text);
+  const markdown=analyzeDocument({text:'# 경험\n## 배포 개선\n- 하드 스킬: Java, Spring Boot\n- 소프트 스킬: 문제해결, 팀워크'});
+  assert.equal(markdown.pending.length,0);
+  assert.deepEqual(candidatePayload(markdown.candidates[0]).row.data.tags,['Java','Spring Boot','문제해결','팀워크']);
+  const duplicate=analyzeDocument({tables:[{name:'경험',matrix:[['제목','행동','실행'],['A','첫째','둘째']]}]});
+  assert.equal(duplicate.candidates.length,0);
+  assert.match(duplicate.diagnostics[0].message,/같은 필드/);
+});
 test('추출 값·인용·필드 이름을 실제 원문과 검증한다',()=>{
   const chunk={id:'c1',location:'L1',digest:'abc',text:'통신 개선으로 지연이 30% 감소했다.'};
   const output={items:[{kind:'experience',title:'통신 개선',title_quote:'통신 개선으로',fields:[{key:'result',value:'30% 감소',quote:'지연이 30% 감소했다.'}]}]};

@@ -18,6 +18,7 @@ issue to ask is itself a useful contribution.
 
 - [Code of conduct](#code-of-conduct)
 - [Getting set up](#getting-set-up)
+- [Contributing with an AI agent](#contributing-with-an-ai-agent)
 - [Project layout](#project-layout)
 - [How to report a bug](#how-to-report-a-bug)
 - [How to suggest a feature](#how-to-suggest-a-feature)
@@ -55,6 +56,23 @@ npm run setup
 `npm run setup` checks your tooling, links your Supabase project, applies the
 migrations, and writes `web/.env.local` and `runner/.env`. The full walkthrough
 is in [docs/USER-GUIDE.md](docs/USER-GUIDE.md).
+
+<br>
+
+## Contributing with an AI agent
+
+Agent-written pull requests are welcome and are held to exactly the same bar as
+hand-written ones. Point your agent at [AGENTS.md](AGENTS.md), which every major
+coding agent reads, and at [docs/AGENT-RULES.md](docs/AGENT-RULES.md), which is
+the conventions on this page turned into checks that run.
+
+[docs/AGENT-CONTRIBUTING.md](docs/AGENT-CONTRIBUTING.md) has the working loop,
+the shared `/verify`, `/migration`, `/new-agent`, `/new-provider`, and
+`/new-rule` commands in `.claude/commands/`, and what the checks deliberately
+cannot catch.
+
+One thing to insist on: an agent that cannot run the app must say so. Review is
+much harder when a report implies something was exercised and it was not.
 
 <br>
 
@@ -116,6 +134,19 @@ changes how the issue gets scheduled.
    two pull requests.
 3. Run the checks below.
 4. Describe **what you verified**, not just what you wrote.
+
+```bash
+npm run rules -- --base origin/main   # the conventions, as executable checks
+npm run verify                        # rules, tests, typecheck, lint, build
+```
+
+`npm run rules` is what CI runs first. It needs no `npm install`, finishes in
+seconds, and prints the file, the problem, and the fix for anything it catches.
+Every rule and the reasoning behind it is in
+[docs/AGENT-RULES.md](docs/AGENT-RULES.md). If you think a rule is wrong, say so
+in the pull request rather than editing the check to pass.
+
+The web checks alone, if that is all you touched:
 
 ```bash
 cd web

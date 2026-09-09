@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { createImport, retryImport, commitImport, prepareImportUpload, finishImportUpload, refreshImportConflicts } from './actions';
 import { createClient } from '@/lib/supabase/client';
-import { IMPORT_KINDS, KIND_LABELS, type ImportCandidate, type ImportChunk, type ImportRow } from '@/lib/imports';
+import { IMPORT_KINDS, KIND_LABELS, type ImportCandidate, type ImportChunk, type ImportRow, type ImportTablePreview } from '@/lib/imports';
 import type { Json } from '@/lib/supabase/database.types';
 import { isProvider, PROVIDERS, PROVIDER_META } from '@/lib/agent-providers';
 import { ModelSelect } from '../model-select';
@@ -16,16 +16,47 @@ const STATES:Record<string,string>={queued:'분석 대기',analyzing:'분석 중
 const active=(s:string)=>['queued','analyzing','committing'].includes(s);
 function asObject(value:Json):Record<string,Json|undefined>{return value && typeof value==='object'&&!Array.isArray(value)?value:{};}
 
-function ImportOptions({options={}}:{options?:Record<string,Json|undefined>}) {
+type SheetSetting={section:string;header_row:string;header_rows:string;end_row:string;excluded:boolean;column_map:Record<string,string>};
+
+function SheetMappings({previews,options}:{previews:ImportTablePreview[];options:Record<string,Json|undefined>}) {
+  const [settings,setSettings]=useState<Record<string,SheetSetting>>(()=>Object.fromEntries(previews.map(p=>{
+    const saved=asObject(asObject(options.sheet_options||{})[p.name]||{});
+    return [p.name,{section:String(saved.section||p.section||''),header_row:String(saved.header_row??(p.ready?p.header_row:'')),header_rows:String(saved.header_rows??(p.ready?p.header_rows:'')),end_row:String(saved.end_row??''),excluded:saved.excluded===true,column_map:Object.fromEntries(Object.entries(asObject(saved.column_map||{})).map(([k,v])=>[k,String(v)]))}];
+  })));
+  function patch(name:string,change:Partial<SheetSetting>) {setSettings(current=>({...current,[name]:{...current[name]!,...change}}));}
+  return <section><h4>시트 원본과 열 매핑</h4>
+    <p className={styles.muted}>미리보기는 마지막 분석 기준입니다. 헤더 위치나 분류를 바꿨다면 다시 분석한 뒤 열 연결을 확인하세요. 안내·참조 시트는 제외할 수 있습니다.</p>
+    {previews.map(p=>{const setting=settings[p.name]!;return <fieldset key={p.name} className={styles.sheetMapping}><legend>{p.name} · {p.rows}행</legend>
+      <label className={styles.check}><input type="checkbox" checked={setting.excluded} onChange={e=>patch(p.name,{excluded:e.target.checked})}/>이 시트 제외</label>
+      {!p.ready&&!setting.excluded&&<p className={styles.notice}>자동 매핑을 완료하지 못했습니다. 아래 원본에서 분류·헤더·열 연결을 확인하세요. 경험은 제목 열이 없어도 매핑된 본문으로 임시 제목을 만들 수 있습니다.</p>}
+      <div className={styles.sheetPreview}><table><caption>{p.name} 원본 일부 · 셀당 최대 160자</caption><thead><tr><th>행</th>{p.columns.map(c=><th key={c.key}>{c.key.slice(1)}</th>)}</tr></thead><tbody>{p.sample.map(row=><tr key={row.row}><th>{row.row}</th>{row.values.map((value,i)=><td key={i}>{value}</td>)}</tr>)}</tbody></table></div>
+      <fieldset disabled={setting.excluded}><legend>가져올 영역</legend><div className={styles.grid}>
+        <label>시트 분류<select value={setting.section} onChange={e=>patch(p.name,{section:e.target.value,column_map:{}})}><option value="">자동 분류</option>{IMPORT_KINDS.map(k=><option key={k} value={k}>{KIND_LABELS[k]}</option>)}</select></label>
+        <label>헤더 시작 행<input type="number" min="1" max={p.rows} placeholder="자동 찾기" value={setting.header_row} onChange={e=>patch(p.name,{header_row:e.target.value,column_map:{}})}/></label>
+        <label>헤더 줄 수<input type="number" min="0" max="5" placeholder="자동 찾기" value={setting.header_rows} onChange={e=>patch(p.name,{header_rows:e.target.value,column_map:{}})}/><span className={styles.muted}>헤더가 없는 표는 0을 입력하세요.</span></label>
+        <label>마지막 데이터 행<input type="number" min="1" max={p.rows} placeholder="끝까지" value={setting.end_row} onChange={e=>patch(p.name,{end_row:e.target.value})}/></label>
+      </div>
+      <div className={styles.grid}>{p.columns.map(c=><label key={c.key}>{c.key.slice(1)}열 · {c.label}<select value={setting.column_map[c.key]??(setting.section===p.section?c.target:'')} onChange={e=>{
+        const map={...setting.column_map};if(e.target.value)map[c.key]=e.target.value;else delete map[c.key];patch(p.name,{column_map:map});
+      }}><option value="">자동 인식 / 미연결</option><option value="ignore">이 열 제외</option><option value="title">제목</option>{(FIELDS[setting.section]||Object.keys(LABELS)).map(k=><option key={k} value={k}>{LABELS[k]}</option>)}</select></label>)}</div>
+      <p className={styles.muted}>하드·소프트 스킬 열은 모두 태그로 연결할 수 있습니다. 같은 이름의 열도 A·B 등 위치로 구분합니다. 제외한 열은 저장하지 않습니다. 경험에 제목이 없으면 상황·행동 등 본문 일부를 임시 제목으로 사용하므로 저장 전에 확인하세요.</p>
+      </fieldset>
+    </fieldset>;})}
+    <input name="sheet_options" type="hidden" value={JSON.stringify(settings)}/>
+  </section>;
+}
+
+function ImportOptions({options={},previews=[]}:{options?:Record<string,Json|undefined>;previews?:ImportTablePreview[]}) {
   const [provider,setProvider]=useState(isProvider(options.provider)?options.provider:'codex');
   const [model,setModel]=useState(String(options.model||''));
   const [section,setSection]=useState(String(options.section||''));
   const [mapping,setMapping]=useState<Array<{source:string;target:string}>>(()=>Object.entries(asObject(options.column_map||{})).map(([source,target])=>({source,target:String(target)})));
-  return <details><summary>분류·시트·열 맞추기 및 AI 설정</summary>
+  return <details open={previews.length>0}><summary>분류·시트·열 맞추기 및 AI 설정</summary>
     <div className={styles.grid}>
       <label>자료 분류<select name="section" value={section} onChange={e=>setSection(e.target.value)}><option value="">자동 분류</option>{IMPORT_KINDS.map(k=><option key={k} value={k}>{KIND_LABELS[k]}</option>)}</select></label>
       <label>엑셀 시트 이름 (비우면 전체)<input name="sheet" defaultValue={String(options.sheet||'')}/></label>
-      <label>표 제목이 있는 행<input name="header_row" type="number" min="1" defaultValue={Number(options.header_row||1)}/></label>
+      <label>헤더 시작 행<input name="header_row" type="number" min="1" placeholder="자동 찾기" defaultValue={options.header_row?Number(options.header_row):''}/></label>
+      <label>헤더 줄 수<input name="header_rows" type="number" min="0" max="5" placeholder="자동 찾기" defaultValue={options.header_rows===null||options.header_rows===undefined?'':Number(options.header_rows)}/></label>
       <label>AI 실행 도구<select name="provider" value={provider} onChange={e=>{if(isProvider(e.target.value)){setProvider(e.target.value);setModel('');}}}>{PROVIDERS.map(p=><option key={p} value={p}>{PROVIDER_META[p].label}</option>)}</select></label>
       <ModelSelect key={provider} provider={provider} value={model} onChange={setModel} name="model"/>
     </div>
@@ -33,9 +64,10 @@ function ImportOptions({options={}}:{options?:Record<string,Json|undefined>}) {
     <label className={styles.check}><input name="ai_enabled" type="checkbox" defaultChecked={options.ai_enabled!==false}/>자유로운 기록은 로컬 AI로 정리</label>
     <p className={styles.muted}>해석이 필요한 부분만 전달합니다. 분석 한 번에 최대 20개 조각을 처리하며, 나머지는 다음 분석에서 이어서 처리할 수 있습니다.</p>
     <p>내 표의 열 이름 맞추기</p>
-    {mapping.map((m,i)=><div key={i} className={styles.row}><label>원래 열 이름<input value={m.source} onChange={e=>setMapping(mapping.map((x,j)=>j===i?{...x,source:e.target.value}:x))}/></label><label>저장할 항목<select value={m.target} onChange={e=>setMapping(mapping.map((x,j)=>j===i?{...x,target:e.target.value}:x))}><option value="title">제목</option>{(FIELDS[section]||Object.keys(LABELS)).map(k=><option key={k} value={k}>{LABELS[k]}</option>)}</select></label><button type="button" onClick={()=>setMapping(mapping.filter((_,j)=>j!==i))}>열 매핑 삭제</button></div>)}
+    {mapping.map((m,i)=><div key={i} className={styles.row}><label>원래 열 이름 또는 위치(@A)<input value={m.source} onChange={e=>setMapping(mapping.map((x,j)=>j===i?{...x,source:e.target.value}:x))}/></label><label>저장할 항목<select value={m.target} onChange={e=>setMapping(mapping.map((x,j)=>j===i?{...x,target:e.target.value}:x))}><option value="title">제목</option><option value="ignore">이 열 제외</option>{(FIELDS[section]||Object.keys(LABELS)).map(k=><option key={k} value={k}>{LABELS[k]}</option>)}</select></label><button type="button" onClick={()=>setMapping(mapping.filter((_,j)=>j!==i))}>열 매핑 삭제</button></div>)}
     <button type="button" onClick={()=>setMapping([...mapping,{source:'',target:'title'}])}>열 매핑 추가</button>
     <input type="hidden" name="column_map" value={JSON.stringify(Object.fromEntries(mapping.filter(m=>m.source).map(m=>[m.source,m.target])))}/>
+    {previews.length>0&&<SheetMappings previews={previews} options={options}/>}
   </details>;
 }
 
@@ -67,7 +99,7 @@ export function ImportsClient({initialImports,runnerOnline}:{initialImports:Impo
     <section className={styles.card}><h2>새 자료</h2>
       <div className={styles.tabs}>{([['file','파일 업로드'],['text','텍스트 붙여넣기'],['table','엑셀 셀 붙여넣기'],['notion','Notion 주소']] as const).map(([value,label])=><button type="button" key={value} aria-pressed={mode===value} onClick={()=>setMode(value)}>{label}</button>)}</div>
       <form action={submit} key={mode}><input type="hidden" name="source_type" value={mode}/>
-        {mode==='file'?<label>Markdown 또는 Excel 파일<input name="file" type="file" accept=".md,.markdown,.xlsx" required/><span className={styles.muted}>최대 10 MiB. 수식·병합 셀은 일반 값으로 정리해 주세요.</span></label>:<label>자료 이름<input name="name" placeholder="프로젝트 회고와 경력 기록"/></label>}
+        {mode==='file'?<label>Markdown 또는 Excel 파일<input name="file" type="file" accept=".md,.markdown,.xlsx" required/><span className={styles.muted}>최대 10 MiB. 시트와 여러 줄 헤더를 자동으로 찾고 분석 후 열 매핑을 조정할 수 있습니다. 수식은 파일에 저장된 계산 결과만 읽습니다.</span></label>:<label>자료 이름<input name="name" placeholder="프로젝트 회고와 경력 기록"/></label>}
         {['text','table'].includes(mode)&&<label>{mode==='table'?'엑셀에서 셀을 복사해 붙여넣으세요':'내용을 붙여넣으세요'}<textarea name="text" rows={8} required/></label>}
         {mode==='notion'&&<><label>Notion 페이지·DB 주소<input name="notion_url" placeholder="https://www.notion.so/..." required/></label><label>대상 종류<select name="notion_kind"><option value="page">페이지 본문</option><option value="database">데이터베이스 속성</option><option value="data-source">데이터 소스</option></select></label><p className={styles.muted}>최초 한 번 로컬 러너의 Notion 연결과 페이지 읽기 권한이 필요합니다. DB 행 본문·첨부파일은 포함하지 않습니다.</p></>}
         <ImportOptions/><p><button type="submit" disabled={busy}>{busy?'자료 보관 중…':'분석하고 미리보기'}</button></p>
@@ -87,6 +119,7 @@ function Review({batch}:{batch:ImportRow}) {
   const openedAt=useRef(0);
   useEffect(()=>{openedAt.current=Date.now();},[]);
   const chunks=batch.chunks as unknown as ImportChunk[],receipts=asObject(batch.receipts),stats=asObject(batch.measurements);
+  const unresolvedCount=Array.isArray(stats.unresolved_chunks)?stats.unresolved_chunks.length:0;
   const editable=!active(batch.status)&&batch.status!=='completed';
   const patch=(i:number,update:Partial<ImportCandidate>)=>setItems(prev=>prev.map((item,j)=>{
     if(i!==j)return item;
@@ -102,9 +135,12 @@ function Review({batch}:{batch:ImportRow}) {
   return <div><div className={styles.row}><h3>{STATES[batch.status]||batch.status}</h3><button type="button" onClick={()=>router.refresh()}>새로고침</button><button type="button" onClick={exportEvidence}>원문·근거·측정 기록 내려받기</button></div>
     {batch.error&&<p className={styles.notice}>{batch.error}</p>}{error&&<p role="alert" className={styles.notice}>{error}</p>}
     <div className={styles.stats}><p><strong>{chunks.length}</strong>원문 조각</p><p><strong>{items.length}</strong>정리된 항목</p><p><strong>{String(stats.cache_hits||0)}</strong>재사용한 분석</p><p><strong>{Object.keys(receipts).length}</strong>저장 완료</p></div>
-    {Array.isArray(stats.unresolved_chunks)&&stats.unresolved_chunks.length>0&&<p className={styles.notice}>{stats.unresolved_chunks.length}개 조각은 아직 미분류입니다. 아래 원문에서 직접 항목을 추가하거나 다시 분석하세요.</p>}
+    {batch.status==='review'&&Number(stats.ai_chunks||0)===0&&Number(stats.cache_hits||0)===0&&<p className={styles.muted}>{items.length>0?'열 매핑과 정형 규칙으로 분석했습니다. 이 결과에는 AI 호출이 필요하지 않았습니다.':'분석 요청은 처리됐지만 항목을 추출하지 못했습니다. 아래 원본 확인 안내에서 원인을 확인하세요.'}</p>}
+    {unresolvedCount>0&&<p className={styles.notice}>{unresolvedCount}개 원문 조각은 아직 미분류이며 이번 저장에서 제외됩니다. 필요하면 아래 원문에서 항목을 추가하거나 다시 분석할 수 있고, 현재 검토한 {items.length}개 항목은 그대로 저장할 수 있습니다.</p>}
+    {Array.isArray(batch.diagnostics)&&batch.diagnostics.length>0&&<details open><summary>원본 확인 안내 · {batch.diagnostics.length}건</summary><ul>{batch.diagnostics.slice(0,30).map((entry,i)=>{const d=asObject(entry);return <li key={i}>{String(d.location||'')} — {String(d.message||'')}</li>;})}</ul>{batch.diagnostics.length>30&&<p>나머지 안내는 아래 진단 기록에서 확인할 수 있습니다.</p>}</details>}
     <details><summary>진단과 실행 측정값</summary><pre>{JSON.stringify({diagnostics:batch.diagnostics,measurements:batch.measurements},null,2)}</pre><p className={styles.muted}>실제 토큰은 제공자가 보고한 실행에만 표시됩니다. 분석 재사용 횟수는 토큰 절감률이 아닙니다.</p></details>
     <details><summary>원문 전체 보기 · {chunks.length}개 조각</summary>{chunks.map(c=><article key={c.id}><p>{c.location}</p><pre className={styles.source}>{c.text}</pre>{editable&&<button type="button" onClick={()=>setItems([...items,{id:crypto.randomUUID(),kind:'experience',title:'새 항목',fields:{},method:'manual',evidence:{title:{chunk_id:c.id,location:c.location,quote:''}},action:'create',target_id:null,expected_updated_at:null,conflicts:[]}])}>이 원문에서 항목 추가</button>}</article>)}</details>
+    {!Object.keys(receipts).length&&<details open={Array.isArray(stats.table_previews)&&stats.table_previews.length>0}><summary>설정을 바꾸어 다시 분석</summary><form action={form=>run(()=>retryImport(batch.id,batch.revision,form))}><input name="notion_kind" type="hidden" value={String(asObject(batch.options).notion_kind||'page')}/><ImportOptions options={asObject(batch.options)} previews={(Array.isArray(stats.table_previews)?stats.table_previews:[]) as unknown as ImportTablePreview[]}/><p><button disabled={busy||active(batch.status)}>다시 분석</button></p><p className={styles.muted}>아직 저장하지 않은 수정 내용은 새 분석 결과로 바뀝니다.</p></form></details>}
     {items.map((item,i)=>{
       const saved=Boolean(receipts[String(i)]), disabled=!editable||saved||busy;
       const cited=chunks.filter(c=>Object.values(item.evidence).some(e=>e.chunk_id===c.id));
@@ -121,10 +157,9 @@ function Review({batch}:{batch:ImportRow}) {
         </div><aside><p className={styles.muted}>원문 대조 · {item.method==='rules'?'규칙으로 정리':item.method==='ai'?'AI로 추출':'직접 입력'}</p>{cited.map(c=><div key={c.id}><p className={styles.muted}>{c.location}</p><pre className={styles.source}>{c.text}</pre></div>)}</aside></div>
       </article>;
     })}
-    {editable&&items.length>0&&<p className={styles.row}><button disabled={busy} type="button" onClick={()=>run(()=>commitImport(batch.id,batch.revision,items))}>{busy?'요청 중…':'검토한 내용 저장'}</button><button disabled={busy} type="button" onClick={()=>run(async()=>{
+    {editable&&items.length>0&&<p className={styles.row}><button disabled={busy} type="button" onClick={()=>run(()=>commitImport(batch.id,batch.revision,items))}>{busy?'요청 중…':unresolvedCount>0?`미분류 제외하고 ${items.length}개 저장`:'검토한 내용 저장'}</button><button disabled={busy} type="button" onClick={()=>run(async()=>{
       const refreshed=await refreshImportConflicts(items);
       setItems(refreshed.map((item,i)=>receipts[String(i)]?items[i]!:item));
     })}>기존 기록 다시 비교</button></p>}
-    {!Object.keys(receipts).length&&<details><summary>설정을 바꾸어 다시 분석</summary><form action={form=>run(()=>retryImport(batch.id,batch.revision,form))}><input name="notion_kind" type="hidden" value={String(asObject(batch.options).notion_kind||'page')}/><ImportOptions options={asObject(batch.options)}/><p><button disabled={busy||active(batch.status)}>다시 분석</button></p><p className={styles.muted}>아직 저장하지 않은 수정 내용은 새 분석 결과로 바뀝니다.</p></form></details>}
   </div>;
 }

@@ -18,7 +18,10 @@
     "release:prepare": "node scripts/release.mjs prepare",
     "test:tooling": "node scripts/test-tooling.mjs",
     "test": "npm run test:tooling && npm --prefix runner test",
-    "verify": "npm run check:version && npm test && npm --prefix web run typecheck && npm --prefix web run lint && npm --prefix web run build"
+    "rules": "node scripts/verify-rules.mjs",
+    "rules:docs": "node scripts/verify-rules.mjs --docs",
+    "rules:list": "node scripts/verify-rules.mjs --list",
+    "verify": "npm run check:version && npm run rules && npm test && npm --prefix web run typecheck && npm --prefix web run lint && npm --prefix web run build"
   },
   "license": "MIT",
   "repository": {

@@ -36,7 +36,7 @@ test('custom column mapping preserves multiline strings and reports missing titl
   assert.throws(() => tableToItems(['title', 'title'], [], { section: '경험' }), /중복/);
 });
 
-test('Excel formulas and merged cells fail before writes; dates are ISO; sheet selection works', async () => {
+test('Excel cached formulas carry warnings, ambiguous data merges are excluded, and dates stay ISO', async () => {
   const book = new ExcelJS.Workbook();
   const sheet = book.addWorksheet('자격증');
   sheet.addRow(['제목', '취득일']); sheet.addRow(['가상 자격', new Date('2024-06-02T00:00:00Z')]);
@@ -44,9 +44,11 @@ test('Excel formulas and merged cells fail before writes; dates are ISO; sheet s
   assert.equal((await planImport({ source: path })).rows[0].data.acquired_on, '2024-06-02');
   await assert.rejects(planImport({ source: path, sheet: '없는 시트' }), /시트/);
   sheet.getCell('B2').value = { formula: '1+1', result: 2 }; await book.xlsx.writeFile(path);
-  await assert.rejects(planImport({ source: path }), /수식/);
+  assert.ok((await planImport({ source: path })).warnings.some(w=>/수식/.test(w.reason)));
   sheet.getCell('B2').value = ''; sheet.mergeCells('A2:B2'); await book.xlsx.writeFile(path);
-  await assert.rejects(planImport({ source: path }), /병합/);
+  const merged=await planImport({ source:path });
+  assert.equal(merged.rows.length,0);
+  assert.ok(merged.warnings.some(w=>/병합/.test(w.reason)));
 });
 
 test('Notion DB discovers data source and follows pagination with exact properties', async () => {

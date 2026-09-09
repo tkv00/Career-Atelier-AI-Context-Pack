@@ -96,6 +96,30 @@ authenticate as them.
 
 ## Verifying your changes
 
+Run this from the repository root before you report anything:
+
+```bash
+npm run verify
+```
+
+It runs, in order: version consistency, the project rules, the tooling and
+runner tests, and `web`'s typecheck, lint, and build. To run only the rules
+while you work — they are fast and need no install:
+
+```bash
+npm run rules                          # everything checkable from the tree
+npm run rules -- --base origin/main    # adds the history-aware checks CI runs
+npm run rules -- --list                # what the rules are
+```
+
+Each rule prints the file, the problem, and the fix. They are the conventions
+below turned into executable checks, so an agent that cannot run the app can
+still prove it did not break the invariants. Every rule is described in
+[docs/AGENT-RULES.md](docs/AGENT-RULES.md), which is generated from
+`scripts/lib/rules.mjs` — change the rule, then run `npm run rules:docs`.
+
+The web checks on their own, if that is all you touched:
+
 ```bash
 cd web
 npx tsc --noEmit
@@ -103,7 +127,7 @@ npm run lint
 npm run build
 ```
 
-All three must pass. **They are not sufficient.** This project's bug history is
+All of these must pass. **They are not sufficient.** This project's bug history is
 mostly defects that passed every static check and only appeared when someone ran
 the thing: a context pack destructuring a key that did not exist, a CLI flag
 documented to take a file path that actually takes a JSON string, a schema that
@@ -179,6 +203,23 @@ Measured, not assumed. Each cost real debugging time.
 | `runner/safety.mjs` | Fixed limits and the subscription checks. Not configurable. |
 | `supabase/migrations/` | Append-only SQL |
 | `scripts/setup.mjs` | The installer described above |
+| `scripts/lib/rules.mjs` | The conventions above, as executable checks. `docs/AGENT-RULES.md` is generated from it |
+| `.claude/commands/` | Shared task recipes: `/verify`, `/migration`, `/new-agent`, `/new-provider`, `/new-rule` |
 | `docs/` | User guides, harness engineering, setup, and policies |
 
 See `docs/HARNESS-ENGINEERING.md` and `runner/README.md` before changing runner or agent behaviour.
+
+<br>
+
+## Contributing as an agent
+
+This repository expects agent-written pull requests and checks them the same way
+as any other. `docs/AGENT-CONTRIBUTING.md` describes the loop; the short version:
+
+1. Read this file and `docs/AGENT-RULES.md` before editing.
+2. Run `npm run rules` while you work, and `npm run verify` before you report.
+3. Fix causes, not checks. If a rule is wrong for your change, leave it failing
+   and argue the case in the pull request instead of editing
+   `scripts/lib/rules.mjs` to go green.
+4. Adding a convention means adding a rule (`/new-rule`), with a test that fails
+   before your fix. A rule nothing can violate is not a rule.

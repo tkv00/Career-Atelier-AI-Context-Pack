@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/server';
 import { validateCandidates } from '@/lib/imports';
 import type { ImportCandidate } from '@/lib/imports';
 import type { Json } from '@/lib/supabase/database.types';
+import { tableOptions, sheetOptions } from '@/lib/import-options';
 
 async function session() {
   const supabase=await createClient();
@@ -20,9 +21,9 @@ function optionsFrom(form:FormData) {
   const mapText=String(form.get('column_map')||'{}');
   const column_map=JSON.parse(mapText);
   if(!column_map||Array.isArray(column_map)||typeof column_map!=='object'||Object.values(column_map).some(v=>typeof v!=='string')) throw new Error('열 매핑 형식을 확인하세요.');
-  const header_row=Number(form.get('header_row')||1);
-  if(!Number.isInteger(header_row)||header_row<1||header_row>10000) throw new Error('헤더 행 번호를 확인하세요.');
-  return {provider,model:String(form.get('model')||'').trim(),ai_enabled:form.get('ai_enabled')==='on',section:String(form.get('section')||''),sheet:String(form.get('sheet')||''),header_row,column_map,notion_kind:String(form.get('notion_kind')||'page')};
+  const layout=tableOptions({section:form.get('section')||'',header_row:form.get('header_row'),header_rows:form.get('header_rows'),end_row:form.get('end_row'),column_map});
+  const perSheet=sheetOptions(JSON.parse(String(form.get('sheet_options')||'{}')));
+  return {provider,model:String(form.get('model')||'').trim(),ai_enabled:form.get('ai_enabled')==='on',...layout,sheet:String(form.get('sheet')||''),sheet_options:perSheet,notion_kind:String(form.get('notion_kind')||'page')};
 }
 
 export async function createImport(form:FormData) {
