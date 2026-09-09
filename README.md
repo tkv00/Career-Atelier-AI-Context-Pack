@@ -13,6 +13,8 @@
 **한 번 정리한 내 경험을, 다음 지원의 출발점으로.**
 Career Atelier는 흩어진 경험·이력·채용공고를 모으고, 기업 조사부터 자소서 초안·검수·면접 준비까지 이어 주는 개인 취업 준비 작업실입니다.
 
+<img src="docs/images/banner.png" alt="Career Atelier 우주선 콘셉트 배너" width="100%">
+
 <h2 align="center"><a href="https://tkv00.github.io/Career-Atelier-AI-Context-Pack/">🪐 소개 웹사이트 열기 →</a></h2>
 
 <p align="center"><b>설치 방법·기능·실측 수치를 한 장에서 봅니다.</b></p>
