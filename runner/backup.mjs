@@ -1,15 +1,9 @@
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, writeFile, rename, unlink } from 'node:fs/promises';
+import { randomUUID } from 'node:crypto';
 import { homedir } from 'node:os';
 import { isAbsolute, resolve } from 'node:path';
 
-// 로컬 폴더 자동 백업(사용자 요청, 2026-09-02).
-//
-// 클라우드 DB 하나만 믿으면 프로젝트 정지·실수 삭제로 자소서와 경험 카드가 통째로
-// 사라진다. 러너는 이미 본인 세션으로 로그인해 내 컴퓨터에서 도는 프로세스라
-// 파일시스템에 바로 쓸 수 있다 — 브라우저는 임의 폴더에 못 쓰므로 이 일은 러너 몫이다.
-//
-// RLS가 owner_id = auth.uid()로 이미 걸려 있어, 여기서 owner 필터를 따로 안 걸어도
-// 본인 행만 내려온다. 그래도 의도를 드러내려고 owner가 있는 테이블은 명시적으로 건다.
+// 본인 세션과 RLS로 읽은 업무 데이터를 로컬에 보관한다. 인증 정보는 내보내지 않는다.
 
 // 백업 대상. run_events는 실행 로그라 양이 크고 유실돼도 재현 가치가 낮아 뺀다.
 const OWNED_TABLES = [
@@ -29,6 +23,18 @@ const OWNED_TABLES = [
   'artifacts',
   'agent_runs',
   'source_imports',
+  'education_records',
+  'education_courses',
+  'certifications',
+  'external_activities',
+  'training_programs',
+  'project_records',
+  'work_experiences',
+  'awards',
+  'record_attachments',
+  'company_research_attachments',
+  'essay_revision_requests',
+  'essay_suggestions',
 ];
 
 const BACKUP_INTERVAL_MS = 2 * 60 * 60 * 1000; // 2시간마다 한 번.
@@ -61,9 +67,14 @@ export function backupFileName(date = new Date()) {
 }
 
 async function fetchAll(supabase, table) {
-  const { data, error } = await supabase.from(table).select('*');
-  if (error) throw new Error(`${table}: ${error.message}`);
-  return data ?? [];
+  const rows = [];
+  // ID順のページングでAPIの行数上限による黙った切り捨てを避ける。
+  for (;;) {
+    const { data, error } = await supabase.from(table).select('*').order('id').range(rows.length, rows.length + 499);
+    if (error) throw new Error(`${table}: ${error.message}`);
+    if (!data?.length) return rows;
+    rows.push(...data);
+  }
 }
 
 // 성공하면 쓴 파일 경로를, 실패하면 예외를 던진다. 호출부가 runners 행에 결과를 남긴다.
@@ -78,14 +89,21 @@ export async function runBackup(supabase, backupDir) {
 
   const payload = {
     product: 'Career Atelier',
-    format_version: 1,
+    format_version: 2,
+    exclusions: ['authentication', 'storage_binaries', 'jobs', 'runners', 'run_events', 'import_chunk_cache'],
     exported_at: new Date().toISOString(),
     tables,
   };
 
   await mkdir(dir, { recursive: true });
   const filePath = resolve(dir, backupFileName());
-  await writeFile(filePath, JSON.stringify(payload, null, 2), 'utf8');
+  const temporary = `${filePath}.${randomUUID()}.tmp`;
+  try {
+    await writeFile(temporary, JSON.stringify(payload, null, 2), { encoding: 'utf8', mode: 0o600, flag: 'wx' });
+    await rename(temporary, filePath);
+  } finally {
+    await unlink(temporary).catch(error => { if (error.code !== 'ENOENT') throw error; });
+  }
 
   const rowCount = Object.values(tables).reduce((sum, rows) => sum + rows.length, 0);
   return { filePath, rowCount };

@@ -1,5 +1,5 @@
 // 전형 단계별 합불 추적. 서류 하나로만 뭉뚱그리던 result_status를
-// 단계별로 쪼갠다(사용자 요청, 2026-09-02). job_posts.stage_results는
+// 단계별로 쪼갠다. job_posts.stage_results는
 // { [단계]: '합격' | '불합격' } 형태의 jsonb — 값이 없으면 "대기"다.
 export const STAGES = ['서류', '필기시험', '코딩테스트', '기술면접', '최종면접'] as const;
 export type Stage = (typeof STAGES)[number];

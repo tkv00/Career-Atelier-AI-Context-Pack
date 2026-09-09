@@ -55,7 +55,10 @@ test('isolated PostgreSQL migration execution', { skip: !bin, timeout: 120_000 }
     create function auth.uid() returns uuid language sql as 'select null::uuid';
     create table storage.buckets(id text primary key, name text, public boolean, file_size_limit bigint);
     create table storage.objects(id uuid primary key, bucket_id text, name text);
-    create function storage.foldername(text) returns text[] language sql as 'select string_to_array($1, ''/'')';`);
+    create function storage.foldername(text) returns text[] language sql as 'select string_to_array($1, ''/'')';
+    insert into auth.users(id,email) values
+      ('00000000-0000-4000-8000-000000000001','migration-test@example.invalid'),
+      ('00000000-0000-4000-8000-000000000002','other@example.invalid');`);
   const query = async (input, options) => options?.readOnly ? rows(input) : (sql(input), []);
   const files = migrationFiles(root);
 
@@ -65,7 +68,6 @@ test('isolated PostgreSQL migration execution', { skip: !bin, timeout: 120_000 }
     assert.equal(rows("select count(*)::int as count from pg_tables where schemaname = 'public' and not rowsecurity")[0].count, 0);
   });
   await t.test('rerun preserves seeded user data and skips all migrations', async () => {
-    sql("insert into auth.users(id,email) values ('00000000-0000-4000-8000-000000000001','migration-test@example.invalid');");
     const before = rows('select * from public.prompt_templates order by id');
     assert.ok(before.length > 0);
     assert.deepEqual(await applyMigrations({ root, query }), { applied: 0, skipped: files.length });
@@ -77,7 +79,6 @@ test('isolated PostgreSQL migration execution', { skip: !bin, timeout: 120_000 }
     const batch='00000000-0000-4000-8000-000000000003';
     sql(`create or replace function auth.uid() returns uuid language sql as 'select nullif(current_setting(''test.uid'',true),'''')::uuid';
       grant usage on schema public,auth to authenticated; grant all on all tables in schema public to authenticated;
-      insert into auth.users(id,email) values ('${other}','other@example.invalid');
       insert into source_imports(id,owner_id,name,source_type,status,revision,candidates) values('${batch}','${owner}','fixture','text','committing',1,'[{"kind":"experience","title":"합성 경험"},{"kind":"experience","title":"합성 경험"}]');`);
     const asUser=(id,statement)=>sql(`set role authenticated;set test.uid='${id}';${statement}`);
     assert.equal(asUser(other,`select count(*) from source_imports where id='${batch}';`),'0');
@@ -90,6 +91,27 @@ test('isolated PostgreSQL migration execution', { skip: !bin, timeout: 120_000 }
     assert.equal(asUser(owner,`select receipts ? '1' from source_imports where id='${batch}';`),'f');
     assert.throws(()=>asUser(owner,`select commit_import_candidate('${batch}',1,1,'experience_cards','{"owner_id":"${other}"}');`),/허용되지/);
     assert.throws(()=>asUser(owner,`select commit_import_candidate('${batch}',2,1,'experience_cards','{"title":"합성 경험"}');`),/버전/);
+  });
+  await t.test('queue functions enforce owner and approval and seed helpers are private', () => {
+    const owner = '00000000-0000-4000-8000-000000000001';
+    const other = '00000000-0000-4000-8000-000000000002';
+    const runner = '00000000-0000-4000-8000-000000000044';
+    const job = '00000000-0000-4000-8000-000000000045';
+    sql(`insert into runners(id,owner_id,device_name,fingerprint,approved,last_seen_at) values('${runner}','${owner}','test','queue-test',false,now()-interval '10 minutes');
+      insert into jobs(id,owner_id,kind,payload,harness_snapshot) values('${job}','${owner}','writer','{}','{}');`);
+    const asUser = (id, query) => sql(`set role authenticated; set test.uid='${id}'; ${query}`);
+    assert.throws(() => asUser(owner, `select claim_next_job('${runner}');`), /승인/);
+    sql(`update runners set approved=true where id='${runner}';`);
+    assert.throws(() => asUser(other, `select claim_next_job('${runner}');`), /승인/);
+    assert.equal(asUser(owner, `select (claim_next_job('${runner}')).status;`), 'running');
+    asUser(other, 'select reap_stale_jobs();');
+    assert.equal(sql(`select status from jobs where id='${job}';`), 'running');
+    asUser(owner, 'select reap_stale_jobs();');
+    assert.equal(sql(`select status from jobs where id='${job}';`), 'queued');
+    assert.equal(sql("select has_function_privilege('anon','public.seed_default_prompts(uuid)','execute');"), 'f');
+    assert.equal(sql("select has_function_privilege('anon','public.reap_stale_jobs()','execute');"), 'f');
+    assert.equal(sql("select 100::numeric(5,2);"), '100.00');
+    assert.equal(sql("select numeric_precision from information_schema.columns where table_name='education_records' and column_name='gpa_scale';"), '5');
   });
   await t.test('DDL rolls back when a later SQL statement fails', () => {
     assert.throws(() => sql(migrationTransaction({ version: '9001', name: 'broken', sql: 'create table public.must_rollback(id int); select 1/0;' })), /division by zero/);
@@ -111,5 +133,27 @@ test('isolated PostgreSQL migration execution', { skip: !bin, timeout: 120_000 }
     sql(migrationTransaction(migration));
     assert.equal(rows("select statements[1] as sql from supabase_migrations.schema_migrations where version='9004'")[0].sql, migration.sql);
     assert.match(rows('select value from public.quoted')[0].value, /한글/);
+  });
+  await t.test('existing owners cannot be replaced through signup or the private guard', () => {
+    assert.equal(sql('select count(*) from auth.users;'), '2');
+    assert.throws(() => sql("insert into auth.users(id,email) values ('00000000-0000-4000-8000-000000000099','third@example.invalid');"), /이미 소유자/);
+    assert.equal(sql("select has_schema_privilege('authenticated','career_atelier_private','usage');"), 'f');
+    assert.equal(sql("select has_table_privilege('authenticated','career_atelier_private.instance_owner','insert');"), 'f');
+  });
+  await t.test('first signup is atomic across concurrent transactions and rolls back cleanly', async () => {
+    // 사용자 DB가 아닌 이번 테스트의 임시 클러스터에서만 첫 가입 상태를 만든다.
+    sql('truncate auth.users cascade; truncate career_atelier_private.instance_owner;');
+    const first = '00000000-0000-4000-8000-000000000091';
+    const second = '00000000-0000-4000-8000-000000000092';
+    const results = await Promise.allSettled([first, second].map(id => concurrentSql(`begin; insert into auth.users(id,email) values ('${id}','${id}@example.invalid'); select pg_sleep(0.2); commit;`)));
+    assert.equal(results.filter(result => result.status === 'fulfilled').length, 1);
+    assert.equal(results.filter(result => result.status === 'rejected').length, 1);
+    assert.equal(sql('select count(*) from auth.users;'), '1');
+    assert.equal(sql('select count(*) from career_atelier_private.instance_owner g join auth.users u on g.owner_id=u.id;'), '1');
+    sql('truncate auth.users cascade; truncate career_atelier_private.instance_owner;');
+    sql(`begin; insert into auth.users(id,email) values ('${first}','rollback@example.invalid'); rollback;`);
+    assert.equal(sql('select count(*) from career_atelier_private.instance_owner;'), '0');
+    sql(`insert into auth.users(id,email) values ('${second}','success@example.invalid');`);
+    assert.equal(sql('select owner_id from career_atelier_private.instance_owner;'), second);
   });
 });

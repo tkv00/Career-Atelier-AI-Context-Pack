@@ -589,8 +589,9 @@ While the runner is up it exports the [tables listed in the backup code](../runn
 | Scope | Current behaviour |
 |---|---|
 | Included | Profile, experience cards, postings and calendar, research, prompts and configuration, essays/questions/versions/autosaves, interview questions, generated artifacts, and agent runs |
-| Excluded | Education, certification, activity, training, project, work, and award tables; Storage attachments; some queue and detailed log data |
-| Large tables | A single query per table; no pagination to export beyond the server's response row limit |
+| Additional records | Education and courses, certifications, activities, training, projects, work, awards, attachment metadata, revision requests and suggestions |
+| Excluded | Storage file contents, authentication data, jobs, runners, detailed events and import cache |
+| Large tables | Paginated by ID; the completed temporary file atomically replaces the daily file. Concurrent edits are not a point-in-time database snapshot |
 | Restore | JSON export only, without one-click restore. Its format also differs from MCP notes JSON, so it cannot be imported there unchanged |
 
 This does not replace a complete Supabase project backup. Prepare separate database and attachment backups if you need full recovery.

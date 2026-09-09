@@ -36,24 +36,26 @@ export async function connect() {
     throw new Error('러너 로그인이 없습니다. runner 폴더에서 npm run login을 먼저 실행하세요.');
   }
 
-  const supabase = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
-  const { data, error } = await supabase.auth.setSession({
-    access_token: session.access_token,
-    refresh_token: session.refresh_token,
-  });
-  if (error) throw new Error(`세션이 만료되었습니다(${error.message}). npm run login으로 다시 로그인하세요.`);
+  if (session.supabase_url && new URL(session.supabase_url).origin !== new URL(url).origin) throw new Error('러너 세션과 프로젝트가 다릅니다. npm run login으로 다시 로그인하세요.');
+  // 갱신 토큰은 러너만 회전시킨다. MCP가 함께 갱신하면 저장된 세션과 엇갈릴 수 있다.
+  const verifier = createClient(url, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { data, error } = await verifier.auth.getUser(session.access_token);
+  if (error || !data.user) throw new Error('세션이 만료되었습니다. 러너를 실행하거나 npm run login으로 다시 로그인하세요.');
+  const supabase = createClient(url, anonKey, { accessToken: async () => {
+    const current = JSON.parse(readFileSync(resolve(homedir(), '.career-atelier', 'session.json'), 'utf8'));
+    if (current.supabase_url && new URL(current.supabase_url).origin !== new URL(url).origin) throw new Error('러너 프로젝트가 변경되었습니다. MCP를 다시 시작하세요.');
+    return current.access_token;
+  } });
   return { supabase, user: data.user };
 }
 
-// numeric(4,2)는 최대 99.99다 — 만점 100 표기를 그대로 넣으면 insert가 깨진다.
-// 마이그레이션 0020의 주석은 "4.5 / 4.3 / 100 등"이라 적혀 있지만 컬럼 타입이
-// 그걸 못 담는다. 여기서 막고 경고로 올린다(docs/MCP-DECISION-LOG.md 참고).
-const NUMERIC_4_2_MAX = 99.99;
+// 학교별 만점 체계는 다르지만 100을 넘는 값은 가져오기 오류로 안내한다.
+const GPA_MAX = 100;
 function safeNumeric(value, warnings, label) {
   if (value === null || value === undefined || Number.isNaN(Number(value))) return null;
   const num = Number(value);
-  if (num > NUMERIC_4_2_MAX) {
-    warnings.push(`${label}=${num}은 컬럼 타입 numeric(4,2)의 상한(99.99)을 넘어 저장하지 않았습니다.`);
+  if (num < 0 || num > GPA_MAX) {
+    warnings.push(`${label}=${num}은 학점 범위(0~100)를 벗어나 저장하지 않았습니다.`);
     return null;
   }
   return num;

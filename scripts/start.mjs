@@ -7,6 +7,7 @@ import { parseEnv } from 'node:util';
 import { setTimeout as delay } from 'node:timers/promises';
 import { databaseIsCurrent, markDatabaseCurrent, projectRefFromUrl } from './lib/database-version.mjs';
 import { createProcessGroup } from './lib/local-processes.mjs';
+import { assertSameAuthProject } from './lib/auth-target.mjs';
 
 const projectRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 
@@ -49,6 +50,7 @@ function configuredSupabaseUrl(root, mode, environment = process.env) {
 }
 
 export async function ensureDatabaseCurrent(root, mode, run, environment = process.env) {
+  if (mode === 'all') assertSameAuthProject(configuredSupabaseUrl(root, 'runner', environment), configuredSupabaseUrl(root, 'web', environment));
   const projectRef = projectRefFromUrl(configuredSupabaseUrl(root, mode, environment));
   if (databaseIsCurrent(root, projectRef)) return false;
   console.log('\n새 버전의 데이터베이스 변경 사항을 확인합니다.');

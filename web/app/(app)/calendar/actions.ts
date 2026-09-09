@@ -35,6 +35,11 @@ export async function saveCalendarJob(input: CalendarJobInput) {
   const url = input.url.trim();
   if (!company || !role || !/^\d{4}-\d{2}-\d{2}$/.test(deadline)) throw new Error('회사명, 지원 직무, 마감일을 확인해 주세요.');
   if (deadlineTime && !/^\d{2}:\d{2}$/.test(deadlineTime)) throw new Error('마감 시각 형식이 올바르지 않습니다.');
+  const date = new Date(`${deadline}T${deadlineTime || '12:00'}:00+09:00`);
+  if (!Number.isFinite(date.getTime()) || new Date(date.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 16) !== `${deadline}T${deadlineTime || '12:00'}`) {
+    throw new Error('실제 존재하는 마감일과 시각을 입력해 주세요.');
+  }
+  const startsAt = date.toISOString();
   if (url) {
     const parsed = new URL(url);
     if (!['http:', 'https:'].includes(parsed.protocol)) throw new Error('채용 사이트는 HTTP(S) 주소만 입력할 수 있습니다.');
@@ -67,7 +72,6 @@ export async function saveCalendarJob(input: CalendarJobInput) {
 
   // 시각을 지정하면 그 시각으로, 아니면 예전처럼 정오·종일 일정으로 둔다 —
   // 시각 없이 날짜만 아는 공고를 억지로 "몇 시 마감"처럼 보이게 하지 않는다.
-  const startsAt = new Date(`${deadline}T${deadlineTime || '12:00'}:00+09:00`).toISOString();
   const payload = {
     owner_id: user.id,
     job_post_id: jobPostId,
@@ -81,7 +85,7 @@ export async function saveCalendarJob(input: CalendarJobInput) {
     raw_deadline_text: deadlineTime ? `${deadline} ${deadlineTime}` : deadline,
     memo: input.jd.trim() || null,
   };
-  const { data: existingEvent } = await supabase.from('calendar_events').select('id').eq('job_post_id', jobPostId).limit(1).maybeSingle();
+  const { data: existingEvent } = await supabase.from('calendar_events').select('id').eq('job_post_id', jobPostId).eq('event_type', 'deadline').limit(1).maybeSingle().throwOnError();
   const result = existingEvent
     ? await supabase.from('calendar_events').update(payload).eq('id', existingEvent.id)
     : await supabase.from('calendar_events').insert(payload);

@@ -1,8 +1,9 @@
 import { spawnClaude, extractOutput as extractClaudeOutput } from './providers/claude.mjs';
 import { spawnCodex, extractOutput as extractCodexOutput } from './providers/codex.mjs';
-import { spawnGemini, extractOutput as extractGeminiOutput } from './providers/gemini.mjs';
+import { spawnGemini, extractOutput as extractGeminiOutput, geminiResult } from './providers/gemini.mjs';
 import { TIMEOUT_MINUTES_CAP, detectPaidOverage, isUsageLimitError } from './safety.mjs';
 import { collectUsage } from './usage.mjs';
+import { terminateManaged, terminationReason } from './lib/managed-process.mjs';
 
 const PROVIDERS = {
   codex: { spawn: spawnCodex, extractOutput: extractCodexOutput },
@@ -53,9 +54,9 @@ export function runProvider({
   outputSchema,
   jsonSchema,
   liveWebSearch = false,
-}) {
+}, { spawnProvider = PROVIDERS[provider]?.spawn, scheduleTimeout = setTimeout } = {}) {
   const safeTimeoutMinutes = Math.max(1, Math.min(TIMEOUT_MINUTES_CAP, Number(timeoutMinutes) || TIMEOUT_MINUTES_CAP));
-  const child = PROVIDERS[provider].spawn({ workspace, contextDir, prompt, model, effort, outputSchema, jsonSchema, liveWebSearch });
+  const child = spawnProvider({ workspace, contextDir, prompt, model, effort, outputSchema, jsonSchema, liveWebSearch });
 
   return new Promise((resolveRun) => {
     let buffer = '';
@@ -69,7 +70,10 @@ export function runProvider({
     const usageEvents = [];
     const finish = result => resolveRun({ ...result, usage: collectUsage(usageEvents, provider) });
     const flushTimer = setInterval(() => flushBuffer(supabase, runId, ownerId, eventBuffer), EVENT_FLUSH_MS);
-    const timeout = setTimeout(() => child.kill('SIGTERM'), safeTimeoutMinutes * 60 * 1000);
+    const terminate = reason => {
+      void terminateManaged(child, reason).catch(error => { providerError = error.message; console.error(error.message); });
+    };
+    const timeout = scheduleTimeout(() => terminate('timeout'), safeTimeoutMinutes * 60 * 1000);
 
     const extractOutput = PROVIDERS[provider].extractOutput;
 
@@ -81,10 +85,14 @@ export function runProvider({
       } catch {
         parsed = { type: 'text', text: line };
       }
-      eventBuffer.push({ sequence: sequence++, kind: parsed.type || 'event', payload: parsed });
-      if (parsed.usage || parsed.model || parsed.message?.model) usageEvents.push(parsed);
+      eventBuffer.push({ sequence: sequence++, kind: parsed.type || parsed.event || 'event', payload: parsed });
+      const outcome = provider === 'gemini' ? geminiResult(parsed) : parsed;
+      if (outcome?.usage || outcome?.model || outcome?.message?.model) usageEvents.push(outcome);
       if (parsed.type === 'result' && parsed.is_error) {
         providerError = JSON.stringify(parsed.errors || parsed.result || parsed.subtype);
+      }
+      if (provider === 'gemini' && outcome?.status && outcome.status !== 'SUCCESS') {
+        providerError = String(outcome.error || `Gemini 실행 상태: ${outcome.status}`);
       }
       if (provider === 'claude' && parsed.type === 'result' && parsed.permission_denials?.length) {
         providerError = `Claude 도구 권한이 거부되었습니다: ${parsed.permission_denials.map(item => item.tool_name).join(', ')}`;
@@ -100,7 +108,7 @@ export function runProvider({
           kind: 'safety_block',
           payload: { reason: 'paid_overage_available', message: '유료 초과 사용 가능성이 감지되어 실행을 중단했습니다.' },
         });
-        child.kill('SIGTERM');
+        terminate('paid_overage');
       }
       const candidate = extractOutput(parsed, '');
       if (candidate) finalOutput = typeof candidate === 'string' ? candidate : JSON.stringify(candidate, null, 2);
@@ -123,14 +131,19 @@ export function runProvider({
       flushBuffer(supabase, runId, ownerId, eventBuffer);
       finish({ status: 'failed', output: finalOutput, error: error.message, webSearchUsed });
     });
-    child.once('close', (code, signal) => {
+    child.once('close', async (code, signal) => {
       clearTimeout(timeout);
       clearInterval(flushTimer);
       if (buffer.trim()) handleLine(buffer);
       flushBuffer(supabase, runId, ownerId, eventBuffer);
+      if (terminationReason(child)) {
+        await terminateManaged(child).catch(error => { providerError = error.message; });
+      }
 
       if (paidOverageBlocked) {
         finish({ status: 'blocked_paid_overage', output: finalOutput, error: '유료 초과 사용 가능성이 감지되어 실행을 중단했습니다.', webSearchUsed });
+      } else if (terminationReason(child)) {
+        finish({ status: 'failed', output: finalOutput, error: terminationReason(child) === 'timeout' ? 'CLI 실행 제한 시간을 초과해 프로세스 트리를 종료했습니다.' : '러너 종료로 CLI 실행을 중단했습니다.', webSearchUsed });
       } else if (code === 0 && finalOutput && !providerError) {
         finish({ status: 'completed', output: finalOutput, error: '', webSearchUsed });
       } else {

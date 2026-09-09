@@ -111,7 +111,7 @@ export async function snapshotDraft(essayId: string, content: string, deviceName
   }
 }
 
-// 4단계 첫 수직 슬라이스(렌즈/검수) — 잡 큐에 넣기만 한다. 실행은 러너가 한다.
+// (렌즈/검수) — 잡 큐에 넣기만 한다. 실행은 러너가 한다.
 // 마지막으로 클라우드에 저장된 draft를 검수 대상으로 삼는다(에디터의 아직
 // 저장 안 된 변경사항은 포함되지 않음 — 자동저장 주기 안에서는 큰 차이 없음).
 export async function requestReview(essayId: string) {
@@ -126,7 +126,7 @@ export async function requestReview(essayId: string) {
   if (error) throw new Error(error.message);
 }
 
-// 4단계 두 번째 수직 슬라이스(뮤즈/작성).
+// (뮤즈/작성).
 export async function requestWriterDraft(essayId: string) {
   const { supabase, user } = await requireUser();
 
@@ -139,7 +139,7 @@ export async function requestWriterDraft(essayId: string) {
   if (error) throw new Error(error.message);
 }
 
-// 대화형 수정(요청 2026-09-02) — "2문단을 더 구체적으로" 같은 지시를 받아
+// 대화형 수정 — "2문단을 더 구체적으로" 같은 지시를 받아
 // 지금 본문을 고친다. 백지에서 다시 쓰는 requestWriterDraft와 같은 잡 종류를
 // 쓰되, 요청을 먼저 남겨 두면 러너가 수정 모드로 돈다.
 //
@@ -180,7 +180,7 @@ export async function clearRevisionRequests(essayId: string) {
   revalidatePath(`/essays/${essayId}`);
 }
 
-// 4단계 네 번째 수직 슬라이스(솔/기업조사) + 6단계 JD 입력(§10 후반).
+// (솔/기업조사) + 6단계 JD 입력(§10 후반).
 // essay가 이미 채용공고에 연결돼 있으면(모카가 찾았거나 이전에 솔을 실행한
 // 적 있으면) 그 job_posts 행을 갱신한다 — 매번 새로 insert하면 "다시 요청"할
 // 때마다 이전 행이 essay 연결만 잃은 채 고아로 쌓이고, 모카가 채워둔
@@ -237,36 +237,35 @@ const COMPANY_ATTACHMENT_BUCKET = 'company-research';
 const MAX_ATTACHMENT_BYTES = 20 * 1024 * 1024; // DART 공시자료는 records의 증명서보다 클 수 있다.
 const ALLOWED_ATTACHMENT_EXTENSIONS = new Set(['pdf', 'md', 'markdown']);
 
-export async function uploadCompanyAttachment(essayId: string, formData: FormData) {
+export async function uploadCompanyAttachment(essayId: string, file: { storagePath: string; fileName: string }) {
   const { supabase, user } = await requireUser();
-  const file = formData.get('file');
-  if (!(file instanceof File) || file.size === 0) throw new Error('파일을 선택하세요.');
+  const prefix = `${user.id}/${essayId}/`;
+  if (!file.storagePath.startsWith(prefix) || !/^[0-9a-f-]+\.[a-z0-9]+$/.test(file.storagePath.slice(prefix.length))) throw new Error('첨부 경로가 올바르지 않습니다.');
+  const { data: essay } = await supabase.from('essay_projects').select('id').eq('id', essayId).single().throwOnError();
+  if (!essay) throw new Error('자소서를 찾지 못했습니다.');
+  const { data: stored, error: storageError } = await supabase.storage.from(COMPANY_ATTACHMENT_BUCKET).info(file.storagePath);
+  if (storageError || !stored?.size) throw new Error('업로드된 파일을 확인하지 못했습니다.');
 
-  if (file.size > MAX_ATTACHMENT_BYTES) {
+  if (stored.size > MAX_ATTACHMENT_BYTES) {
     throw new Error(`파일이 너무 큽니다. ${Math.round(MAX_ATTACHMENT_BYTES / 1024 / 1024)}MB 이하만 올릴 수 있습니다.`);
   }
   // 마크다운은 브라우저마다 file.type이 제각각(text/markdown · text/plain ·
   // 빈 문자열)이라 MIME이 아니라 확장자로 판별한다.
-  const extension = file.name.includes('.') ? file.name.split('.').pop()!.toLowerCase() : '';
+  const extension = file.fileName.includes('.') ? file.fileName.split('.').pop()!.toLowerCase() : '';
   if (!ALLOWED_ATTACHMENT_EXTENSIONS.has(extension)) {
     throw new Error('PDF나 마크다운(.md) 파일만 올릴 수 있습니다.');
   }
 
   // 경로 첫 칸이 소유자 uid여야 Storage 정책을 통과한다(0024). 파일명은 새로
   // 만든다 — 사용자가 준 이름을 경로에 그대로 쓰지 않아 경로 조작을 막는다.
-  const storagePath = `${user.id}/${essayId}/${crypto.randomUUID()}.${extension}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from(COMPANY_ATTACHMENT_BUCKET)
-    .upload(storagePath, file, { contentType: file.type || 'application/octet-stream', upsert: false });
-  if (uploadError) throw new Error(uploadError.message);
+  const storagePath = file.storagePath;
 
   const { error } = await supabase.from('company_research_attachments').insert({
     owner_id: user.id,
     essay_id: essayId,
-    file_name: file.name,
+    file_name: file.fileName,
     storage_path: storagePath,
-    size_bytes: file.size,
+    size_bytes: stored.size,
   });
   if (error) {
     // 행을 못 남겼으면 파일만 떠도는 상태가 된다. 되돌린다.

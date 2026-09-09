@@ -14,8 +14,9 @@ test('every application table grants authenticated access before RLS filtering',
   const sql = files.map(file => file.sql).join('\n');
   const grants = [...sql.matchAll(/grant\s+select,\s*insert,\s*update,\s*delete\s+on\s+table([\s\S]*?)to\s+authenticated\s*;/gi)]
     .map(match => match[1]).join('\n');
-  const tables = [...sql.matchAll(/create\s+table(?:\s+if\s+not\s+exists)?\s+(?:public\.)?([a-z_]+)/gi)]
-    .map(match => match[1])
+  const tables = [...sql.matchAll(/create\s+table(?:\s+if\s+not\s+exists)?\s+(?:([a-z_]+)\.)?([a-z_]+)/gi)]
+    .filter(match => !match[1] || match[1] === 'public')
+    .map(match => match[2])
     .filter(name => name !== 'schema_migrations');
   for (const table of tables) assert.match(grants, new RegExp(`(?:public\\.)?${table}\\b`), `${table} 권한이 없습니다.`);
   assert.match(sql, /grant\s+usage,\s*select\s+on\s+sequence\s+public\.run_events_id_seq\s+to\s+authenticated/i);

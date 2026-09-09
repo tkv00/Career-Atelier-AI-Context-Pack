@@ -1,5 +1,5 @@
 import readline from 'node:readline';
-import spawn from 'cross-spawn';
+import { spawnManaged as spawn, terminateManaged } from '../lib/managed-process.mjs';
 import { childEnvironment } from '../safety.mjs';
 
 function asRecord(value) {
@@ -72,8 +72,7 @@ export function readCodexRateLimits({ timeoutMs = 12_000, spawnProcess = spawn }
       clearTimeout(timer);
       lines.close();
       child.stdin.end();
-      if (!child.killed) child.kill('SIGTERM');
-      resolve(value);
+      void terminateManaged(child).then(() => resolve(value), () => resolve(null));
     }
 
     function send(message) {

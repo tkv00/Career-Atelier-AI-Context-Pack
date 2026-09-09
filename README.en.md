@@ -199,6 +199,7 @@ Already cloned? Run only `npm start` from that folder. It opens the setup wizard
 
 1. On first setup, follow the Supabase sign-in and project selection prompts. The wizard discovers the project details and applies database migrations.
 2. Open the printed web address (normally `http://localhost:3000`). Choose **처음이에요 · 계정 만들기** and register with your own email and a password. Only the first account becomes the instance owner; existing users should sign in.
+   Deleting the owner account does not reopen registration. If you cannot access your account, reset your password instead of deleting it and signing up again.
 3. In the same terminal, enter **the email and password you chose in the web app** when the runner asks. Password input is hidden. These are different from your Supabase dashboard credentials or database password.
 4. Approve this device in the **관제실** (Dashboard) runner list.
 

@@ -16,23 +16,39 @@ function openDb(): Promise<IDBDatabase> {
   });
 }
 
-export async function saveLocalDraft(essayId: string, content: string): Promise<void> {
+export type LocalDraft = { content: string; baseRevision: number | null };
+
+const pendingWrites = new Map<string, Promise<void>>();
+
+export function saveLocalDraft(essayId: string, content: string, baseRevision: number | null = null): Promise<void> {
+  const pending = (pendingWrites.get(essayId) ?? Promise.resolve()).catch(() => {}).then(() => writeLocalDraft(essayId, content, baseRevision));
+  pendingWrites.set(essayId, pending);
+  const clear = () => { if (pendingWrites.get(essayId) === pending) pendingWrites.delete(essayId); };
+  void pending.then(clear, clear);
+  return pending;
+}
+
+async function writeLocalDraft(essayId: string, content: string, baseRevision: number | null): Promise<void> {
   const db = await openDb();
   await new Promise<void>((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readwrite');
-    tx.objectStore(STORE_NAME).put(content, essayId);
+    tx.objectStore(STORE_NAME).put({ content, baseRevision }, essayId);
     tx.oncomplete = () => resolve();
     tx.onerror = () => reject(tx.error);
   });
   db.close();
 }
 
-export async function loadLocalDraft(essayId: string): Promise<string | null> {
+export async function loadLocalDraft(essayId: string): Promise<LocalDraft | null> {
   const db = await openDb();
-  const result = await new Promise<string | null>((resolve, reject) => {
+  const result = await new Promise<LocalDraft | null>((resolve, reject) => {
     const tx = db.transaction(STORE_NAME, 'readonly');
     const req = tx.objectStore(STORE_NAME).get(essayId);
-    req.onsuccess = () => resolve((req.result as string | undefined) ?? null);
+    req.onsuccess = () => {
+      const value = req.result;
+      // 구버전 본문에는 기준 리비전이 없으므로 자동 덮어쓰기하지 않는다.
+      resolve(typeof value === 'string' ? { content: value, baseRevision: null } : value ?? null);
+    };
     req.onerror = () => reject(req.error);
   });
   db.close();

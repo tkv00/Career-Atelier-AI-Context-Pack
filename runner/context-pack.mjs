@@ -2,9 +2,7 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 
-// §8 컨텍스트 팩의 최소 형태. 문항·JD·경험 카드 등 에이전트별 파일 생성은
-// 4단계(에이전트 이식)에서 구체화한다 — 지금은 3단계(러너 엔진) 검증에 필요한
-// "작업 폴더 생성 + 원재료 기록"까지만 한다.
+// 실행마다 작업 폴더를 분리해 서로 다른 작업의 자료가 섞이지 않게 한다.
 export function workspaceRoot(runId) {
   return resolve(homedir(), '.career-atelier', 'workspaces', runId);
 }
@@ -18,7 +16,7 @@ export function createWorkspace(runId, job) {
 
   writeFileSync(
     resolve(contextDir, '00-INDEX.md'),
-    `# 컨텍스트 팩\n\njob.kind: ${job.kind}\njob.id: ${job.id}\n\n(4단계에서 에이전트별 파일로 구체화 예정)\n`,
+    `# 컨텍스트 팩\n\njob.kind: ${job.kind}\njob.id: ${job.id}\n`,
   );
   writeFileSync(resolve(contextDir, '99-payload.json'), JSON.stringify(job.payload ?? {}, null, 2));
 
@@ -43,7 +41,7 @@ export function experienceCardMarkdown(item, { includeId = false } = {}) {
 }
 
 // §14 "경험 근거 강제" 3겹 중 렌즈가 담당하는 부분 — 팩에 없는 수치·회사명·
-// 성과가 본문에 있는지 교차 검수한다. 4단계 첫 수직 슬라이스.
+// 성과가 본문에 있는지 교차 검수한다.
 export const REVIEW_JSON_SCHEMA = {
   type: 'object',
   required: ['overall_assessment', 'job_fit_score', 'issues'],
@@ -139,7 +137,7 @@ const DEFAULT_STYLE_GUIDE = [
 
 // §14 1겹 — 04-experiences.md가 비어 있으면 호출 전에 index.mjs가 실행 자체를
 // 거부한다(이 함수는 그 이후에만 불린다).
-export function createWriterContextPack(runId, { essay, experiences, jobPost, currentDraft, revisionRequests }) {
+export function createWriterContextPack(runId, { essay, experiences, jobPost, companyResearch = [], currentDraft, revisionRequests }) {
   // 요청이 하나라도 있고 고칠 본문이 있어야 '수정 모드'다.
   const revising = Boolean(currentDraft?.trim()) && (revisionRequests?.length ?? 0) > 0;
   const workspace = workspaceRoot(runId);
@@ -157,6 +155,7 @@ export function createWriterContextPack(runId, { essay, experiences, jobPost, cu
       '',
       '- 01-questions.md: 자소서 문항 + 목표 글자수 (근거로 인용 가능)',
       '- 02-job-description.md: 지원 직무 정보 (있을 때만, 근거로 인용 가능)',
+      '- 03-company-research.md: 기업 조사 자료. 기업 맥락에만 활용하며 지원자 경험으로 인용하지 말 것',
       '- 04-experiences.md: 이 폴더 밖의 경험은 절대 인용하지 말 것 — 유일한 사실 근거',
       '- 06-style-guide.md: 문체 규칙',
       ...(revising
@@ -178,6 +177,7 @@ export function createWriterContextPack(runId, { essay, experiences, jobPost, cu
     ? `## ${jobPost.company} · ${jobPost.role}\n\n${jobPost.description || ''}\n\n요구 역량: ${(jobPost.requirements ?? []).join(', ')}`
     : '(연결된 채용공고 없음)';
   writeFileSync(resolve(contextDir, '02-job-description.md'), jobText);
+  writeFileSync(resolve(contextDir, '03-company-research.md'), companyResearch.map(note => `${note.body}\n\n출처: ${JSON.stringify(note.sources ?? [])}`).join('\n\n---\n\n') || '(기업 조사 자료 없음)');
 
   const experiencesText = experiences
     .map((item) => experienceCardMarkdown(item, { includeId: true }))

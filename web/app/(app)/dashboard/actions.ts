@@ -39,7 +39,7 @@ export async function saveProfile(formData: FormData) {
   revalidatePath('/dashboard');
 }
 
-// 4단계 세 번째 수직 슬라이스(루미/뉴스) — 잡 큐에 넣기만 한다. 프로필 기반이라
+// (루미/뉴스) — 잡 큐에 넣기만 한다. 프로필 기반이라
 // essayId가 필요 없다.
 export async function requestNewsResearch() {
   const supabase = await createClient();
@@ -57,7 +57,7 @@ export async function requestNewsResearch() {
   if (error) throw new Error(error.message);
 }
 
-// 4단계 마지막 수직 슬라이스(모카/채용탐색) — 프로필 기반, essayId 불필요.
+// (모카/채용탐색) — 프로필 기반, essayId 불필요.
 export async function requestJobSearch() {
   const supabase = await createClient();
   const {

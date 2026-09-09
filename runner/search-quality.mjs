@@ -30,7 +30,7 @@ export function buildJobsDiscoveryPrompt({ targetRoles, interests, today = today
     `목표 직무 데이터(JSON): ${JSON.stringify(targetRoles)}`,
     `관심 분야 데이터(JSON): ${JSON.stringify(interests)}`,
     '검색으로 확인한 회사명, 직무명, 공식 공고 URL, 마감일, 주요 업무와 요구 역량을 일반 텍스트 조사 메모로 남겨라.',
-    // 요청 2026-09-06 — 잡플래닛 평점도 같은 검색 단계에서 함께 확인한다.
+    // 잡플래닛 평점도 같은 검색 단계에서 함께 확인한다.
     // 구조화 단계(formatSearchDiscovery)는 이 메모만 보고 JSON을 만들 뿐 새로
     // 검색하지 않으므로, 평점을 여기서 안 찾으면 이후 단계에서 지어내거나
     // 항상 null이 되어 버린다.

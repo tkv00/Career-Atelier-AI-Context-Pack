@@ -18,6 +18,16 @@ function fixture(t) {
   return root;
 }
 
+test('mixed projects fail before any migration command', async t => {
+  const root = fixture(t);
+  let writes = 0;
+  await assert.rejects(ensureDatabaseCurrent(root, 'all', async () => { writes++; }, {
+    SUPABASE_URL: 'https://aaaaaaaaaaaaaaaaaaaa.supabase.co',
+    NEXT_PUBLIC_SUPABASE_URL: 'https://bbbbbbbbbbbbbbbbbbbb.supabase.co',
+  }), /서로 다른/);
+  assert.equal(writes, 0);
+});
+
 function put(root, path, value) {
   const target = resolve(root, path);
   mkdirSync(resolve(target, '..'), { recursive: true });
@@ -67,7 +77,7 @@ test('dependency setup reuses successful installs and retries changes or failure
 
 test('configuration checks only the requested components and accepts environment values', t => {
   const root = fixture(t);
-  put(root, 'web/.env.local', 'NEXT_PUBLIC_SUPABASE_URL=https://example.supabase.co\nNEXT_PUBLIC_SUPABASE_ANON_KEY=example\n');
+  put(root, 'web/.env.local', `NEXT_PUBLIC_SUPABASE_URL=https://${'a'.repeat(20)}.supabase.co\nNEXT_PUBLIC_SUPABASE_ANON_KEY=example\n`);
   assert.equal(hasConfiguration(root, 'web', {}), true);
   assert.equal(hasConfiguration(root, 'all', {}), false);
   assert.equal(hasConfiguration(root, 'runner', { SUPABASE_URL: 'https://example.supabase.co', SUPABASE_ANON_KEY: 'example' }), true);
@@ -162,7 +172,7 @@ main([], ${JSON.stringify(root)}).catch(error => { console.error(error.message);
   await once(probe, 'listening');
   const port = probe.address().port;
   await new Promise(r => probe.close(r));
-  const child = spawn(process.execPath, [resolve(root, 'launch.mjs')], { env: { ...process.env, PORT: String(port) }, stdio: ['ignore', 'pipe', 'pipe', 'ipc'], windowsHide: true });
+  const child = spawn(process.execPath, [resolve(root, 'launch.mjs')], { env: { ...process.env, PORT: String(port), NEXT_PUBLIC_SUPABASE_URL: `https://${'a'.repeat(20)}.supabase.co`, SUPABASE_URL: `https://${'a'.repeat(20)}.supabase.co` }, stdio: ['ignore', 'pipe', 'pipe', 'ipc'], windowsHide: true });
   t.after(() => { if (child.exitCode === null) child.kill(); });
   let output = '';
   child.stdout.on('data', chunk => { output += chunk; });

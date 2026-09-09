@@ -1,5 +1,5 @@
 // Windows npm .cmd 탐색은 cross-spawn에 맡기고 다중 줄 본문은 stdin에 쓴다.
-import spawn from 'cross-spawn';
+import { spawnManaged as spawn } from '../lib/managed-process.mjs';
 import { childEnvironment } from '../safety.mjs';
 
 // --search는 exec의 옵션이 아니라 codex 자체의 전역 옵션이다. 따라서 반드시

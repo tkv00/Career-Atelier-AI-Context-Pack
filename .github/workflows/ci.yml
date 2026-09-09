@@ -43,6 +43,22 @@ jobs:
       - run: npm run check:version
       - run: npm test
 
+  migrations:
+    name: PostgreSQL migration and owner isolation tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ inputs.ref || github.sha }}
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22.13.0'
+      - run: sudo apt-get update && sudo apt-get install -y postgresql libpq-dev
+      - run: echo "CA_TEST_POSTGRES_BIN=$(pg_config --bindir)" >> "$GITHUB_ENV"
+      - run: node --test scripts/test/setup-migrations.postgres.test.mjs
+
   web:
     name: Web checks and build
     runs-on: ubuntu-latest

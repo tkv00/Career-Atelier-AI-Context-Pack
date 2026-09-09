@@ -1,52 +1,48 @@
-// codex.mjs·claude.mjs와 같은 이유로 cross-spawn을 쓴다(Windows .cmd 셰임 +
-// 프롬프트 안전 이스케이프).
-import spawn from 'cross-spawn';
+import { spawnManaged as spawn } from '../lib/managed-process.mjs';
 import { childEnvironment } from '../safety.mjs';
+import { mkdirSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
-// "Gemini"는 실제로는 Antigravity CLI(바이너리명 agy)를 통해 실행한다 —
-// Gemini CLI가 2026-06-18부로 개인 계정 지원을 끊고 Antigravity로 이전됐다
-// (사용자 요청 당시엔 몰랐던 사실, 실측으로 발견). 인자 이름이 Claude Code와
-// 거의 같다(-p, --add-dir, --model, --effort, --json-schema) — 같은 계열
-// 하네스로 다룬다. 인자 구성만 담당하고 프로세스 생명주기는 index.mjs가
-// 공통 처리한다.
-export function spawnGemini({ workspace, contextDir, prompt, model, effort, jsonSchema, mode = 'accept-edits' }) {
-  const args = ['-p', prompt];
+export function buildGeminiArgs({ contextDir, model, effort, schemaPath, mode = 'accept-edits' }) {
+  // agy의 일반 text 모드는 stdin을 읽지 않는다. 본문은 전용 NDJSON 형식으로 전송한다.
+  const args = ['--print=', '--input-format', 'stream-json', '--output-format', 'stream-json'];
   if (contextDir) args.push('--add-dir', contextDir);
   if (model) args.push('--model', model);
   if (effort) args.push('--effort', effort);
-  // §9 매트릭스의 "plan=읽기전용 안전 모드"라는 통념이 여기선 안 맞는다
-  // (실측, 2026-09-01) — agy의 --mode plan은 Claude의 permission-mode
-  // plan과 달리 "실행하지 않고 계획서 파일만 써서 사용자 확인을 기다리는"
-  // 완전히 다른 워크플로우라 헤드리스 단발 실행에서 빈 결과만 낸다.
-  // accept-edits가 이 프로젝트가 원하는 "그냥 바로 실행하고 결과를 내는"
-  // 동작에 해당한다. --restricted 같은 읽기전용 강제 플래그는 없어서,
-  // "파일을 만들거나 수정하지 말라"를 프롬프트로 명시해야 한다(안전망은
-  // §14 evidence 강제가 아니라 이 프롬프트 지시뿐이라는 뜻 — 소제목처럼
-  // 원래 편집 권한이 필요 없는 가벼운 작업에만 이 프로바이더를 쓴다).
-  args.push('--mode', mode);
-  args.push('--sandbox');
-  // stream-json이 아니라 json을 쓴다 — 실측해보니(2026-09-01) agy는 완료 시
-  // 한 줄짜리 완성된 JSON({conversation_id,status,response,usage,...})만
-  // 내고, Codex/Claude처럼 중간 이벤트를 스트리밍하지 않는다. 소제목처럼
-  // 짧은 작업엔 실시간 중계 가치가 없어 굳이 stream-json 스키마를 추측할
-  // 필요가 없다.
-  args.push('--output-format', 'json');
-  if (jsonSchema) args.push('--json-schema', jsonSchema);
+  // plan은 확인 입력을 기다리므로 비대화형 실행에서는 사용하지 않는다.
+  args.push('--mode', mode, '--sandbox');
+  if (schemaPath) args.push('--json-schema', schemaPath);
+  if (args.some(value => /[\r\n]/.test(value))) throw new Error('Gemini 실행 옵션에는 줄바꿈을 사용할 수 없습니다.');
+  return args;
+}
 
-  // codex.mjs·claude.mjs와 같은 이유로 stdin을 파이프로 열어 즉시 닫는다.
+export function encodeGeminiInput(prompt) {
+  return JSON.stringify({ event: 'user', message: { role: 'user', content: [{ type: 'text', text: prompt }] } }) + '\n';
+}
+
+export function spawnGemini({ workspace, contextDir, prompt, model, effort, jsonSchema, mode = 'accept-edits' }) {
+  let schemaPath;
+  if (jsonSchema) {
+    // 스키마도 Windows 명령행 길이 제한을 넘을 수 있다. agy는 파일 경로를 지원한다.
+    mkdirSync(resolve(workspace, 'schema'), { recursive: true });
+    schemaPath = resolve(workspace, 'schema', 'gemini-output.json');
+    writeFileSync(schemaPath, jsonSchema, { encoding: 'utf8', mode: 0o600 });
+  }
+  const args = buildGeminiArgs({ contextDir, model, effort, schemaPath, mode });
   const child = spawn('agy', args, { cwd: workspace, env: childEnvironment(), stdio: ['pipe', 'pipe', 'pipe'] });
-  child.stdin.end();
+  child.stdin.on('error', () => {});
+  child.stdin.end(encodeGeminiInput(prompt), 'utf8');
   return child;
 }
 
-// 실측 결과(2026-09-01): --json-schema를 쓰면 response(사람이 읽는 자유
-// 텍스트)와 별개로 structured_output 필드에 스키마를 따르는 객체가
-// 따로 온다 — response가 아니라 structured_output을 읽어야 한다.
-// (스키마 각 필드에 description을 안 넣으면 모델이 "작업을 완료했다"는
-// 메타 요약을 필드에 채워 넣는 오작동이 있었다 — description 필수.)
-// status가 SUCCESS가 아닌 경우는 아직 실측 못 했다.
+export function geminiResult(parsed) {
+  return parsed?.event === 'result' ? parsed.result : parsed;
+}
+
 export function extractOutput(parsed, fallback) {
-  if (parsed?.structured_output && typeof parsed.structured_output === 'object') return parsed.structured_output;
-  if (typeof parsed?.response === 'string' && parsed.response) return parsed.response;
+  const result = geminiResult(parsed);
+  if (result?.status && result.status !== 'SUCCESS') return fallback;
+  if (result?.structured_output && typeof result.structured_output === 'object') return result.structured_output;
+  if (typeof result?.response === 'string' && result.response) return result.response;
   return fallback;
 }

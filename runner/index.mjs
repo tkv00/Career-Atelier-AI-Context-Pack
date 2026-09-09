@@ -4,7 +4,7 @@ import { homedir, platform, release } from 'node:os';
 import { resolve } from 'node:path';
 import { env } from './lib/env.mjs';
 import { connectAsRunner, loginInteractive, logout as clearLogin } from './lib/supabase-client.mjs';
-import { markDailySearchRan, shouldRunDailySearch } from './scheduler.mjs';
+import { enqueueDailySearch } from './scheduler.mjs';
 import {
   COMPANY_RESEARCH_SCHEMA,
   INTERVIEW_OUTPUT_SCHEMA,
@@ -23,6 +23,7 @@ import {
   createWriterContextPack,
 } from './context-pack.mjs';
 import { runProvider } from './execute.mjs';
+import { stopManagedProcesses } from './lib/managed-process.mjs';
 import { processImportJob } from './imports/jobs.mjs';
 import { selectExperiences } from './context-selection.mjs';
 import { experienceCardMarkdown } from './context-pack.mjs';
@@ -117,12 +118,12 @@ async function recordAndRun(supabase, ownerId, job, { provider, prompt, workspac
   try {
     subscription = await assertSubscriptionProvider(provider);
   } catch (error) {
-    await supabase.from('jobs').update({ status: 'blocked_auth' }).eq('id', job.id);
+    await (supabase.from('jobs').update({ status: 'blocked_auth' }).eq('id', job.id)).throwOnError();
     // 웹 대시보드는 jobs가 아니라 agent_runs에서 에이전트별 최신 상태를 읽는다
     // (web/app/(app)/dashboard/page.tsx) — 여기서 return만 하면 이 실패가
     // jobs.status에만 남고 agent_runs에는 전혀 안 남아, 터미널을 보지 않는 한
     // "왜 멈췄는지" 알 방법이 없었다(사용자가 실제로 겪음, 2026-09-04).
-    await supabase.from('agent_runs').insert({
+    await (supabase.from('agent_runs').insert({
       owner_id: ownerId,
       pipeline_id: job.pipeline_id,
       agent_id: job.kind,
@@ -132,7 +133,7 @@ async function recordAndRun(supabase, ownerId, job, { provider, prompt, workspac
       error: error.message,
       started_at: new Date().toISOString(),
       finished_at: new Date().toISOString(),
-    });
+    })).throwOnError();
     console.log(`잡 ${job.id}: ${error.message}`);
     return;
   }
@@ -156,7 +157,7 @@ async function recordAndRun(supabase, ownerId, job, { provider, prompt, workspac
     const { error } = await supabase.from('run_events').insert({owner_id:ownerId,run_id:run.id,sequence:0,kind:'context_selection',payload:contextManifest});
     if (error) throw error;
   }
-  await supabase.from('jobs').update({ status: 'running' }).eq('id', job.id);
+  await (supabase.from('jobs').update({ status: 'running' }).eq('id', job.id)).throwOnError();
   console.log(`잡 ${job.id} 실행 시작 (provider=${provider}, run=${run.id})`);
 
   const result = await runProvider({
@@ -176,7 +177,7 @@ async function recordAndRun(supabase, ownerId, job, { provider, prompt, workspac
   });
 
   let finalResult = result;
-  await supabase.from('run_events').insert({owner_id:ownerId,run_id:run.id,sequence:2147483647,kind:'execution_metrics',payload:{usage:result.usage??null,requested_model:model||null,provider,cli_version:subscription.version,context:contextManifest??null}});
+  await (supabase.from('run_events').insert({owner_id:ownerId,run_id:run.id,sequence:2147483647,kind:'execution_metrics',payload:{usage:result.usage??null,requested_model:model||null,provider,cli_version:subscription.version,context:contextManifest??null}})).throwOnError();
   if (result.status === 'completed' && onComplete) {
     try {
       // 저장·검증까지 끝나야 completed다. 예전에는 CLI 종료 직후 completed로
@@ -197,7 +198,7 @@ async function recordAndRun(supabase, ownerId, job, { provider, prompt, workspac
     .from('agent_runs')
     .update({ status: finalResult.status, output: finalResult.output, error: finalResult.error, finished_at: new Date().toISOString() })
     .eq('id', run.id);
-  await supabase.from('jobs').update({ status: finalResult.status }).eq('id', job.id);
+  await (supabase.from('jobs').update({ status: finalResult.status }).eq('id', job.id)).throwOnError();
   console.log(`잡 ${job.id} 종료: ${finalResult.status}${finalResult.error ? ` — ${finalResult.error}` : ''}`);
 }
 
@@ -207,8 +208,8 @@ async function recordAndRun(supabase, ownerId, job, { provider, prompt, workspac
 // 호출 전에 막아서 구독 사용량을 아끼고, blocked_auth와 같은 방식으로
 // agent_runs에 남겨 대시보드에서 바로 원인을 볼 수 있게 한다.
 async function blockOnEmptyProfile(supabase, ownerId, job, provider, prompt, reason) {
-  await supabase.from('jobs').update({ status: 'blocked_profile' }).eq('id', job.id);
-  await supabase.from('agent_runs').insert({
+  await (supabase.from('jobs').update({ status: 'blocked_profile' }).eq('id', job.id)).throwOnError();
+  await (supabase.from('agent_runs').insert({
     owner_id: ownerId,
     pipeline_id: job.pipeline_id,
     agent_id: job.kind,
@@ -218,7 +219,7 @@ async function blockOnEmptyProfile(supabase, ownerId, job, provider, prompt, rea
     error: reason,
     started_at: new Date().toISOString(),
     finished_at: new Date().toISOString(),
-  });
+  })).throwOnError();
   console.log(`잡 ${job.id}: ${reason}`);
 }
 
@@ -249,7 +250,7 @@ async function retryInvalidSearchOnce(supabase, ownerId, job, reason) {
 // 재사용하면 run_events.sequence 유니크 키가 충돌하므로 포맷 단계도 독립된
 // agent_run으로 기록한다. 원래 비서의 최신 상태를 가리지 않도록 agent_id도
 // 구조화 단계 전용 값으로 구분한다.
-async function formatSearchDiscovery(supabase, ownerId, job, { workspace, contextDir, schemaPath, schema, schemaFile, discovery, instructions }) {
+async function formatSearchDiscovery(supabase, ownerId, job, { workspace, contextDir, schemaPath, schema, schemaFile, discovery, instructions, model, effort }) {
   const discoveryPath = resolve(contextDir, '03-search-discovery.md');
   writeFileSync(discoveryPath, discovery);
   const contextFiles = job.kind === 'news' ? ['01-interests.md'] : ['01-profile.md', '02-experiences.md'];
@@ -278,6 +279,8 @@ async function formatSearchDiscovery(supabase, ownerId, job, { workspace, contex
     supabase,
     provider: 'codex',
     ownerId,
+    model,
+    effort,
     runId: formatRun.id,
     workspace,
     contextDir,
@@ -321,14 +324,14 @@ async function continuePipeline(supabase, ownerId, job, nextKind, payload) {
     payload,
     harness_snapshot: {},
   });
-  if (error) console.log(`파이프라인 ${job.pipeline_id}: ${nextKind} 잡 생성 실패 — ${error.message}`);
+  if (error) throw new Error(`파이프라인 ${job.pipeline_id}: ${nextKind} 잡 생성 실패 — ${error.message}`);
 }
 
-// 렌즈(검수) — 4단계 첫 수직 슬라이스. payload: { essayId }.
+// 렌즈(검수) — payload: { essayId }.
 async function processReviewJob(supabase, ownerId, job) {
   const essayId = job.payload?.essayId;
   if (!essayId) {
-    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    await (supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id)).throwOnError();
     console.log(`잡 ${job.id}: payload.essayId가 없어 건너뜁니다.`);
     return;
   }
@@ -340,7 +343,7 @@ async function processReviewJob(supabase, ownerId, job) {
   ]);
 
   if (!essay || !template) {
-    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    await (supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id)).throwOnError();
     console.log(`잡 ${job.id}: 자소서 또는 review 프롬프트를 찾지 못했습니다.`);
     return;
   }
@@ -351,7 +354,7 @@ async function processReviewJob(supabase, ownerId, job) {
 
   let jobPost = null;
   if (essay.job_id) {
-    const { data } = await supabase.from('job_posts').select('*').eq('id', essay.job_id).maybeSingle();
+    const { data } = await supabase.from('job_posts').select('*').eq('id', essay.job_id).maybeSingle().throwOnError();
     jobPost = data;
   }
 
@@ -384,7 +387,7 @@ async function processReviewJob(supabase, ownerId, job) {
       } catch {
         console.log(`잡 ${job.id}: 검수 결과가 JSON이 아니어서 원문으로 저장합니다.`);
       }
-      await supabase.from('artifacts').insert({
+      await (supabase.from('artifacts').insert({
         owner_id: ownerId,
         pipeline_id: job.pipeline_id,
         run_id: run.id,
@@ -392,7 +395,7 @@ async function processReviewJob(supabase, ownerId, job) {
         title: `${essay.title} 검수`,
         content: result.output,
         metadata: { essayId, parsed, provider: run.provider },
-      });
+      })).throwOnError();
 
       // 렌즈는 본문을 고치지 않으므로, 콤마에도 같은 초안을 그대로 넘긴다.
       if (draftOverride) {
@@ -402,13 +405,13 @@ async function processReviewJob(supabase, ownerId, job) {
   });
 }
 
-// 뮤즈(작성) — 4단계 두 번째 수직 슬라이스. payload: { essayId }.
+// 뮤즈(작성) — payload: { essayId }.
 // §14 경험 근거 강제 1겹(실행 전 차단)·3겹(사후 대조)을 여기서 구현한다.
 // 2겹(출력 스키마 강제)은 context-pack.mjs의 WRITER_OUTPUT_SCHEMA.
 async function processWriterJob(supabase, ownerId, job) {
   const essayId = job.payload?.essayId;
   if (!essayId) {
-    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    await (supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id)).throwOnError();
     console.log(`잡 ${job.id}: payload.essayId가 없어 건너뜁니다.`);
     return;
   }
@@ -429,7 +432,7 @@ async function processWriterJob(supabase, ownerId, job) {
   ]);
 
   if (!essay || !template) {
-    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    await (supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id)).throwOnError();
     console.log(`잡 ${job.id}: 자소서 또는 writer 프롬프트를 찾지 못했습니다.`);
     return;
   }
@@ -440,19 +443,22 @@ async function processWriterJob(supabase, ownerId, job) {
 
   // §14 1겹 — 경험 카드가 하나도 없으면 실행 자체를 거부한다. UI에서 끌 수 없다.
   if (!experiences || experiences.length === 0) {
-    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    await (supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id)).throwOnError();
     console.log(`잡 ${job.id}: 경험 카드가 없어 뮤즈 실행을 거부합니다 (§14).`);
     return;
   }
 
   let jobPost = null;
   if (essay.job_id) {
-    const { data } = await supabase.from('job_posts').select('*').eq('id', essay.job_id).maybeSingle();
+    const { data } = await supabase.from('job_posts').select('*').eq('id', essay.job_id).maybeSingle().throwOnError();
     jobPost = data;
   }
 
   const runIdForWorkspace = randomUUID();
   // 오래된 것부터 읽혀야 "그다음에 이렇게 고쳐달라"는 순서가 살아난다.
+  const { data: companyResearch } = essay.job_id
+    ? await supabase.from('research_notes').select('body, sources').eq('job_id', essay.job_id).eq('kind', 'company').order('created_at', { ascending: false }).limit(3).throwOnError()
+    : { data: [] };
   const revisionRequests = [...(revisions ?? [])].reverse();
   // 화면에서 고친 내용까지 반영된 지금 본문을 기준으로 삼는다. payload로
   // 받은 게 있으면 그걸 쓰고(저장 전 편집 중인 본문), 없으면 저장된 draft다.
@@ -477,14 +483,15 @@ async function processWriterJob(supabase, ownerId, job) {
     essay,
     experiences: selection.experiences,
     jobPost,
+    companyResearch: companyResearch ?? [],
     currentDraft,
     revisionRequests,
   });
   writeFileSync(resolve(workspace,'context-selection.json'),JSON.stringify(selection.manifest,null,2));
 
   const prompt = revising
-    ? `${template.body}\n\n${systemRulesFor('writer')}\n\n[수정 대상]\ncontext/07-current-draft.md가 지금 본문이다. context/08-revision-requests.md의 요청을 반영해 **고쳐 쓴다**. 백지에서 새로 쓰지 말고, 요청과 무관한 문장은 그대로 둔다.\ncontext/01-questions.md, context/02-job-description.md, context/04-experiences.md, context/06-style-guide.md도 함께 읽고 스키마에 맞는 JSON으로만 답하라.`
-    : `${template.body}\n\n${systemRulesFor('writer')}\n\n[작성 대상]\ncontext/01-questions.md, context/02-job-description.md, context/04-experiences.md, context/06-style-guide.md를 읽고 스키마에 맞는 JSON으로만 답하라.`;
+    ? `${template.body}\n\n${systemRulesFor('writer')}\n\n[수정 대상]\ncontext/07-current-draft.md가 지금 본문이다. context/08-revision-requests.md의 요청을 반영해 **고쳐 쓴다**. 백지에서 새로 쓰지 말고, 요청과 무관한 문장은 그대로 둔다.\ncontext/01-questions.md, context/02-job-description.md, context/03-company-research.md, context/04-experiences.md, context/06-style-guide.md도 함께 읽고 스키마에 맞는 JSON으로만 답하라.`
+    : `${template.body}\n\n${systemRulesFor('writer')}\n\n[작성 대상]\ncontext/01-questions.md, context/02-job-description.md, context/03-company-research.md, context/04-experiences.md, context/06-style-guide.md를 읽고 스키마에 맞는 JSON으로만 답하라.`;
 
   await recordAndRun(supabase, ownerId, job, {
     provider,
@@ -512,7 +519,7 @@ async function processWriterJob(supabase, ownerId, job) {
           .map((item) => ({ paragraph_index: item.paragraph_index, experience_id: item.experience_id, quoted_fact: item.quoted_fact }));
       }
 
-      await supabase.from('artifacts').insert({
+      await (supabase.from('artifacts').insert({
         owner_id: ownerId,
         pipeline_id: job.pipeline_id,
         run_id: run.id,
@@ -520,7 +527,7 @@ async function processWriterJob(supabase, ownerId, job) {
         title: `${essay.title} 초안`,
         content: result.output,
         metadata: { essayId, parsed, provider: run.provider, evidenceViolations },
-      });
+      })).throwOnError();
 
       // 렌즈에는 essay_projects.draft(저장된 값, 아직 비어 있을 수 있다)가
       // 아니라 방금 뮤즈가 쓴 초안을 직접 넘긴다 — 사용자가 [반영]을 누르기
@@ -535,7 +542,7 @@ async function processWriterJob(supabase, ownerId, job) {
   });
 }
 
-// 루미(뉴스) — 4단계 세 번째 수직 슬라이스. payload 없음(프로필 기반).
+// 루미(뉴스) — payload 없음(프로필 기반).
 async function processNewsJob(supabase, ownerId, job) {
   const [{ data: profile }, { data: template }] = await Promise.all([
     supabase.from('profiles').select('interests').maybeSingle(),
@@ -543,7 +550,7 @@ async function processNewsJob(supabase, ownerId, job) {
   ]);
 
   if (!template) {
-    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    await (supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id)).throwOnError();
     console.log(`잡 ${job.id}: news 프롬프트를 찾지 못했습니다.`);
     return;
   }
@@ -591,6 +598,8 @@ async function processNewsJob(supabase, ownerId, job) {
           contextDir,
           schemaPath,
           schema: NEWS_OUTPUT_SCHEMA,
+          model,
+          effort,
           schemaFile: 'news.json',
           discovery: result.output,
           instructions: `${template.body}\n\n${systemRulesFor('news')}\n\n[대상]\ncontext/01-interests.md와 검색 메모를 사용하라.`,
@@ -631,11 +640,11 @@ async function processNewsJob(supabase, ownerId, job) {
   });
 }
 
-// 솔(기업조사) — 4단계 네 번째 수직 슬라이스. payload: { jobPostId }.
+// 솔(기업조사) — payload: { jobPostId }.
 async function processCompanyJob(supabase, ownerId, job) {
   const jobPostId = job.payload?.jobPostId;
   if (!jobPostId) {
-    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    await (supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id)).throwOnError();
     console.log(`잡 ${job.id}: payload.jobPostId가 없어 건너뜁니다.`);
     return;
   }
@@ -650,7 +659,7 @@ async function processCompanyJob(supabase, ownerId, job) {
   ]);
 
   if (!jobPost || !template) {
-    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    await (supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id)).throwOnError();
     console.log(`잡 ${job.id}: 채용공고 또는 company 프롬프트를 찾지 못했습니다.`);
     return;
   }
@@ -681,6 +690,7 @@ async function processCompanyJob(supabase, ownerId, job) {
     workspace,
     contextDir,
     ...schemaArgsFor(provider, COMPANY_RESEARCH_SCHEMA, schemaPath, writeSchema),
+    liveWebSearch: provider === 'codex',
     onComplete: async (result, run) => {
       let parsed = null;
       try {
@@ -688,7 +698,7 @@ async function processCompanyJob(supabase, ownerId, job) {
       } catch {
         console.log(`잡 ${job.id}: 기업조사 결과가 JSON이 아니어서 원문으로 저장합니다.`);
       }
-      await supabase.from('research_notes').insert({
+      await (supabase.from('research_notes').insert({
         owner_id: ownerId,
         job_id: jobPostId,
         kind: 'company',
@@ -696,13 +706,13 @@ async function processCompanyJob(supabase, ownerId, job) {
         body: result.output,
         sources: parsed?.facts ?? [],
         provider: run.provider,
-      });
+      })).throwOnError();
       await continuePipeline(supabase, ownerId, job, 'writer', { essayId: job.payload?.essayId });
     },
   });
 }
 
-// 모카(채용탐색) — 4단계 마지막 수직 슬라이스. payload 없음(프로필 기반).
+// 모카(채용탐색) — payload 없음(프로필 기반).
 // v1과 같은 방식으로 URL 검증 후 owner_id+url 기준 upsert한다(동일 URL 중복
 // 생성 금지, 갱신만) — supabase/migrations/0001의 idx_job_posts_owner_url.
 async function processJobSearchJob(supabase, ownerId, job) {
@@ -713,7 +723,7 @@ async function processJobSearchJob(supabase, ownerId, job) {
   ]);
 
   if (!template) {
-    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    await (supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id)).throwOnError();
     console.log(`잡 ${job.id}: jobs 프롬프트를 찾지 못했습니다.`);
     return;
   }
@@ -759,6 +769,8 @@ async function processJobSearchJob(supabase, ownerId, job) {
           contextDir,
           schemaPath,
           schema: JOBS_OUTPUT_SCHEMA,
+          model,
+          effort,
           schemaFile: 'jobs.json',
           discovery: result.output,
           instructions: `${template.body}\n\n${systemRulesFor('jobs')}\n\n[대상]\ncontext/01-profile.md, context/02-experiences.md와 검색 메모를 사용하라.`,
@@ -801,7 +813,7 @@ async function processJobSearchJob(supabase, ownerId, job) {
           description: String(row.description || ''),
           requirements: Array.isArray(row.requirements) ? row.requirements.map(String) : [],
           source: String(row.source || '모카 채용 탐색'),
-          // 잡플래닛 평점(요청 2026-09-06) — normalizeJobCandidates가 이미
+          // 잡플래닛 평점 — normalizeJobCandidates가 이미
           // 0~5 범위·소수점 한 자리로 정규화해 뒀다. 없으면 null(= "없음").
           company_rating: row.company_rating ?? null,
           updated_at: new Date().toISOString(),
@@ -846,7 +858,7 @@ async function processJobSearchJob(supabase, ownerId, job) {
 async function processInterviewJob(supabase, ownerId, job) {
   const jobPostId = job.payload?.jobPostId;
   if (!jobPostId) {
-    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    await (supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id)).throwOnError();
     console.log(`잡 ${job.id}: payload.jobPostId가 없어 건너뜁니다.`);
     return;
   }
@@ -866,7 +878,7 @@ async function processInterviewJob(supabase, ownerId, job) {
   ]);
 
   if (!jobPost || !template) {
-    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    await (supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id)).throwOnError();
     console.log(`잡 ${job.id}: 채용공고 또는 interview 프롬프트를 찾지 못했습니다.`);
     return;
   }
@@ -923,7 +935,7 @@ async function processInterviewJob(supabase, ownerId, job) {
         const { error } = await supabase.from('interview_questions').insert(rows);
         if (error) throw error;
       }
-      await supabase.from('artifacts').insert({
+      await (supabase.from('artifacts').insert({
         owner_id: ownerId,
         pipeline_id: job.pipeline_id,
         run_id: run.id,
@@ -931,7 +943,7 @@ async function processInterviewJob(supabase, ownerId, job) {
         title: `${jobPost.company} · ${jobPost.role} 예상 면접 질문`,
         content: result.output,
         metadata: { jobPostId, savedQuestions: rows.length, provider: run.provider },
-      });
+      })).throwOnError();
     },
   });
 }
@@ -943,7 +955,7 @@ async function processInterviewJob(supabase, ownerId, job) {
 async function processSubtitleJob(supabase, ownerId, job) {
   const essayId = job.payload?.essayId;
   if (!essayId) {
-    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    await (supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id)).throwOnError();
     console.log(`잡 ${job.id}: payload.essayId가 없어 건너뜁니다.`);
     return;
   }
@@ -954,7 +966,7 @@ async function processSubtitleJob(supabase, ownerId, job) {
   ]);
 
   if (!essay || !template) {
-    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    await (supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id)).throwOnError();
     console.log(`잡 ${job.id}: 자소서 또는 subtitle 프롬프트를 찾지 못했습니다.`);
     return;
   }
@@ -964,7 +976,7 @@ async function processSubtitleJob(supabase, ownerId, job) {
   // 충분하다. 사용자가 프롬프트 랩에서 모델을 직접 지정하지 않았을 때만 이
   // 기본값을 쓴다. 명시하지 않으면 agy가 멀티 모델(Claude/GPT 포함)이라
   // 기본값이 무엇이든 Gemini로 고정한다(사용자 요청).
-  const model = modelFor(template, 'gemini-3.7-flash-medium');
+  const model = modelFor(template, provider === 'gemini' ? 'gemini-3.7-flash-medium' : '');
   const effort = effortFor(template);
 
   // 파이프라인으로 왔으면 뮤즈가 쓴 초안을 그대로 받는다 — 사용자가 아직
@@ -974,7 +986,7 @@ async function processSubtitleJob(supabase, ownerId, job) {
   const effectiveEssay = draftOverride ? { ...essay, draft: draftOverride } : essay;
 
   if (!effectiveEssay.draft || !effectiveEssay.draft.trim()) {
-    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    await (supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id)).throwOnError();
     console.log(`잡 ${job.id}: 본문이 비어 있어 소제목 실행을 거부합니다.`);
     return;
   }
@@ -998,7 +1010,7 @@ async function processSubtitleJob(supabase, ownerId, job) {
       } catch {
         console.log(`잡 ${job.id}: 소제목 결과가 JSON이 아니어서 원문으로 저장합니다.`);
       }
-      await supabase.from('artifacts').insert({
+      await (supabase.from('artifacts').insert({
         owner_id: ownerId,
         pipeline_id: job.pipeline_id,
         run_id: run.id,
@@ -1006,7 +1018,7 @@ async function processSubtitleJob(supabase, ownerId, job) {
         title: `${essay.title} 소제목`,
         content: result.output,
         metadata: { essayId, parsed, provider: run.provider },
-      });
+      })).throwOnError();
     },
   });
 }
@@ -1052,7 +1064,7 @@ async function processJob(supabase, ownerId, job) {
   const prompt = String(payload.prompt || '');
 
   if (!prompt) {
-    await supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id);
+    await (supabase.from('jobs').update({ status: 'failed' }).eq('id', job.id)).throwOnError();
     console.log(`잡 ${job.id}: payload.prompt가 없어 건너뜁니다.`);
     return;
   }
@@ -1123,10 +1135,10 @@ async function startLoop() {
     if (error) console.error(`러너 하트비트 전송 실패: ${error.message}`);
 
     // §12 매일 15시 자동 채용 탐색. 승인된 러너에서만, 하루 한 번만.
-    if (runner.approved && shouldRunDailySearch()) {
-      markDailySearchRan();
-      console.log('15시 자동 채용 탐색 트리거 (모카 → 노바 연쇄)');
-      void supabase.from('jobs').insert({ owner_id: user.id, kind: 'jobs', payload: {}, harness_snapshot: {} });
+    try {
+      if (await enqueueDailySearch(supabase, user.id, runner.id)) console.log('15시 자동 채용 탐색을 등록했습니다.');
+    } catch (error) {
+      console.error('자동 채용 탐색 등록 실패:', error.message);
     }
 
     if (!backingUp) void maybeBackup(supabase, runner.id);
@@ -1178,8 +1190,8 @@ async function startLoop() {
     running = true;
     let claimedJobId = null;
     try {
-      void supabase.rpc('reap_stale_jobs');
-      void supabase.rpc('expire_old_jobs');
+      await supabase.rpc('reap_stale_jobs').throwOnError();
+      await supabase.rpc('expire_old_jobs').throwOnError();
 
       const { data: fresh, error: runnerError } = await supabase
         .from('runners')
@@ -1215,6 +1227,10 @@ async function startLoop() {
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       const target = claimedJobId ? `잡 ${claimedJobId}` : '큐';
+      if (claimedJobId) {
+        const { error: stateError } = await supabase.from('jobs').update({ status: 'failed' }).eq('id', claimedJobId).eq('status', 'running');
+        if (stateError) console.error('실패 상태 저장 실패:', stateError.message);
+      }
       reportPollPause(`poll:${claimedJobId ?? 'none'}:${message}`, `${target} 처리 중 오류가 발생했습니다: ${message}`);
     } finally {
       running = false;
@@ -1223,12 +1239,16 @@ async function startLoop() {
 
   for (const signal of ['SIGINT', 'SIGTERM']) {
     process.on(signal, () => {
+      if (stopped) return;
       stopped = true;
       clearInterval(heartbeatTimer);
       clearInterval(codexUsageTimer);
       clearInterval(poll);
       console.log('\n러너를 종료합니다.');
-      process.exit(0);
+      void stopManagedProcesses().then(() => process.exit(0), error => {
+        console.error('CLI 종료 실패:', error.message);
+        process.exit(1);
+      });
     });
   }
 

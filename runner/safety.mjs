@@ -1,4 +1,4 @@
-import spawn from 'cross-spawn';
+import { spawnManaged as spawn, terminateManaged, terminationReason } from './lib/managed-process.mjs';
 import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 
@@ -63,7 +63,7 @@ function runCommand(command, args, { timeoutMs = 12_000 } = {}) {
     const child = spawn(command, args, { env: childEnvironment(), stdio: ['ignore', 'pipe', 'pipe'] });
     let stdout = '';
     let stderr = '';
-    const timer = setTimeout(() => child.kill('SIGTERM'), timeoutMs);
+    const timer = setTimeout(() => { void terminateManaged(child, 'timeout').catch(error => { stderr += error.message; }); }, timeoutMs);
     child.stdout.on('data', (chunk) => {
       stdout += chunk.toString();
     });
@@ -76,7 +76,7 @@ function runCommand(command, args, { timeoutMs = 12_000 } = {}) {
     });
     child.once('close', (code) => {
       clearTimeout(timer);
-      resolveResult({ ok: code === 0, code, stdout, stderr });
+      resolveResult({ ok: code === 0 && !terminationReason(child), code, stdout, stderr });
     });
   });
 }

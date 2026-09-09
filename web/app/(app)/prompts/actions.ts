@@ -65,7 +65,7 @@ export async function restorePromptVersion(templateId: string, versionId: string
   await savePromptVersion(templateId, target.body);
 }
 
-// 비서가 어떤 LLM으로 돌지 고른다(요청 2026-09-02).
+// 비서가 어떤 LLM으로 돌지 고른다.
 //
 // 프롬프트 본문과 달리 버전을 남기지 않는다 — 되돌릴 만한 이력이라기보다
 // "지금 어느 구독을 쓸지"에 가까운 설정이라, 이력을 쌓으면 버전 목록이
@@ -90,7 +90,7 @@ export async function setAgentProvider(templateId: string, provider: string) {
   revalidatePath('/prompts');
 }
 
-// 비서가 쓸 구체적인 모델(요청 2026-09-05) — 같은 Claude 안에서도
+// 비서가 쓸 구체적인 모델 — 같은 Claude 안에서도
 // Opus/Sonnet/Haiku 중 뭘 쓸지 등. 직접 입력이라 값 자체는 검증하지 않는다
 // (CLI 버전마다 유효한 이름이 달라 여기서 화이트리스트를 걸면 새 모델이
 // 나올 때마다 이 코드를 고쳐야 한다). 빈 문자열은 "CLI 기본값 사용".

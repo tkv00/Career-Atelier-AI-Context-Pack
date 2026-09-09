@@ -28,7 +28,7 @@ Career Atelier는 7개의 특화 AI 비서와 2개의 비(非) LLM 결정론적 
 | `company` | 솔 (Sol) | 기업 공시, 기술 블로그 등 1차 자료 조사 | Claude Code | `research_notes` (kind: company) |
 | `writer` | 뮤즈 (Muse) | 경험 카드 기반 자소서 초안 및 수정 작성 | Codex | `artifacts` (kind: draft) |
 | `review` | 렌즈 (Lens) | 수치 과장, 사실 오류 검수 | Claude Code | `artifacts` (kind: review) |
-| `interview` | 에코 (Echo) | 기업/직무/경험 연계 면접 질문 생성 | Codex | `interview_questions` |
+| `interview` | 에코 (Echo) | 기업/직무/경험 연계 면접 질문 생성 | Claude Code | `interview_questions` |
 | `subtitle` | 콤마 (Comma) | 자소서 문항별 15자 이내 소제목 제안 | Antigravity | `artifacts` (kind: subtitle) |
 | `nova` | 노바 (Nova) | 공고 마감일 결정론적 파싱(`runner/nova.mjs`) — 현재 자동 연쇄는 꺼져 있고, 캘린더 등록은 사용자가 지원 일정 화면에서 "캘린더에 저장"을 눌러야만 일어난다(사용자 요청 2026-09-06: 모카가 찾은 공고를 자동으로 일정에 넣지 않는다) | (순수 정규식 코드) | `calendar_events` |
 | `parser` | 문항 파서 | 복사된 채용 문항 텍스트의 글자수/안내문 파싱 | (순수 정규식 코드) | `essay_questions` |
@@ -55,7 +55,7 @@ Career Atelier는 7개의 특화 AI 비서와 2개의 비(非) LLM 결정론적 
   ├─ 4. CLI 자식 프로세스 구동 및 표준입출력 파이핑 (runner/execute.mjs)
   ├─ 5. 실시간 이벤트 200ms 배칭 업로드 (run_events INSERT)
   ├─ 6. 구조화 출력 검증 및 사후 대조 (지어내기 방지 필터)
-  └─ 7. 최종 결과물 저장 및 후속 파이프라인 연쇄 (예: Moka -> Nova)
+  └─ 7. 최종 결과물 저장 및 후속 파이프라인 연쇄 (기업 조사 -> 자소서 작성)
 ```
 
 ### 원자적 클레임 (`claim_next_job`)
@@ -120,9 +120,11 @@ Career Atelier는 7개의 특화 AI 비서와 2개의 비(非) LLM 결정론적 
 - 유료 초과 과금 방지: 스트림 이벤트 중 `rate_limit_event`에서 `isUsingOverage: true`가 감지되면 즉시 프로세스를 강제 종료하고 `blocked_paid_overage` 상태로 작업을 정지시킵니다.
 
 ### 3. Antigravity CLI (`runner/providers/gemini.mjs`)
-- 실행 커맨드: `agy -p <prompt> --add-dir <context_dir> --mode accept-edits --sandbox --output-format json`
+- 실행 커맨드: `agy --print= --input-format stream-json --output-format stream-json --add-dir <context_dir> --mode accept-edits --sandbox`
+- 입력 전송: 본문은 `{"event":"user","message":{"role":"user","content":[{"type":"text","text":"..."}]}}` 형식의 NDJSON 한 줄로 stdin에 전달하고 EOF를 보냅니다. 일반 text 모드는 빈 `--print=`와 stdin 본문을 받아들이지 않습니다. 본문과 스키마를 긴 명령행 인자로 넣지 않아 Windows의 줄바꿈·길이 제한을 피합니다.
+- 스키마 옵션: `--json-schema <file_path>`로 작업 폴더의 스키마 파일을 전달합니다.
 - 실행 모드 주의점: `--mode plan`을 사용하면 실제 코드를 실행하지 않고 계획 파일만 작성한 뒤 사용자 입력을 대기하므로 출력이 비어버립니다. 헤드리스 단발 실행에는 `--mode accept-edits`를 지정해야 합니다.
-- 구조화 출력 추출: 최종 스키마 준수 데이터는 `response` 필드가 아니라 `structured_output` 필드에 들어옵니다.
+- 구조화 출력 추출: `event: "result"` 이벤트의 `result.structured_output`을 우선 사용합니다. `result.status`가 `SUCCESS`가 아니면 프로세스 종료 코드가 0이어도 실패로 기록합니다.
 - description 강제: 스키마 내 각 프로퍼티에 `description`이 없으면 모델이 결과 대신 "작업 완료" 같은 메타 요약문을 채워 넣는 현상이 발생합니다.
 
 ---
@@ -136,7 +138,8 @@ Career Atelier는 7개의 특화 AI 비서와 2개의 비(非) LLM 결정론적 
 3. `description` 보장: Gemini(Antigravity) 프로바이더 실행 시, 설명이 없는 필드에 대체 설명을 주입하여 메타 텍스트 오염을 방지합니다.
 4. 전달 방식 분기(`schemaArgsFor`):
    - Codex: 정규화된 스키마를 임시 파일에 기록하고 `--output-schema <path>`로 연결
-   - Claude / Antigravity: 정규화된 스키마 객체를 JSON 문자열로 직렬화하여 `--json-schema <string>`으로 연결
+   - Claude: 정규화된 스키마를 JSON 문자열로 직렬화하여 `--json-schema <string>`으로 연결
+   - Antigravity: 정규화된 JSON 문자열을 프로바이더가 작업 폴더의 파일로 저장하고 `--json-schema <path>`로 연결
 
 ---
 

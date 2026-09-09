@@ -1,5 +1,7 @@
 'use client';
 
+import { uploadPrivateAttachment } from '@/lib/upload-attachment';
+
 import { useState, useTransition } from 'react';
 import {
   deleteAttachment,
@@ -354,7 +356,11 @@ export function RecordsClient({
                       <form
                         action={(formData) =>
                           run(
-                            () => uploadAttachment(section.id, row.id, formData),
+                            async () => {
+                              const file = formData.get('file');
+                              if (!(file instanceof File)) throw new Error('파일을 선택하세요.');
+                              await uploadPrivateAttachment('records', `${section.id}/${row.id}`, file, 10 * 1024 * 1024, uploaded => uploadAttachment(section.id, row.id, uploaded, String(formData.get('kind') ?? '')));
+                            },
                             '파일을 올렸습니다.',
                             '업로드하지 못했습니다.',
                           )

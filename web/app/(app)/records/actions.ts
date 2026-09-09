@@ -112,22 +112,25 @@ export async function deleteRecord(sectionId: string, id: string) {
   revalidatePath('/records');
 }
 
-export async function uploadAttachment(sectionId: string, recordId: string, formData: FormData) {
+export async function uploadAttachment(sectionId: string, recordId: string, file: { storagePath: string; fileName: string }, kind: string) {
   const section = sectionById(sectionId);
   if (!section?.attachments) throw new Error('이 항목은 첨부를 지원하지 않습니다.');
 
   const { supabase, user } = await requireUser();
-  const file = formData.get('file');
-  if (!(file instanceof File) || file.size === 0) throw new Error('파일을 선택하세요.');
+  const prefix = `${user.id}/${sectionId}/${recordId}/`;
+  if (!file.storagePath.startsWith(prefix) || !/^[0-9a-f-]+\.[a-z0-9]+$/.test(file.storagePath.slice(prefix.length))) throw new Error('첨부 경로가 올바르지 않습니다.');
+  await supabase.from(section.table).select('id').eq('id', recordId).single().throwOnError();
+  const { data: stored, error: storageError } = await supabase.storage.from(BUCKET).info(file.storagePath);
+  if (storageError || !stored?.size) throw new Error('업로드된 파일을 확인하지 못했습니다.');
 
-  if (file.size > MAX_UPLOAD_BYTES) {
+  if (stored.size > MAX_UPLOAD_BYTES) {
     throw new Error(`파일이 너무 큽니다. ${Math.round(MAX_UPLOAD_BYTES / 1024 / 1024)}MB 이하만 올릴 수 있습니다.`);
   }
-  if (!ALLOWED_UPLOAD_TYPES.has(file.type)) {
+  if (!ALLOWED_UPLOAD_TYPES.has(stored.contentType ?? '')) {
     throw new Error('PDF와 이미지 파일만 올릴 수 있습니다.');
   }
 
-  const kind = String(formData.get('kind') ?? section.attachments[0]);
+  if (!section.attachments.includes(kind)) throw new Error('첨부 종류가 올바르지 않습니다.');
 
   // 경로 첫 칸이 소유자 uid여야 Storage 정책을 통과한다(0020). 파일명은
   // 사용자가 준 이름을 그대로 쓰지 않고 새로 만든다 — 경로 조작을 막는다.
@@ -135,23 +138,16 @@ export async function uploadAttachment(sectionId: string, recordId: string, form
   // 확장자 "/x"로 통과해 경로에 구분자가 끼어든다. 첫 칸을 소유자 uid로
   // 고정한 Storage 정책(0020) 덕에 남의 폴더로는 못 나가지만, 값 자체를
   // 정리해 두는 편이 낫다. 확장자가 없거나 이상하면 bin으로 떨어뜨린다.
-  const rawExtension = file.name.includes('.') ? file.name.split('.').pop()! : '';
-  const extension = rawExtension.replace(/[^A-Za-z0-9]/g, '').slice(0, 10) || 'bin';
-  const storagePath = `${user.id}/${sectionId}/${recordId}/${crypto.randomUUID()}.${extension}`;
-
-  const { error: uploadError } = await supabase.storage
-    .from(BUCKET)
-    .upload(storagePath, file, { contentType: file.type, upsert: false });
-  if (uploadError) throw new Error(uploadError.message);
+  const storagePath = file.storagePath;
 
   const { error } = await supabase.from('record_attachments').insert({
     owner_id: user.id,
     record_type: sectionId,
     record_id: recordId,
     kind,
-    file_name: file.name,
+    file_name: file.fileName,
     storage_path: storagePath,
-    size_bytes: file.size,
+    size_bytes: stored.size,
   });
   if (error) {
     // 행을 못 남겼으면 파일만 떠도는 상태가 된다. 되돌린다.
@@ -225,4 +221,3 @@ export async function deleteCourse(courseId: string) {
   if (error) throw new Error(error.message);
   revalidatePath('/records');
 }
-

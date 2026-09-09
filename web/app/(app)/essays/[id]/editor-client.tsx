@@ -5,6 +5,7 @@ import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from '
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { getDeviceName } from '@/lib/device-name';
+import { uploadPrivateAttachment } from '@/lib/upload-attachment';
 import { loadLocalDraft, saveLocalDraft } from '@/lib/local-drafts';
 import { countChars } from '@/lib/chars';
 import { formatDateTime } from '@/lib/datetime';
@@ -17,7 +18,6 @@ import { cancelQueuedJob } from '@/lib/jobs-actions';
 import {
   applySubtitle,
   deleteCompanyAttachment,
-  forceSaveDraft,
   requestAllDrafts,
   requestCompanyResearch,
   requestReview,
@@ -174,6 +174,8 @@ export function EssayEditor({
   const dirtyRef = useRef(dirty);
   const conflictRef = useRef(conflict);
   const onlineRef = useRef(online);
+  const savingRef = useRef(false);
+  const recoveredRef = useRef(false);
 
   // 최신 state를 ref에 동기화 — 렌더 중이 아니라 렌더 이후(effect)에서만 ref를 쓴다.
   useEffect(() => {
@@ -199,37 +201,61 @@ export function EssayEditor({
   }, [essay.id]);
 
   const performCloudSave = useCallback(async () => {
+    if (savingRef.current || !recoveredRef.current || conflictRef.current) return;
+    savingRef.current = true;
+    const submitted = contentRef.current;
     setSaveStatus('saving');
     try {
-      const result: SaveDraftResult = await saveDraft(essay.id, contentRef.current, revisionRef.current);
+      const result: SaveDraftResult = await saveDraft(essay.id, submitted, revisionRef.current);
       if (result.ok) {
+        revisionRef.current = result.revision;
         setRevision(result.revision);
-        setDirty(false);
+        const changed = contentRef.current !== submitted;
+        dirtyRef.current = changed;
+        setDirty(changed);
         lastCloudSaveAt.current = Date.now();
-        setSaveStatus('saved');
-        void maybeSnapshot(contentRef.current);
+        setSaveStatus(changed ? 'idle' : 'saved');
+        void maybeSnapshot(submitted);
+        await saveLocalDraft(essay.id, contentRef.current, result.revision);
       } else {
         setSaveStatus('idle');
+        conflictRef.current = result.conflict;
         setConflict(result.conflict);
       }
     } catch {
       setSaveStatus('error');
+    } finally {
+      savingRef.current = false;
     }
   }, [essay.id, maybeSnapshot]);
 
-  // 기기 이름 + IndexedDB 복구 (오프라인 중 편집했던 내용이 있으면 우선한다 — 다음
-  // 클라우드 저장 시도가 자동으로 revision 대조를 거치므로 충돌이면 정상적으로
-  // 충돌 배너로 이어진다).
+  // 로컬 본문의 기준 리비전이 다르거나 없으면 사용자가 비교하기 전까지 저장을 막는다.
   useEffect(() => {
     const now = Date.now();
     lastSnapshotAt.current = now;
     deviceNameRef.current = getDeviceName();
     (async () => {
-      const local = await loadLocalDraft(essay.id);
-      if (local !== null && local !== essay.draft) {
-        setContent(local);
-        setDirty(true);
-        lastKeystrokeAt.current = now - TYPING_QUIET_MS;
+      try {
+        const local = await loadLocalDraft(essay.id);
+        if (local !== null && local.content !== essay.draft && !dirtyRef.current) {
+          contentRef.current = local.content;
+          setContent(local.content);
+          dirtyRef.current = true;
+          setDirty(true);
+          if (local.baseRevision !== essay.revision) {
+            // 충돌을 해결하지 않고 탭을 닫아도 로컬 본문에 서버의 최신 리비전을 붙이지 않는다.
+            revisionRef.current = local.baseRevision ?? -1;
+            setRevision(revisionRef.current);
+            const recoveredConflict = { serverDraft: essay.draft, serverRevision: essay.revision, serverUpdatedAt: essay.updated_at };
+            conflictRef.current = recoveredConflict;
+            setConflict(recoveredConflict);
+          }
+          lastKeystrokeAt.current = now - TYPING_QUIET_MS;
+        }
+      } catch {
+        setSaveStatus('error');
+      } finally {
+        recoveredRef.current = true;
       }
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -278,7 +304,7 @@ export function EssayEditor({
   // 탭을 떠나기 전 마지막 저장 시도 (best-effort).
   useEffect(() => {
     const onBeforeUnload = () => {
-      if (dirtyRef.current) void saveLocalDraft(essay.id, contentRef.current);
+      if (dirtyRef.current) void saveLocalDraft(essay.id, contentRef.current, revisionRef.current).catch(() => {});
     };
     window.addEventListener('beforeunload', onBeforeUnload);
     return () => window.removeEventListener('beforeunload', onBeforeUnload);
@@ -354,9 +380,7 @@ export function EssayEditor({
     setAttachmentError('');
     setUploadingAttachment(true);
     try {
-      const formData = new FormData();
-      formData.set('file', file);
-      await uploadCompanyAttachment(essay.id, formData);
+      await uploadPrivateAttachment('company-research', essay.id, file, 20 * 1024 * 1024, uploaded => uploadCompanyAttachment(essay.id, uploaded));
       router.refresh();
     } catch (error) {
       setAttachmentError(error instanceof Error ? error.message : '업로드하지 못했습니다.');
@@ -428,33 +452,32 @@ export function EssayEditor({
   // 초안을 에디터 본문에 얹기만 한다 — 곧바로 클라우드에 쓰지 않는다. 이미
   // 있는 저장 파이프라인(자동저장·충돌 검사)이 그대로 이어받는다(§7 원칙 유지).
   function handleApplyDraft(draftText: string) {
+    contentRef.current = draftText;
+    dirtyRef.current = true;
     setContent(draftText);
     setDirty(true);
     lastKeystrokeAt.current = Date.now() - TYPING_QUIET_MS;
-    void saveLocalDraft(essay.id, draftText);
+    void saveLocalDraft(essay.id, draftText, revisionRef.current).catch(() => setSaveStatus('error'));
   }
 
   function handleChange(event: React.ChangeEvent<HTMLTextAreaElement>) {
     const next = event.target.value;
+    contentRef.current = next;
+    dirtyRef.current = true;
     setContent(next);
     setDirty(true);
     lastKeystrokeAt.current = Date.now();
-    void saveLocalDraft(essay.id, next);
+    void saveLocalDraft(essay.id, next, revisionRef.current).catch(() => setSaveStatus('error'));
   }
 
   async function handleKeepMine() {
     if (!conflict) return;
     await snapshotDraft(essay.id, conflict.serverDraft, deviceNameRef.current);
-    const result = await forceSaveDraft(essay.id, content, conflict.serverRevision);
-    if (result.ok) {
-      setRevision(result.revision);
-      setDirty(false);
-      lastCloudSaveAt.current = Date.now();
-      setConflict(null);
-      setSaveStatus('saved');
-    } else {
-      setConflict(result.conflict);
-    }
+    revisionRef.current = conflict.serverRevision;
+    setRevision(conflict.serverRevision);
+    conflictRef.current = null;
+    setConflict(null);
+    await performCloudSave();
   }
 
   async function handleTakeTheirs() {
@@ -462,8 +485,12 @@ export function EssayEditor({
     await snapshotDraft(essay.id, content, deviceNameRef.current);
     setContent(conflict.serverDraft);
     setRevision(conflict.serverRevision);
+    contentRef.current = conflict.serverDraft;
+    revisionRef.current = conflict.serverRevision;
+    dirtyRef.current = false;
+    conflictRef.current = null;
     setDirty(false);
-    await saveLocalDraft(essay.id, conflict.serverDraft);
+    await saveLocalDraft(essay.id, conflict.serverDraft, conflict.serverRevision);
     setConflict(null);
     setSaveStatus('saved');
   }
@@ -478,18 +505,16 @@ export function EssayEditor({
     if (!conflict) return;
     await snapshotDraft(essay.id, content, deviceNameRef.current);
     await snapshotDraft(essay.id, conflict.serverDraft, deviceNameRef.current);
-    const result = await forceSaveDraft(essay.id, mergedText, conflict.serverRevision);
-    if (result.ok) {
-      setContent(mergedText);
-      setRevision(result.revision);
-      setDirty(false);
-      await saveLocalDraft(essay.id, mergedText);
-      setConflict(null);
-      setMergeMode(false);
-      setSaveStatus('saved');
-    } else {
-      setConflict(result.conflict);
-    }
+    contentRef.current = mergedText;
+    setContent(mergedText);
+    revisionRef.current = conflict.serverRevision;
+    setRevision(conflict.serverRevision);
+    dirtyRef.current = true;
+    setDirty(true);
+    conflictRef.current = null;
+    setConflict(null);
+    setMergeMode(false);
+    await performCloudSave();
   }
 
   async function handleSaveVersion() {

@@ -1,6 +1,6 @@
 // codex.mjs와 같은 이유로 cross-spawn을 쓴다(Windows .cmd 셰임 + 프롬프트
 // 안전 이스케이프).
-import spawn from 'cross-spawn';
+import { spawnManaged as spawn } from '../lib/managed-process.mjs';
 import { childEnvironment } from '../safety.mjs';
 
 // 프롬프트와 별도로 옵션을 구성해 Windows 명령행에서 본문이 잘리지 않게 한다.

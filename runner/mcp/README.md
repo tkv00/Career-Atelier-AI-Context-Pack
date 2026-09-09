@@ -117,12 +117,11 @@ cd runner
 npm test
 npm run mcp:research
 cd ..
-python3 scripts/render-mcp-research.py
 ```
 
 결과는 로컬 `docs/research/mcp-import/`에 생성되며 Git 추적에서 제외된다.
 
-`npm run mcp:bench`도 동일한 재현 실험을 실행한다. 렌더러에는 matplotlib·numpy·Pillow와 Graphviz, 한국어 글꼴이 필요하다. 서비스 런타임 의존성은 아니다.
+`npm run mcp:bench`도 동일한 재현 실험을 실행한다.
 
 - A: 원문 + DB 인자 재서술 문자열의 **가정 기준선**. 실제 모델 실행 없음.
 - B: 같은 파서를 직접 호출하는 dry-run. 실제 시간 측정.
