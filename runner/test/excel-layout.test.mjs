@@ -7,7 +7,7 @@ import ExcelJS from 'exceljs';
 import JSZip from 'jszip';
 import { readExcel } from '../mcp/excel.mjs';
 import { compatibleExcelBuffer, normalizeExcelXml } from '../mcp/xlsx-compat.mjs';
-import { analyzeDocument, candidatePayload, validateExtraction } from '../imports/normalize.mjs';
+import { analyzeDocument, validateItem, validateExtraction } from '../imports/normalize.mjs';
 import { parseTags } from '../mcp/parse.mjs';
 
 const directory=await mkdtemp(join(tmpdir(),'career-excel-layout-'));
@@ -35,7 +35,7 @@ test('prefixed OOXML preserves rich text, literal markup, links and relationship
   const plan=analyzeDocument({tables:loaded.tables});
   assert.equal(plan.candidates[0].title,'이름 & <x:sheet>');
   assert.equal(plan.candidates[0].fields.action,'첫 줄\n둘째');
-  assert.deepEqual(candidatePayload(plan.candidates[0]).row.data.tags,['C#','Spring Boot','협업']);
+  assert.deepEqual(validateItem(plan.candidates[0]).rows[0].data.tags,['C#','Spring Boot','협업']);
   assert.match(normalizeExcelXml('<x:sheet xmlns:x="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:q="http://schemas.openxmlformats.org/officeDocument/2006/relationships" q:id="r1"/>'),/r:id="r1"/);
 });
 
@@ -51,7 +51,7 @@ test('merged multirow headers below a preamble keep all SOARA fields and both sk
   assert.equal(p.pending.length,0);assert.equal(p.candidates.length,1);
   const item=p.candidates[0];assert.match(item.fields.context,/번호: 1/);assert.match(item.fields.context,/지연/);
   assert.equal(item.fields.action,'로그\n분석');assert.equal(item.fields.problem,'안정화');
-  assert.deepEqual(candidatePayload(item).row.data.tags,['Java','Spring Boot','문제해결','협업']);
+  assert.deepEqual(validateItem(item).rows[0].data.tags,['Java','Spring Boot','문제해결','협업']);
   for(const evidence of Object.values(item.evidence))assert.ok(p.chunks[0].text.includes(evidence.quote));
 });
 
@@ -73,7 +73,7 @@ test('manual per-sheet mapping supports duplicate or blank headers, unknown labe
   const p=analyzeDocument({tables,options});
   assert.equal(p.pending.length,0);assert.equal(p.candidates.length,2);
   assert.equal(p.candidates[0].fields.result,'결과 A');
-  assert.deepEqual(candidatePayload(p.candidates[1]).row.data.tags,['Java','C#']);
+  assert.deepEqual(validateItem(p.candidates[1]).rows[0].data.tags,['Java','C#']);
   const invalid=analyzeDocument({tables,options:{header_row:999}});
   assert.equal(invalid.candidates.length,0);assert.ok(invalid.pending.length);assert.equal(invalid.table_previews.length,2);
 });
@@ -105,7 +105,7 @@ test('tags retain technical punctuation and AI can return multiple separately gr
   assert.deepEqual(parseTags('#Java #Spring Boot; C# | CI/CD\n• C++\nJava'),['Java','Spring Boot','C#','CI/CD','C++']);
   const chunk={id:'1',digest:'abc',location:'L1',text:'경험 A\n하드: Java, C#\n소프트: 협업'};
   const result=validateExtraction({items:[{kind:'experience',title:'경험 A',title_quote:'경험 A',fields:[{key:'tags',value:'Java, C#',quote:'하드: Java, C#'},{key:'tags',value:'협업',quote:'소프트: 협업'}]}]},chunk);
-  assert.deepEqual(candidatePayload(result[0]).row.data.tags,['Java','C#','협업']);
+  assert.deepEqual(validateItem(result[0]).rows[0].data.tags,['Java','C#','협업']);
   assert.equal(result[0].evidence.tags.quote,chunk.text);
 });
 
@@ -127,7 +127,7 @@ test('titleless mapped SOARA clipboard detects both header rows and preserves fi
   assert.equal(p.pending.length,0);assert.equal(p.candidates.length,2);
   assert.equal(p.candidates[0].title,'서비스 지연');assert.equal(p.candidates[0].fields.context,'서비스 지연\n상황 상세');
   assert.equal(p.candidates[0].fields.action,'로그 분석');assert.equal(p.candidates[0].fields.reflection,'관측의 중요성');
-  assert.deepEqual(candidatePayload(p.candidates[0]).row.data.tags,['Java','Spring Boot','협업']);
+  assert.deepEqual(validateItem(p.candidates[0]).rows[0].data.tags,['Java','Spring Boot','협업']);
   assert.notEqual(p.candidates[0].id,p.candidates[1].id);
   assert.equal(p.candidates[0].evidence.title.location,'붙여넣기!A3:J3');
   for(const item of p.candidates)for(const e of Object.values(item.evidence))assert.ok(p.chunks.find(c=>c.id===e.chunk_id).text.includes(e.quote));

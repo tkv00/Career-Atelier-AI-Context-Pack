@@ -14,7 +14,7 @@ export function examples(count, language = 'ko') {
     trial_error: language === 'ko' ? '캐시 갱신 누락을 발견해 무효화 조건을 수정했다.' : 'Fixed a missing cache invalidation condition.',
     reflection: language === 'ko' ? '체감보다 재현 가능한 측정이 중요했다.' : 'Reproducible measurement mattered more than impressions.',
     metrics: [`sample=${i + 1}`, 'latency=120ms'],
-    tags: language === 'ko' ? ['성능', '협업'] : ['performance', 'collaboration'],
+    tags: ['문제해결', '정보분석'],
   }));
 }
 

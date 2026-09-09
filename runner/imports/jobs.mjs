@@ -8,6 +8,7 @@ import { assertSubscriptionProvider } from '../safety.mjs';
 import { schemaArgsFor } from '../schema-compat.mjs';
 import { TARGETS } from '../mcp/store.mjs';
 import { readDocument } from './sources.mjs';
+import { refineExperiences } from './metadata.mjs';
 import { analyzeDocument, validateExtraction, validateItem, candidatePayload, EXTRACTION_SCHEMA, extractionPrompt, IMPORT_VERSION, hash } from './normalize.mjs';
 
 const checked = async query => { const result=await query; if(result.error) throw new Error(result.error.message); return result.data; };
@@ -37,7 +38,7 @@ export async function extractChunk(supabase,ownerId,chunk,options={}) {
   }
 }
 
-export async function processImportJob(supabase,ownerId,job,{extract=extractChunk}={}) {
+export async function processImportJob(supabase,ownerId,job,{extract=extractChunk,refine=refineExperiences}={}) {
   const batch=await checked(supabase.from('source_imports').select('*').eq('id',job.payload.importId).eq('owner_id',ownerId).single());
   if(batch.current_job_id!==job.id || batch.revision!==job.payload.revision) {
     await checked(supabase.from('jobs').update({status:'cancelled'}).eq('id',job.id)); return;
@@ -79,7 +80,7 @@ export async function processImportJob(supabase,ownerId,job,{extract=extractChun
     }
     const measurements={version:IMPORT_VERSION,source_digest:plan.digest,source_bytes:Buffer.byteLength(plan.chunks.map(c=>c.text).join('\n')),rules_candidates:plan.candidates.length,ai_chunks:0,cache_hits:0,unresolved_chunks:[],runs:[],source_requests:document.requests||0,table_previews:plan.table_previews};
     const diagnostics=[...plan.diagnostics,...(document.warnings||[]).map(w=>({message:w.reason,location:w.block_id||w.row_id||''}))];
-    const candidates=[...plan.candidates];
+    let candidates=[...plan.candidates];
     // 대규모 문서가 사용자 모르게 수백 번 실행되지 않도록 한 번의 분석을 제한한다.
     let calls=0;
     for(const chunk of plan.pending) {
@@ -107,6 +108,13 @@ export async function processImportJob(supabase,ownerId,job,{extract=extractChun
         if(error.failure_kind!=='validation') calls=20;
       }
       await update({measurements,candidates,chunks:plan.chunks,digest:plan.digest,diagnostics});
+    }
+    // 모든 입력 경로를 합친 뒤 동일한 제목·역량 규칙을 적용한다. 실패 시 미정리 후보를 저장하지 않는다.
+    measurements.metadata_runs=[];
+    try { candidates=await refine(candidates,{...batch.options,refine_all:true,supabase,ownerId,budget:{remaining:20-calls},onMeasurement:entry=>measurements.metadata_runs.push(entry)}); }
+    catch(error) {
+      diagnostics.push({location:'경험 제목·역량',message:error.message});
+      measurements.metadata_error=error.message;
     }
     for(const item of candidates) {
       const target=TARGETS[item.kind]; const row=validateItem(item).rows[0];

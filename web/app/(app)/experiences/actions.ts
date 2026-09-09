@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation';
 import { revalidatePath } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { experienceTags } from '@/lib/experience-tags';
+import { assertExperienceMetadata } from '@/lib/experience-policy.mjs';
 
 async function requireUser() {
   const supabase = await createClient();
@@ -45,6 +46,7 @@ export async function saveExperience(formData: FormData) {
     updated_at: new Date().toISOString(),
   };
 
+  assertExperienceMetadata(payload.title,payload.tags);
   const { error } = id
     ? await supabase.from('experience_cards').update(payload).eq('id', id)
     : await supabase.from('experience_cards').insert(payload);

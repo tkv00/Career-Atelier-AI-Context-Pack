@@ -28,7 +28,7 @@ test('모르는 열과 제목 없는 행은 자동 폐기하지 않는다',()=>{
   assert.equal(p.pending.length,2);assert.equal(p.chunks.length,2);assert.equal(p.candidates.length,0);
 });
 
-test('하드·소프트 스킬 열을 모두 태그로 저장하고 원본 행을 근거로 남긴다',()=>{
+test('하드·소프트 스킬 열은 후처리 전 원문 후보와 근거에 보존한다',()=>{
   const p=analyzeDocument({tables:[{name:'경험',matrix:[
     ['제목','하드 스킬','소프트 스킬','행동'],
     ['배포 개선','Java, Spring Boot','문제해결, 팀워크','로그 분석\n재배포'],
@@ -36,12 +36,13 @@ test('하드·소프트 스킬 열을 모두 태그로 저장하고 원본 행�
   assert.equal(p.pending.length,0);
   assert.equal(p.candidates.length,1);
   const item=p.candidates[0];
-  assert.deepEqual(candidatePayload(item).row.data.tags,['Java','Spring Boot','문제해결','팀워크']);
+  assert.deepEqual(validateItem(item).rows[0].data.tags,['Java','Spring Boot','문제해결','팀워크']);
+  assert.throws(()=>candidatePayload(item),/역량/);
   assert.equal(item.fields.action,'로그 분석\n재배포');
   assert.equal(item.evidence.tags.quote,p.chunks[0].text);
   const markdown=analyzeDocument({text:'# 경험\n## 배포 개선\n- 하드 스킬: Java, Spring Boot\n- 소프트 스킬: 문제해결, 팀워크'});
   assert.equal(markdown.pending.length,0);
-  assert.deepEqual(candidatePayload(markdown.candidates[0]).row.data.tags,['Java','Spring Boot','문제해결','팀워크']);
+  assert.deepEqual(validateItem(markdown.candidates[0]).rows[0].data.tags,['Java','Spring Boot','문제해결','팀워크']);
   const duplicate=analyzeDocument({tables:[{name:'경험',matrix:[['제목','행동','실행'],['A','첫째','둘째']]}]});
   assert.equal(duplicate.candidates.length,0);
   assert.match(duplicate.diagnostics[0].message,/같은 필드/);
@@ -57,6 +58,22 @@ test('추출 값·인용·필드 이름을 실제 원문과 검증한다',()=>{
 test('크기와 클립보드 문법 오류는 AI로 우회하지 않는다',()=>{
   assert.throws(()=>splitText('x'.repeat(16001)),/문단/);
   assert.throws(()=>parseTSV('제목\n"닫히지 않음'),/따옴표/);
+});
+test('경험 요약 제목은 원문 인용과 분리하고 본문과 저장 근거를 보존한다',()=>{
+  const text='배포 과정을 자동화해서 수작업 시간을 줄였다.';
+  const chunk={id:'summary',location:'L1',digest:'summary',text};
+  const item={kind:'experience',title:'배포 자동화로 수작업 시간 단축',title_quote:text,fields:[{key:'action',value:'배포 과정을 자동화',quote:text}]};
+  const [candidate]=validateExtraction({items:[item]},chunk);
+  assert.equal(candidate.evidence.title.quote,text);
+  assert.equal(candidatePayload(candidate).row.data.title,item.title);
+  assert.equal(candidatePayload(candidate).row.data.action,'배포 과정을 자동화');
+  for(const title of ['가'.repeat(41),'배포\n자동화','   ']) {
+    assert.throws(()=>validateExtraction({items:[{...item,title}]},chunk),/경험 제목/);
+  }
+  assert.equal(validateExtraction({items:[{...item,title:'가'.repeat(40)}]},chunk).length,1);
+  assert.throws(()=>validateExtraction({items:[{...item,title_quote:'없는 근거'}]},chunk),/근거/);
+  assert.throws(()=>validateExtraction({items:[{...item,fields:[{key:'result',value:'90% 감소',quote:text}]}]},chunk),/근거/);
+  assert.throws(()=>validateExtraction({items:[{...item,kind:'project',fields:[]}]},chunk),/제목/);
 });
 test('Notion URL은 호스트를 검사하며 query의 view id를 가져오지 않는다',()=>{
   const id='a'.repeat(32),view='b'.repeat(32);

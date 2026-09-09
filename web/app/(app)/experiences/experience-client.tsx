@@ -4,7 +4,8 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { deleteExperience, saveExperience } from './actions';
 import type { Database } from '@/lib/supabase/database.types';
-import { experienceTags, normalizeExperienceTag } from '@/lib/experience-tags';
+import { experienceTags } from '@/lib/experience-tags';
+import { EXPERIENCE_COMPETENCIES, MAX_EXPERIENCE_TAGS } from '@/lib/experience-policy.mjs';
 import { ExperienceUniverse } from './experience-universe';
 import styles from './universe.module.css';
 
@@ -15,7 +16,7 @@ type ExperienceForm = Record<ExperienceField, string> & { id: string; title: str
 const EMPTY_FORM: ExperienceForm = {
   id: '', title: '', context: '', problem: '', role_scope: '', judgment: '', action: '', result: '', trial_error: '', reflection: '', metrics: '', tags: [],
 };
-const TAG_OPTIONS = ['문제해결', '협업', '주도성', '성능개선', '갈등', '실패', '도전', '데이터분석', '고객중심', '의사결정', '리더십', '커뮤니케이션'];
+const TAG_OPTIONS = EXPERIENCE_COMPETENCIES;
 const SECTIONS: { field: ExperienceField; number: string; label: string; guide: string }[] = [
   { field: 'context', number: '01', label: '상황 / 맥락', guide: '어떤 프로젝트였는가? 목표는 무엇이었는가? 누구에게 중요한 문제였는가?' },
   { field: 'problem', number: '02', label: '문제', guide: '실제 문제는 무엇이었고, 문제라고 판단한 근거는 무엇이었는가?' },
@@ -66,28 +67,22 @@ export function ExperienceVault({ initialExperiences }: { initialExperiences: Ex
   const [editingId, setEditingId] = useState<string | 'new' | null>(null);
   const [previewId, setPreviewId] = useState<string | null>(null);
   const [form, setForm] = useState<ExperienceForm>({ ...EMPTY_FORM, tags: [] });
-  const [customTag, setCustomTag] = useState('');
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(false);
-  const tagOptions = useMemo(() => Array.from(new Set([
-    ...TAG_OPTIONS,
-    ...initialExperiences.flatMap((experience) => experienceTags(experience.tags)),
-  ])), [initialExperiences]);
+  const tagOptions = TAG_OPTIONS;
   const previewExperience = useMemo(() => initialExperiences.find((experience) => experience.id === previewId) ?? null, [initialExperiences, previewId]);
   const previewForm = useMemo(() => (previewExperience ? toFormState(previewExperience) : null), [previewExperience]);
 
   function startNew() {
     setError('');
     setForm({ ...EMPTY_FORM, tags: [] });
-    setCustomTag('');
     setEditingId('new');
   }
 
   function startEdit(experience: Experience) {
     setError('');
     setForm(toFormState(experience));
-    setCustomTag('');
     setEditingId(experience.id);
   }
 
@@ -107,15 +102,8 @@ export function ExperienceVault({ initialExperiences }: { initialExperiences: Ex
   function toggleTag(tag: string) {
     setForm((current) => ({
       ...current,
-      tags: current.tags.includes(tag) ? current.tags.filter((item) => item !== tag) : [...current.tags, tag],
+      tags: current.tags.includes(tag) ? current.tags.filter((item) => item !== tag) : current.tags.length < MAX_EXPERIENCE_TAGS ? [...current.tags, tag] : current.tags,
     }));
-  }
-
-  function addCustomTag() {
-    const value = normalizeExperienceTag(customTag);
-    if (!value) return;
-    if (!form.tags.includes(value)) setForm((current) => ({ ...current, tags: [...current.tags, value] }));
-    setCustomTag('');
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -126,8 +114,8 @@ export function ExperienceVault({ initialExperiences }: { initialExperiences: Ex
       await saveExperience(new FormData(event.currentTarget));
       cancelEdit();
       router.refresh();
-    } catch {
-      setError('경험을 저장하지 못했습니다. 연결 상태를 확인하고 다시 시도해 주세요.');
+    } catch (error) {
+      setError(error instanceof Error ? error.message : '경험을 저장하지 못했습니다.');
     } finally {
       setSaving(false);
     }
@@ -175,7 +163,7 @@ export function ExperienceVault({ initialExperiences }: { initialExperiences: Ex
             {error && <p role="alert" className={styles.error}>{error}</p>}
             <form onSubmit={handleSubmit}>
               {editingId !== 'new' && <input type="hidden" name="id" value={editingId} />}
-              <label className="web-experience-title">경험 제목<input type="text" name="title" value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="예: 신규 사용자 이탈 구간 개선" className="field-input"/></label>
+              <label className="web-experience-title">경험 제목 · 최대 40자<input type="text" name="title" maxLength={40} required value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="예: 신규 사용자 이탈 구간 개선" className="field-input"/></label>
               <div className="web-framework-grid">
                 {SECTIONS.map((section) => (
                   <label key={section.field} className="web-framework-field">
@@ -186,10 +174,9 @@ export function ExperienceVault({ initialExperiences }: { initialExperiences: Ex
               </div>
               <label className="web-metric-field">결과 수치 · 객관적 변화<textarea name="metrics" value={form.metrics} onChange={(event) => setForm({ ...form, metrics: event.target.value })} placeholder="쉼표 또는 줄바꿈으로 구분 · 예: 전환율 12% 개선, 처리 시간 2일 단축" className="field-input" rows={3}/></label>
               <section className="web-tag-picker-panel">
-                <div className="web-tag-picker-heading"><span><b>09</b>활용 태그</span><small>자소서 문항에 맞춰 다시 찾을 수 있도록 복수 선택하세요.</small></div>
+                <div className="web-tag-picker-heading"><span><b>09</b>대표 역량</span><small>내 행동으로 설명할 수 있는 역량을 최대 3개 선택하세요.</small></div>
                 <input type="hidden" name="tags" value={form.tags.join(', ')} />
                 <div className="web-tag-picker">{tagOptions.map((item) => <button type="button" aria-pressed={form.tags.includes(item)} className={form.tags.includes(item) ? 'selected' : ''} key={item} onClick={() => toggleTag(item)}>{item}<i>{form.tags.includes(item) ? '✓' : '+'}</i></button>)}</div>
-                <div className="web-custom-tag"><input aria-label="직접 태그 입력" value={customTag} onChange={(event) => setCustomTag(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') { event.preventDefault(); addCustomTag(); } }} placeholder="직접 태그 입력" className="field-input"/><button type="button" onClick={addCustomTag}>태그 추가</button></div>
                 {form.tags.length > 0 && <div className="web-selected-tags"><span>선택됨</span>{form.tags.map((item) => <button type="button" key={item} onClick={() => toggleTag(item)}>{item} ×</button>)}</div>}
               </section>
               <div className="web-experience-actions"><button type="submit" className="run-button" disabled={saving}>{saving ? '저장 중…' : '경험 카드 저장'}</button><button type="button" className="secondary-button" onClick={cancelEdit}>취소</button></div>

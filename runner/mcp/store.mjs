@@ -4,6 +4,7 @@ import { homedir } from 'node:os';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseDate, parseGpa, parseList, parsePeriod, parseTags } from './parse.mjs';
+import { assertExperienceMetadata } from '../../web/lib/experience-policy.mjs';
 
 // 러너와 같은 사용자 세션으로 로그인한다 — service_role 키는 쓰지 않는다
 // (§19.2 #2·#3). 그래서 이 서버가 쓸 수 있는 행은 RLS가 허용하는 자기 행뿐이다.
@@ -286,6 +287,7 @@ export async function writeRows(supabase, ownerId, rows) {
   const results = [];
   for (const row of rows) {
     try {
+      if(row.table==='experience_cards') assertExperienceMetadata(row.data.title,row.data.tags);
       const outcome = await upsertRow(supabase, ownerId, row);
       results.push({ table: row.table, title: row.data.title ?? row.data.name ?? row.data.company ?? row.data.school_name ?? row.data.display_name, ...outcome });
     } catch (error) {

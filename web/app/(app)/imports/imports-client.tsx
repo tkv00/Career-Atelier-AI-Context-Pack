@@ -39,7 +39,7 @@ function SheetMappings({previews,options}:{previews:ImportTablePreview[];options
       <div className={styles.grid}>{p.columns.map(c=><label key={c.key}>{c.key.slice(1)}열 · {c.label}<select value={setting.column_map[c.key]??(setting.section===p.section?c.target:'')} onChange={e=>{
         const map={...setting.column_map};if(e.target.value)map[c.key]=e.target.value;else delete map[c.key];patch(p.name,{column_map:map});
       }}><option value="">자동 인식 / 미연결</option><option value="ignore">이 열 제외</option><option value="title">제목</option>{(FIELDS[setting.section]||Object.keys(LABELS)).map(k=><option key={k} value={k}>{LABELS[k]}</option>)}</select></label>)}</div>
-      <p className={styles.muted}>하드·소프트 스킬 열은 모두 태그로 연결할 수 있습니다. 같은 이름의 열도 A·B 등 위치로 구분합니다. 제외한 열은 저장하지 않습니다. 경험에 제목이 없으면 상황·행동 등 본문 일부를 임시 제목으로 사용하므로 저장 전에 확인하세요.</p>
+      <p className={styles.muted}>하드·소프트 스킬 열은 역량 선택의 근거로 읽습니다. 같은 이름의 열도 A·B 등 위치로 구분합니다. 경험 제목과 대표 역량은 본문을 바탕으로 정리하므로 저장 전에 확인하세요.</p>
       </fieldset>
     </fieldset>;})}
     <input name="sheet_options" type="hidden" value={JSON.stringify(settings)}/>
@@ -61,7 +61,7 @@ function ImportOptions({options={},previews=[]}:{options?:Record<string,Json|und
       <ModelSelect key={provider} provider={provider} value={model} onChange={setModel} name="model"/>
     </div>
     <p className={styles.muted}>모델 사용 가능 여부는 연결한 계정과 CLI 버전에 따라 달라집니다. 목록에 없으면 직접 입력하거나 CLI 기본 모델을 사용하세요.</p>
-    <label className={styles.check}><input name="ai_enabled" type="checkbox" defaultChecked={options.ai_enabled!==false}/>자유로운 기록은 로컬 AI로 정리</label>
+    <label className={styles.check}><input name="ai_enabled" type="checkbox" defaultChecked={options.ai_enabled!==false}/>로컬 AI로 기록과 경험 제목·대표 역량 정리</label>
     <p className={styles.muted}>해석이 필요한 부분만 전달합니다. 분석 한 번에 최대 20개 조각을 처리하며, 나머지는 다음 분석에서 이어서 처리할 수 있습니다.</p>
     <p>내 표의 열 이름 맞추기</p>
     {mapping.map((m,i)=><div key={i} className={styles.row}><label>원래 열 이름 또는 위치(@A)<input value={m.source} onChange={e=>setMapping(mapping.map((x,j)=>j===i?{...x,source:e.target.value}:x))}/></label><label>저장할 항목<select value={m.target} onChange={e=>setMapping(mapping.map((x,j)=>j===i?{...x,target:e.target.value}:x))}><option value="title">제목</option><option value="ignore">이 열 제외</option>{(FIELDS[section]||Object.keys(LABELS)).map(k=><option key={k} value={k}>{LABELS[k]}</option>)}</select></label><button type="button" onClick={()=>setMapping(mapping.filter((_,j)=>j!==i))}>열 매핑 삭제</button></div>)}
@@ -135,7 +135,7 @@ function Review({batch}:{batch:ImportRow}) {
   return <div><div className={styles.row}><h3>{STATES[batch.status]||batch.status}</h3><button type="button" onClick={()=>router.refresh()}>새로고침</button><button type="button" onClick={exportEvidence}>원문·근거·측정 기록 내려받기</button></div>
     {batch.error&&<p className={styles.notice}>{batch.error}</p>}{error&&<p role="alert" className={styles.notice}>{error}</p>}
     <div className={styles.stats}><p><strong>{chunks.length}</strong>원문 조각</p><p><strong>{items.length}</strong>정리된 항목</p><p><strong>{String(stats.cache_hits||0)}</strong>재사용한 분석</p><p><strong>{Object.keys(receipts).length}</strong>저장 완료</p></div>
-    {batch.status==='review'&&Number(stats.ai_chunks||0)===0&&Number(stats.cache_hits||0)===0&&<p className={styles.muted}>{items.length>0?'열 매핑과 정형 규칙으로 분석했습니다. 이 결과에는 AI 호출이 필요하지 않았습니다.':'분석 요청은 처리됐지만 항목을 추출하지 못했습니다. 아래 원본 확인 안내에서 원인을 확인하세요.'}</p>}
+    {batch.status==='review'&&Number(stats.ai_chunks||0)===0&&Number(stats.cache_hits||0)===0&&<p className={styles.muted}>{items.length>0?'본문은 열 매핑과 정형 규칙으로 읽었습니다. 제목·역량 정리 결과와 원문을 확인하세요.':'분석 요청은 처리됐지만 항목을 추출하지 못했습니다. 아래 원본 확인 안내에서 원인을 확인하세요.'}</p>}
     {unresolvedCount>0&&<p className={styles.notice}>{unresolvedCount}개 원문 조각은 아직 미분류이며 이번 저장에서 제외됩니다. 필요하면 아래 원문에서 항목을 추가하거나 다시 분석할 수 있고, 현재 검토한 {items.length}개 항목은 그대로 저장할 수 있습니다.</p>}
     {Array.isArray(batch.diagnostics)&&batch.diagnostics.length>0&&<details open><summary>원본 확인 안내 · {batch.diagnostics.length}건</summary><ul>{batch.diagnostics.slice(0,30).map((entry,i)=>{const d=asObject(entry);return <li key={i}>{String(d.location||'')} — {String(d.message||'')}</li>;})}</ul>{batch.diagnostics.length>30&&<p>나머지 안내는 아래 진단 기록에서 확인할 수 있습니다.</p>}</details>}
     <details><summary>진단과 실행 측정값</summary><pre>{JSON.stringify({diagnostics:batch.diagnostics,measurements:batch.measurements},null,2)}</pre><p className={styles.muted}>실제 토큰은 제공자가 보고한 실행에만 표시됩니다. 분석 재사용 횟수는 토큰 절감률이 아닙니다.</p></details>
@@ -147,7 +147,8 @@ function Review({batch}:{batch:ImportRow}) {
       return <article key={item.id+':'+i} className={styles.candidate}>
         <h4>{i+1}. {item.title} {saved?'· 저장 완료':''}</h4>{Boolean(item.reviewed_fields?.length)&&<p className={styles.muted}>사용자 수정: {item.reviewed_fields?.map(k=>LABELS[k]||k).join(', ')} · 인용문은 최초 원문을 표시합니다.</p>}<div className={styles.grid}><div>
           <label>분류<select value={item.kind} disabled={disabled} onChange={e=>patch(i,{kind:e.target.value,action:'create',target_id:null,expected_updated_at:null,conflicts:[]})}>{IMPORT_KINDS.map(k=><option key={k} value={k}>{KIND_LABELS[k]}</option>)}</select></label>
-          <label>제목<input value={item.title} disabled={disabled} onChange={e=>patch(i,{title:e.target.value})}/></label>
+          <label>제목{item.kind==='experience'?' · 최대 40자':''}<input maxLength={item.kind==='experience'?40:500} value={item.title} disabled={disabled} onChange={e=>patch(i,{title:e.target.value})}/></label>
+          {item.kind==='experience'&&<p>대표 역량은 문제해결, 의사소통, 협업, 리더십, 자기개발, 자원관리, 정보분석, 기술활용, 조직이해, 직업윤리, 고객중심, 갈등관리 중 최대 3개입니다. 기술명은 본문에 기록하세요.</p>}
           {Object.entries(item.fields).map(([key,value])=><div key={key}><label>{LABELS[key]||key}<textarea value={value} disabled={disabled} onChange={e=>patch(i,{fields:{...item.fields,[key]:e.target.value}})}/></label>{item.evidence[key]&&<p className={styles.quote}>{item.evidence[key].quote}<br/>{item.evidence[key].location}</p>}{editable&&!saved&&<button type="button" disabled={busy} onClick={()=>{const fields={...item.fields};delete fields[key];patch(i,{fields});}}>필드 삭제</button>}</div>)}
           {!disabled&&<label>추가할 필드<select value="" onChange={e=>{if(e.target.value)patch(i,{fields:{...item.fields,[e.target.value]:''}});}}><option value="">선택하세요</option>{FIELDS[item.kind]?.filter(k=>!(k in item.fields)).map(k=><option key={k} value={k}>{LABELS[k]}</option>)}</select></label>}
           <label>저장 방식<select value={item.action} disabled={disabled} onChange={e=>patch(i,{action:e.target.value as ImportCandidate['action']})}><option value="create">새 항목 추가</option><option value="update" disabled={!item.conflicts.length}>기존 항목 갱신</option><option value="skip">이번에는 저장하지 않기</option></select></label>

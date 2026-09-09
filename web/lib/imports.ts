@@ -1,4 +1,5 @@
 import type { Json } from './supabase/database.types';
+import { assertExperienceMetadata } from './experience-policy.mjs';
 
 export const IMPORT_KINDS = ['experience','education','certification','activity','training','project','work','award','profile'] as const;
 export const KIND_LABELS: Record<string,string> = {experience:'경험',education:'학력',certification:'자격증',activity:'활동',training:'교육',project:'프로젝트',work:'경력',award:'수상',profile:'프로필'};
@@ -28,6 +29,7 @@ export function validateCandidates(value: unknown): ImportCandidate[] {
     if(!item || !IMPORT_KINDS.includes(item.kind) || typeof item.title!=='string' || !item.title.trim() || item.title.length>500) throw new Error('분류와 제목을 확인하세요.');
     if(!item.fields || typeof item.fields!=='object' || Array.isArray(item.fields) || Object.values(item.fields).some(v=>typeof v!=='string')) throw new Error('필드는 문자열 값으로 입력하세요.');
     if(!['create','update','skip'].includes(item.action)) throw new Error('저장 방식을 선택하세요.');
+    if(item.kind==='experience'&&item.action!=='skip') assertExperienceMetadata(item.title,(item.fields.tags||'').split(/[,\n]/).map((tag:string)=>tag.trim()).filter(Boolean));
     if(item.action==='update' && (!item.target_id||!item.expected_updated_at)) throw new Error('갱신할 기존 항목을 선택하세요.');
   }
   return value;
