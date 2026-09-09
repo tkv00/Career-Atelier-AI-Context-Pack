@@ -10,6 +10,12 @@ export type ImportCandidate = {
   reviewed_fields?: string[];
 };
 export type ImportChunk = {id:string;text:string;location:string;digest:string};
+export type ImportTablePreview = {
+  name:string;rows:number;excluded:boolean;ready:boolean;section:string;
+  header_row:number;header_rows:number;end_row:number;
+  columns:Array<{key:string;label:string;target:string}>;
+  sample:Array<{row:number;values:string[]}>;
+};
 export type ImportRow = {
   id:string;owner_id:string;name:string;source_type:string;source_ref:string;source_text:string;
   options:Json;status:string;revision:number;digest:string;chunks:Json;candidates:Json;diagnostics:Json;

@@ -10,3 +10,8 @@
 .candidate{border-top:1px solid #73869f55;padding:20px 0}.quote{font-size:.85rem;color:#abc5bc;border-left:2px solid #64a99a;padding-left:9px;margin:5px 0;white-space:pre-wrap}
 .stats{display:flex;gap:20px;flex-wrap:wrap}.stats p{display:grid;gap:5px}.stats strong{font-size:1.35rem}.root summary{cursor:pointer;padding:8px 0}.root pre{white-space:pre-wrap;overflow-wrap:anywhere}
 @media(max-width:760px){.grid{grid-template-columns:1fr}.card{padding:15px}.root{padding:10px}}
+.sheetMapping { min-width: 0; margin: 1rem 0; padding: 1rem; border: 1px solid var(--border, #d4d4d4); border-radius: 8px; }
+.sheetPreview { max-width: 100%; overflow: auto; max-height: 24rem; margin: 1rem 0; }
+.sheetPreview table { border-collapse: collapse; font-size: .85rem; }
+.sheetPreview th, .sheetPreview td { min-width: 9rem; max-width: 18rem; padding: .5rem; border: 1px solid var(--border, #d4d4d4); vertical-align: top; white-space: pre-wrap; overflow-wrap: anywhere; }
+.sheetPreview th:first-child { min-width: 3rem; }

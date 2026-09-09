@@ -31,7 +31,10 @@ const log = (message) => process.stderr.write(`[mcp] ${message}\n`);
 // 툴 정의 ------------------------------------------------------------------
 const sourceOptions = {
   sheet: { type: 'string', description: '엑셀 시트 이름. 생략하면 보이는 시트를 모두 읽는다.' },
-  column_map: { type: 'object', additionalProperties: { type: 'string' }, description: '엑셀·Notion 열 이름 → title 또는 지원 필드 이름. 예: {"경험 이름":"title","성과":"result"}' },
+  header_row: { type: 'number', description: '헤더 시작 행(1부터). 생략하면 자동으로 찾는다.' },
+  header_rows: { type: 'number', description: '헤더 줄 수(0~5). 0은 헤더 없는 표. 생략하면 자동으로 찾는다.' },
+  end_row: { type: 'number', description: '마지막 데이터 행. 생략하면 시트 끝까지 읽는다.' },
+  column_map: { type: 'object', additionalProperties: { type: 'string' }, description: '열 이름 또는 위치(@A 등) → title, ignore 또는 지원 필드. 예: {"@A":"title","성과":"result"}' },
 };
 
 export const TOOLS = [
@@ -350,6 +353,9 @@ async function cli() {
     return at >= 0 ? rest[at + 1] : undefined;
   };
   const options = { source: argOf('--source'), section: argOf('--section'), sheet: argOf('--sheet'),
+    header_row: argOf('--header-row')===undefined?undefined:Number(argOf('--header-row')),
+    header_rows: argOf('--header-rows')===undefined?undefined:Number(argOf('--header-rows')),
+    end_row: argOf('--end-row')===undefined?undefined:Number(argOf('--end-row')),
     column_map: argOf('--column-map') ? JSON.parse(argOf('--column-map')) : undefined,
     only: argOf('--only')?.split(','), expected_digest: argOf('--expected-digest') };
   const clean = Object.fromEntries(Object.entries(options).filter(([, value]) => value !== undefined));

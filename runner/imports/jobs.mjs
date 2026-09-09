@@ -77,12 +77,13 @@ export async function processImportJob(supabase,ownerId,job,{extract=extractChun
       const ids=(document.sourceBlocks||[]).filter(b=>b.text && chunk.text.includes(b.text)).map(b=>b.id);
       if(ids.length) chunk.location=`Notion blocks: ${ids.join(', ')}`;
     }
-    const measurements={version:IMPORT_VERSION,source_digest:plan.digest,source_bytes:Buffer.byteLength(plan.chunks.map(c=>c.text).join('\n')),rules_candidates:plan.candidates.length,ai_chunks:0,cache_hits:0,unresolved_chunks:[],runs:[],source_requests:document.requests||0};
+    const measurements={version:IMPORT_VERSION,source_digest:plan.digest,source_bytes:Buffer.byteLength(plan.chunks.map(c=>c.text).join('\n')),rules_candidates:plan.candidates.length,ai_chunks:0,cache_hits:0,unresolved_chunks:[],runs:[],source_requests:document.requests||0,table_previews:plan.table_previews};
     const diagnostics=[...plan.diagnostics,...(document.warnings||[]).map(w=>({message:w.reason,location:w.block_id||w.row_id||''}))];
     const candidates=[...plan.candidates];
     // 대규모 문서가 사용자 모르게 수백 번 실행되지 않도록 한 번의 분석을 제한한다.
     let calls=0;
     for(const chunk of plan.pending) {
+      if(chunk.auto_extract===false) { measurements.unresolved_chunks.push(chunk.id); continue; }
       const key=hash([IMPORT_VERSION,chunk.digest,batch.options.provider||'codex',batch.options.model||'',EXTRACTION_SCHEMA]);
       const cache=await checked(supabase.from('import_chunk_cache').select('result').eq('owner_id',ownerId).eq('cache_key',key).maybeSingle());
       if(cache) {

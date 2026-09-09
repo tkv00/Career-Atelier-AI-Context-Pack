@@ -25,16 +25,16 @@ const SECTION_KINDS = [
 // 종류별 필드 별칭. 키는 정규화(공백·기호 제거, 소문자)해서 맞춘다.
 const FIELD_ALIASES = {
   experience: {
-    context: ['상황', '맥락', '상황맥락', '배경', 'context'],
-    problem: ['문제', '과제', '해결할문제', 'problem', 'task'],
+    context: ['상황', '맥락', '상황맥락', '배경', 'context', '상황(S)', 'situation', '구분', '기간', '시작', '종료', '시작일', '종료일', 'No', '번호'],
+    problem: ['문제', '과제', '해결할문제', 'problem', 'task', '문제/목표(O)', '목표', 'objective'],
     role_scope: ['역할', '내역할', '담당', '담당역할', 'role', 'rolescope'],
     judgment: ['판단', '의사결정', '선택', 'judgment', 'judgement'],
-    action: ['행동', '실행', '한일', '수행', 'action'],
-    result: ['결과', '성과', 'result', 'outcome'],
+    action: ['행동', '실행', '한일', '수행', 'action', '행동(A)'],
+    result: ['결과', '성과', 'result', 'outcome', '결과(R)'],
     metrics: ['수치', '지표', '정량', '정량지표', 'metrics'],
     trial_error: ['시행착오', '실패', '어려움', '문제점', 'trialerror'],
-    reflection: ['회고', '배운점', '느낀점', '교훈', 'reflection'],
-    tags: ['태그', '키워드', 'tags', 'keywords'],
+    reflection: ['회고', '배운점', '느낀점', '교훈', 'reflection', '영향(A)', '영향', '배운점및적용'],
+    tags: ['태그', '키워드', 'tags', 'keywords', '하드스킬', '소프트스킬', 'hardskills', 'softskills'],
   },
   education: {
     school_type: ['구분', '학교구분', '종류', 'type', 'schooltype'],
@@ -177,6 +177,12 @@ export function parseList(text) {
     .filter(Boolean);
 }
 
+// 기술명 내부의 공백·슬래시·#은 유지하고 목록 구분자만 분리한다.
+export function parseTags(text) {
+  return [...new Set(String(text??'').split(/[,;、·|\r\n]+|\s+#(?=\S)/)
+    .map(tag=>tag.trim().replace(/^[-*•]\s+/, '').replace(/^#(?=\S)/,'')).filter(Boolean))];
+}
+
 // Markdown 본문을 항목 배열로 만든다.
 export function parseMarkdown(markdown) {
   const lines = String(markdown ?? '').replace(/\r\n/g, '\n').split('\n');
@@ -237,7 +243,9 @@ export function parseMarkdown(markdown) {
     if (pair) {
       const field = fieldFor(current.kind, pair[1]);
       if (field) {
-        current.fields[field] = pair[2].trim();
+        // 분리된 스킬 목록을 뒤쪽 열이나 항목이 덮어쓰지 않도록 합친다.
+        current.fields[field] = field === 'tags' && current.fields.tags
+          ? `${current.fields.tags}, ${pair[2].trim()}` : pair[2].trim();
         // 부전공과 복수전공은 같은 칸에 들어가지만 DB는 둘을 구분해서 저장한다
         // (secondary_major_type). 어느 쪽으로 적었는지는 여기서만 알 수 있어서
         // 값을 넣는 김에 종류도 같이 정한다.

@@ -84,7 +84,7 @@ Save the situation, judgment, action, and result in **경험 카드** (Experienc
 
 Use **자료 가져오기** (Imports) for Markdown/XLSX files, pasted text or spreadsheet cells, and Notion page/database URLs. **Compare extracted fields with the source, edit, then save.** Optional local AI helps organize free-form notes.
 
-Analysis requires an approved runner. Notion requires a separate connection on the runner. Convert formulas and merged cells to ordinary values, and check for omissions, classification errors, and duplicates before saving.
+Analysis requires an approved runner. Notion requires a separate connection on the runner. Excel imports detect multirow and merged headers and let you adjust classification and column mapping per sheet. Formulas use saved results only. Experiences without titles use an excerpt from mapped body text as a temporary title; review it before saving. See the [Excel import guide (Korean)](docs/EXCEL-IMPORTS.ko.md), and check for omissions, classification errors, and duplicates before saving.
 
 <details>
 <summary>View the import screen — compare source and extracted fields</summary>

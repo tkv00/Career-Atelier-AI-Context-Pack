@@ -5,9 +5,9 @@ import { loadSource } from './sources.mjs';
 import { parseMarkdown } from './parse.mjs';
 
 // 전송 방식과 무관한 정형 자료 처리 서비스. MCP와 직접 호출이 같은 결과를 사용한다.
-export async function planImport({ source, section, only, sheet, column_map, expected_digest }) {
+export async function planImport({ source, section, only, sheet, column_map, header_row, header_rows, end_row, expected_digest }) {
   const started = performance.now();
-  const loaded = await loadSource(source, { section, sheet, column_map });
+  const loaded = await loadSource(source, { section, sheet, column_map, header_row, header_rows, end_row });
 
   const parsed = loaded.json
     ? normalizeJsonItems(loaded.json)
@@ -21,7 +21,7 @@ export async function planImport({ source, section, only, sheet, column_map, exp
   const { rows, rejected, warnings } = buildRows(filtered);
   warnings.push(...(loaded.warnings ?? []));
   const sourceText = loaded.markdown ?? JSON.stringify(loaded.json);
-  const digest = createHash('sha256').update(JSON.stringify({ sourceText, section, sheet, column_map })).digest('hex');
+  const digest = createHash('sha256').update(JSON.stringify({ sourceText, section, sheet, column_map, header_row, header_rows, end_row })).digest('hex');
   if (expected_digest && digest !== expected_digest) throw new Error('미리보기 이후 소스 또는 매핑이 변경되었습니다. 다시 미리보기 하세요.');
 
   return { loaded, parsed, rows, rejected, warnings, sourceText, digest, processing_ms: performance.now() - started };
