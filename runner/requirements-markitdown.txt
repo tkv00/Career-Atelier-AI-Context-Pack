@@ -1,0 +1,2 @@
+# Office/PDF 구조를 직접 재구현할 수 없어 로컬 문서 정규화에만 사용한다.
+markitdown[pdf,xlsx,docx,pptx,xls]==0.1.7

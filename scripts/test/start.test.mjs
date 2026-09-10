@@ -164,6 +164,7 @@ server.listen(Number(process.argv.at(-1)), '127.0.0.1');`);
 if (!existsSync(${JSON.stringify(resolve(root, 'web-ready'))})) process.exit(88);
 writeFileSync(${JSON.stringify(resolve(root, 'runner-args'))}, JSON.stringify({args:process.argv.slice(2),cwd:process.cwd()}));
 ${scenario === 'runner failure' ? 'process.exit(7);' : 'setInterval(() => {}, 1000);'}`);
+  put(root, 'scripts/install-markitdown.mjs', '');
   put(root, 'launch.mjs', `import { main } from ${JSON.stringify(new URL('../start.mjs', import.meta.url).href)};
 process.on('message', () => process.emit('SIGINT'));
 main([], ${JSON.stringify(root)}).catch(error => { console.error(error.message); process.exitCode = 1; }).finally(() => process.disconnect());`);

@@ -3625,6 +3625,14 @@ input.interview-question-title:focus {
 .records-file-open:hover {
   text-decoration: underline;
 }
+.records-file-hint {
+  margin: var(--s2) 0 0;
+  color: var(--text-dim);
+  font-size: var(--fs-xs);
+}
+.records-transcript-status {
+  color: var(--cyan);
+}
 
 .records-course-form,
 .records-file-form {

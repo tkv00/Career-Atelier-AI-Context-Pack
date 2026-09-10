@@ -1,6 +1,7 @@
-import { mkdirSync, writeFileSync } from 'node:fs';
-import { homedir } from 'node:os';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { homedir, tmpdir } from 'node:os';
 import { resolve } from 'node:path';
+import { convertToMarkdown } from './markitdown.mjs';
 
 // 실행마다 작업 폴더를 분리해 서로 다른 작업의 자료가 섞이지 않게 한다.
 export function workspaceRoot(runId) {
@@ -293,29 +294,39 @@ function safeFileParts(fileName) {
   return { safeStem, extension };
 }
 
-// 솔(기업조사) 첨부파일 — DART 공시자료 등. 원본 파일을 그대로 workspace에
-// 두고 프롬프트로 직접 읽게 한다(Node에서 미리 텍스트로 뽑지 않는다 — 사용자
-// 요청 2026-09-04, "에이전트가 알아서 분석하는 형태"). 표·각주 같은 PDF
-// 레이아웃을 텍스트 추출 과정에서 잃지 않는다는 장점이 있는 대신, 이 비서가
-// 쓰는 CLI가 실제로 PDF를 읽을 수 있어야 한다 — 기본값(Claude, 0021)은
-// PDF 읽기를 지원한다. 다운로드 실패한 파일은 건너뛰고 계속 진행한다 —
-// 첨부 하나가 깨졌다고 조사 자체를 막을 이유는 없다.
+// 솔(기업조사) 첨부파일 — DART 공시자료 등. PDF 바이너리를 모델이 직접
+// 토큰화하지 않도록 MarkItDown 결과만 context에 둔다. 원본은 workspace 밖
+// 임시 폴더에서 변환 직후 지운다. 다운로드·변환 실패한 파일 하나 때문에
+// 나머지 조사까지 막지는 않는다.
 async function writeCompanyAttachments(contextDir, attachments, supabase) {
   if (!attachments?.length) return { hasAttachments: false };
 
+  let written = 0;
   for (const [index, attachment] of attachments.entries()) {
     const { safeStem, extension } = safeFileParts(attachment.file_name);
-    const outFile = `04-attachment-${index + 1}-${safeStem}.${extension}`;
+    const outFile = `04-attachment-${index + 1}-${safeStem}.md`;
+    let tempDir;
     try {
       const { data, error } = await supabase.storage.from('company-research').download(attachment.storage_path);
       if (error || !data) throw new Error(error?.message ?? '다운로드 결과가 비었습니다.');
       const buffer = Buffer.from(await data.arrayBuffer());
-      writeFileSync(resolve(contextDir, outFile), buffer);
+      let markdown;
+      if (['md', 'markdown'].includes(extension)) markdown = buffer.toString('utf8');
+      else {
+        tempDir = mkdtempSync(resolve(tmpdir(), 'career-company-attachment-'));
+        const localPath = resolve(tempDir, `source.${extension}`);
+        writeFileSync(localPath, buffer);
+        markdown = await convertToMarkdown(localPath);
+      }
+      writeFileSync(resolve(contextDir, outFile), markdown);
+      written++;
     } catch (error) {
       console.log(`첨부파일 ${attachment.file_name} 처리 실패: ${error.message}`);
+    } finally {
+      if (tempDir) rmSync(tempDir, { recursive: true, force: true });
     }
   }
-  return { hasAttachments: true };
+  return { hasAttachments: written > 0 };
 }
 
 export async function createCompanyContextPack(runId, { company, role, jobDescription, instruction, attachments, supabase }) {

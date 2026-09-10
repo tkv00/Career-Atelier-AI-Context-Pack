@@ -69,7 +69,8 @@ export async function processImportJob(supabase,ownerId,job,{extract=extractChun
       // 모델 작업 폴더에는 전체 원문 파일을 넣지 않는다.
       const {workspace}=createWorkspace(randomUUID(),{kind:'import_source',id:job.id,payload:{}});
       const dir=resolve(workspace,'source'); mkdirSync(dir,{recursive:true});
-      localPath=resolve(dir,/\.xlsx$/i.test(batch.name)?'source.xlsx':'source.md');
+      const extension=batch.name.match(/\.[A-Za-z0-9]+$/)?.[0]?.toLowerCase()||'.md';
+      localPath=resolve(dir,`source${extension}`);
       writeFileSync(localPath,Buffer.from(await blob.arrayBuffer()));
     }
     const document=await readDocument(batch,localPath);
@@ -78,7 +79,7 @@ export async function processImportJob(supabase,ownerId,job,{extract=extractChun
       const ids=(document.sourceBlocks||[]).filter(b=>b.text && chunk.text.includes(b.text)).map(b=>b.id);
       if(ids.length) chunk.location=`Notion blocks: ${ids.join(', ')}`;
     }
-    const measurements={version:IMPORT_VERSION,source_digest:plan.digest,source_bytes:Buffer.byteLength(plan.chunks.map(c=>c.text).join('\n')),rules_candidates:plan.candidates.length,ai_chunks:0,cache_hits:0,unresolved_chunks:[],runs:[],source_requests:document.requests||0,table_previews:plan.table_previews};
+    const measurements={version:IMPORT_VERSION,source_digest:plan.digest,source_bytes:Buffer.byteLength(plan.chunks.map(c=>c.text).join('\n')),converted_markdown_bytes:document.converted_markdown_bytes||null,rules_candidates:plan.candidates.length,ai_chunks:0,cache_hits:0,unresolved_chunks:[],runs:[],source_requests:document.requests||0,table_previews:plan.table_previews};
     const diagnostics=[...plan.diagnostics,...(document.warnings||[]).map(w=>({message:w.reason,location:w.block_id||w.row_id||''}))];
     let candidates=[...plan.candidates];
     // 대규모 문서가 사용자 모르게 수백 번 실행되지 않도록 한 번의 분석을 제한한다.

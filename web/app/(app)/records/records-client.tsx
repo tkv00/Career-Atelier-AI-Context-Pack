@@ -2,7 +2,8 @@
 
 import { uploadPrivateAttachment } from '@/lib/upload-attachment';
 
-import { useState, useTransition } from 'react';
+import { useEffect, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   deleteAttachment,
   deleteCourse,
@@ -31,6 +32,16 @@ export type CourseRow = {
   grade: string | null;
   term: string | null;
   detail: string | null;
+};
+export type TranscriptJobRow = { id: string; status: string; payload: unknown };
+
+const TRANSCRIPT_STATES: Record<string, string> = {
+  queued: '과목 정리 대기',
+  running: '과목 정리 중',
+  completed: '과목 정리 완료',
+  failed: '과목 정리 실패',
+  blocked_auth: 'AI 로그인 확인 필요',
+  blocked_paid_overage: '구독 한도 확인 필요',
 };
 
 function text(value: unknown): string {
@@ -108,20 +119,29 @@ export function RecordsClient({
   rowsBySection,
   attachments,
   courses,
+  transcriptJobs,
   total,
 }: {
   sections: SectionSpec[];
   rowsBySection: Record<string, RecordRow[]>;
   attachments: AttachmentRow[];
   courses: CourseRow[];
+  transcriptJobs: TranscriptJobRow[];
   total: number;
 }) {
+  const router = useRouter();
   const [activeId, setActiveId] = useState(sections[0]!.id);
   const [editing, setEditing] = useState<RecordRow | null>(null);
   const [adding, setAdding] = useState(false);
   const [schoolType, setSchoolType] = useState('대학교');
   const [message, setMessage] = useState('');
   const [pending, startTransition] = useTransition();
+  const transcriptActive = transcriptJobs.some(job => ['queued', 'running'].includes(job.status));
+  useEffect(() => {
+    if (!transcriptActive) return;
+    const timer = setInterval(() => router.refresh(), 3000);
+    return () => clearInterval(timer);
+  }, [router, transcriptActive]);
 
   const section = sections.find((item) => item.id === activeId)!;
   const rows = rowsBySection[activeId] ?? [];
@@ -342,6 +362,13 @@ export function RecordsClient({
                                 {file.file_name}
                               </button>
                               <small>{formatBytes(file.size_bytes)}</small>
+                              {file.kind === '성적증명서' && (() => {
+                                const job = transcriptJobs.find(candidate => {
+                                  const payload = candidate.payload;
+                                  return Boolean(payload && typeof payload === 'object' && !Array.isArray(payload) && 'attachmentId' in payload && payload.attachmentId === file.id);
+                                });
+                                return job ? <small className="records-transcript-status">{TRANSCRIPT_STATES[job.status] ?? job.status}</small> : null;
+                              })()}
                               <button
                                 type="button"
                                 onClick={() => run(() => deleteAttachment(file.id), '첨부를 지웠습니다.', '첨부를 지우지 못했습니다.')}
@@ -354,17 +381,20 @@ export function RecordsClient({
                         </ul>
                       )}
                       <form
-                        action={(formData) =>
-                          run(
+                        action={(formData) => {
+                          const selectedFile = formData.get('file');
+                          const isTranscript = section.id === 'education' && String(formData.get('kind') ?? '') === '성적증명서' && selectedFile instanceof File && selectedFile.type === 'application/pdf';
+                          return run(
                             async () => {
-                              const file = formData.get('file');
-                              if (!(file instanceof File)) throw new Error('파일을 선택하세요.');
-                              await uploadPrivateAttachment('records', `${section.id}/${row.id}`, file, 10 * 1024 * 1024, uploaded => uploadAttachment(section.id, row.id, uploaded, String(formData.get('kind') ?? '')));
+                              if (!(selectedFile instanceof File)) throw new Error('파일을 선택하세요.');
+                              await uploadPrivateAttachment('records', `${section.id}/${row.id}`, selectedFile, 10 * 1024 * 1024, uploaded => uploadAttachment(section.id, row.id, uploaded, String(formData.get('kind') ?? '')));
                             },
-                            '파일을 올렸습니다.',
+                            isTranscript
+                              ? '성적증명서를 올렸습니다. 로컬 러너가 과목을 자동 정리합니다.'
+                              : '파일을 올렸습니다.',
                             '업로드하지 못했습니다.',
-                          )
-                        }
+                          );
+                        }}
                         className="records-file-form"
                       >
                         <select name="kind">
@@ -377,6 +407,7 @@ export function RecordsClient({
                           업로드
                         </button>
                       </form>
+                      {section.id === 'education' && <p className="records-file-hint">PDF 성적증명서는 MarkItDown으로 변환한 뒤 과목명·학기·학점·성적을 자동으로 추가합니다. 완료 후 새로고침하면 확인할 수 있습니다.</p>}
                     </div>
                   )}
                 </li>
