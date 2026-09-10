@@ -334,7 +334,7 @@ npm start
 | 백업·개인정보·비용 확인 | [백업 범위](docs/REFERENCE.ko.md#데이터-백업) · [개인정보와 비용](docs/PRIVACY-AND-COST.md) |
 | 자주 묻는 질문 | [FAQ: 계정·비용·AI·백업·자료 가져오기](docs/FAQ.ko.md) |
 | 세부 기능·아키텍처 | [상세 가이드](docs/REFERENCE.ko.md) |
-| 시스템 설계 도표 | [에이전트 실행·세션·메모리·컨텍스트](https://tkv00.github.io/Career-Atelier-AI-Context-Pack/architecture.html) |
+| 작동 방식 살펴보기 | [비서의 작업 순서·로그인·자료 보관과 선택](https://tkv00.github.io/Career-Atelier-AI-Context-Pack/architecture.html) |
 | 개발·기여 | [기여 규칙](CONTRIBUTING.ko.md) · [AGENTS.md](AGENTS.md) |
 
 [MIT License](LICENSE)
