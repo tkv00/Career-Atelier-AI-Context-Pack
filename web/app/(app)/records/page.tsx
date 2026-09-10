@@ -1,7 +1,7 @@
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { SECTIONS } from './schema';
-import { RecordsClient, type RecordRow, type AttachmentRow, type CourseRow } from './records-client';
+import { RecordsClient, type RecordRow, type AttachmentRow, type CourseRow, type TranscriptJobRow } from './records-client';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,7 +9,7 @@ export default async function RecordsPage() {
   const supabase = await createClient();
 
   // 섹션마다 테이블이 달라 한 번에 조회할 수 없다. 7개를 병렬로 가져온다.
-  const [sectionResults, { data: attachments }, { data: courses }] = await Promise.all([
+  const [sectionResults, { data: attachments }, { data: courses }, { data: transcriptJobs }] = await Promise.all([
     Promise.all(
       SECTIONS.map((section) =>
         supabase.from(section.table).select('*').order('created_at', { ascending: false }),
@@ -17,6 +17,7 @@ export default async function RecordsPage() {
     ),
     supabase.from('record_attachments').select('*').order('created_at', { ascending: false }),
     supabase.from('education_courses').select('*').order('created_at', { ascending: false }),
+    supabase.from('jobs').select('id,status,payload').eq('kind', 'transcript').order('created_at', { ascending: false }).limit(100),
   ]);
 
   const rowsBySection: Record<string, RecordRow[]> = {};
@@ -45,6 +46,7 @@ export default async function RecordsPage() {
         rowsBySection={rowsBySection}
         attachments={(attachments ?? []) as AttachmentRow[]}
         courses={(courses ?? []) as CourseRow[]}
+        transcriptJobs={(transcriptJobs ?? []) as TranscriptJobRow[]}
         total={total}
       />
     </>

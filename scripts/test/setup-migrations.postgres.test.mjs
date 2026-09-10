@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdtempSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
 import { basename, dirname, join, resolve } from 'node:path';
@@ -34,7 +34,15 @@ test('isolated PostgreSQL migration execution', { skip: !bin, timeout: 120_000 }
   const port = server.address().port;
   await new Promise((resolve) => server.close(resolve));
   command('initdb', ['-D', data, '-U', 'postgres', '--auth=trust', '--no-locale', '--encoding=UTF8']);
-  command('pg_ctl', ['-D', data, '-l', join(directory, 'server.log'), '-o', `-h 127.0.0.1 -p ${port} -F`, '-w', 'start']);
+  const serverLog = join(directory, 'server.log');
+  try {
+    // 배포판 기본 소켓 폴더는 일반 CI 사용자에게 쓰기 권한이 없을 수 있다.
+    command('pg_ctl', ['-D', data, '-l', serverLog, '-o', `-h 127.0.0.1 -k ${directory} -p ${port} -F`, '-w', 'start']);
+  } catch (error) {
+    // pg_ctl의 짧은 안내 대신 서버 원인을 CI 로그에 남겨 재현 없이도 진단한다.
+    const detail = existsSync(serverLog) ? readFileSync(serverLog, 'utf8').trim() : 'server.log가 생성되지 않았습니다.';
+    throw new Error(`${error.message}\n${detail}`);
+  }
   started = true;
   const args = ['-X', '--no-password', '-h', '127.0.0.1', '-p', String(port), '-U', 'postgres', '-d', 'postgres', '-v', 'ON_ERROR_STOP=1', '-Atq'];
   const sql = (input) => command('psql', args, input);

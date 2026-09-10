@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
-import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
-import { homedir, platform, release } from 'node:os';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { homedir, platform, release, tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { env } from './lib/env.mjs';
 import { connectAsRunner, loginInteractive, logout as clearLogin } from './lib/supabase-client.mjs';
@@ -40,6 +40,7 @@ import {
 } from './search-quality.mjs';
 import { schemaArgsFor } from './schema-compat.mjs';
 import { systemRulesFor } from './system-prompts.mjs';
+import { TRANSCRIPT_SCHEMA, courseKey, createTranscriptContext, transcriptPrompt, validateTranscriptOutput } from './transcript.mjs';
 import { buildSearchFormatPrompt } from './search-format.mjs';
 import { CONCURRENT_RUN_LIMIT, HEARTBEAT_INTERVAL_MS, assertSubscriptionProvider, childEnvironment, providerStatus } from './safety.mjs';
 
@@ -678,7 +679,7 @@ async function processCompanyJob(supabase, ownerId, job) {
     supabase,
   });
   const attachmentInstruction = hasAttachments
-    ? ' context/04-attachment-*로 시작하는 파일(PDF 원문 포함)이 있으면 사용자가 올린 원문 자료(예: DART 공시자료)이니 직접 열어서 읽고 근거로 활용하라.'
+    ? ' context/04-attachment-*.md가 있으면 사용자가 올린 자료를 MarkItDown으로 변환한 내용(예: DART 공시자료)이니 읽고 근거로 활용하라.'
     : '';
   const prompt = `${template.body}\n\n${systemRulesFor('company')}\n\n[조사 대상]\ncontext/01-company.md, context/02-job-description.md를 읽어라. context/03-user-instruction.md에 사용자가 추가로 지시한 조사 방향이 있으면 그것도 반드시 반영하라.${attachmentInstruction} 스키마에 맞는 JSON으로만 답하라.`;
 
@@ -1023,9 +1024,69 @@ async function processSubtitleJob(supabase, ownerId, job) {
   });
 }
 
+async function processTranscriptJob(supabase, ownerId, job) {
+  const attachmentId = job.payload?.attachmentId;
+  const educationId = job.payload?.educationId;
+  if (!attachmentId || !educationId) throw new Error('성적증명서 작업의 첨부·학력 ID가 없습니다.');
+  const [{ data: attachment, error: attachmentError }, { data: education, error: educationError }] = await Promise.all([
+    supabase.from('record_attachments').select('*').eq('id', attachmentId).eq('owner_id', ownerId).maybeSingle(),
+    supabase.from('education_records').select('id').eq('id', educationId).eq('owner_id', ownerId).maybeSingle(),
+  ]);
+  if (attachmentError || educationError) throw new Error(attachmentError?.message || educationError?.message);
+  if (!attachment || !education || attachment.record_type !== 'education' || attachment.record_id !== educationId || attachment.kind !== '성적증명서' || !/\.pdf$/i.test(attachment.storage_path)) {
+    throw new Error('성적증명서 PDF와 학력 정보의 연결을 확인할 수 없습니다.');
+  }
+  const { data: blob, error: downloadError } = await supabase.storage.from('records').download(attachment.storage_path);
+  if (downloadError || !blob) throw new Error(downloadError?.message || '성적증명서를 내려받지 못했습니다.');
+  if (!blob.size || blob.size > 10 * 1024 * 1024) throw new Error('성적증명서 PDF는 10 MiB 이하여야 합니다.');
+
+  const tempDir = mkdtempSync(resolve(tmpdir(), 'career-transcript-'));
+  const localPath = resolve(tempDir, 'transcript.pdf');
+  const workspaceInfo = createWorkspace(randomUUID(), job);
+  let context;
+  try {
+    writeFileSync(localPath, Buffer.from(await blob.arrayBuffer()));
+    context = await createTranscriptContext(workspaceInfo, localPath, attachment.file_name);
+  } finally {
+    // 원본 PDF는 모델 작업 폴더 밖 임시 위치에서 변환 직후 제거한다.
+    rmSync(tempDir, { recursive: true, force: true });
+  }
+  const provider = providerFor({ provider: job.payload?.provider });
+  const prompt = transcriptPrompt(attachment.file_name);
+  await recordAndRun(supabase, ownerId, job, {
+    provider,
+    prompt,
+    workspace: context.workspace,
+    contextDir: context.contextDir,
+    ...schemaArgsFor(provider, TRANSCRIPT_SCHEMA, context.schemaPath, writeSchema),
+    onComplete: async result => {
+      const courses = validateTranscriptOutput(result.output, context.markdown);
+      const { data: existing, error } = await supabase.from('education_courses').select('course_name,term,credits,grade').eq('owner_id', ownerId).eq('education_id', educationId);
+      if (error) throw error;
+      const known = new Set((existing ?? []).map(courseKey));
+      const rows = [];
+      for (const course of courses) {
+        const key = courseKey(course);
+        if (known.has(key)) continue;
+        known.add(key);
+        rows.push({ owner_id: ownerId, education_id: educationId, ...course });
+      }
+      if (rows.length) {
+        const { error: insertError } = await supabase.from('education_courses').insert(rows);
+        if (insertError) throw insertError;
+      }
+      console.log(`잡 ${job.id}: 성적증명서 ${courses.length}과목 확인, ${rows.length}과목 추가`);
+    },
+  });
+}
+
 async function processJob(supabase, ownerId, job) {
   if (job.kind === 'import_analyze' || job.kind === 'import_commit') {
     await processImportJob(supabase, ownerId, job);
+    return;
+  }
+  if (job.kind === 'transcript') {
+    await processTranscriptJob(supabase, ownerId, job);
     return;
   }
   if (job.kind === 'review') {

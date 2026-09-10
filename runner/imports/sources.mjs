@@ -1,6 +1,8 @@
 import { readFile } from 'node:fs/promises';
+import { extname } from 'node:path';
 import { readExcel } from '../mcp/excel.mjs';
 import { loadSource } from '../mcp/sources.mjs';
+import { convertToMarkdown, MARKITDOWN_INPUT_EXTENSIONS } from '../markitdown.mjs';
 import { parseTSV } from './normalize.mjs';
 
 export function notionURI(input, kind = 'page') {
@@ -24,8 +26,16 @@ export async function readDocument(batch, localPath) {
     return {text:loaded.markdown||'',tables:loaded.tables||[],origin:batch.source_ref,sourceBlocks:loaded.sourceBlocks||[],warnings:loaded.warnings||[],requests:loaded.requests};
   }
   if (batch.source_type==='file' && /\.xlsx$/i.test(batch.name)) {
+    // 모든 외부 문서는 먼저 공통 Markdown으로 정규화한다. XLSX는 열 매핑과
+    // 수식 경고를 보존해야 하므로 검증된 표 파서를 이어서 사용하되, 모델에는
+    // 바이너리가 아니라 아래 표 조각만 전달한다.
+    const markdown=await convertToMarkdown(localPath);
     const loaded=await readExcel(localPath,{...options,raw:true});
-    return {text:'',tables:loaded.tables,origin:batch.name};
+    return {text:'',tables:loaded.tables,origin:batch.name,converted_markdown_bytes:Buffer.byteLength(markdown)};
+  }
+  if (batch.source_type==='file' && MARKITDOWN_INPUT_EXTENSIONS.has(extname(batch.name).toLowerCase())) {
+    const text=await convertToMarkdown(localPath);
+    return {text,tables:[],origin:batch.name,converted_markdown_bytes:Buffer.byteLength(text)};
   }
   const text=localPath ? await readFile(localPath,'utf8') : batch.source_text;
   return batch.source_type==='table' ? {text:'',tables:[{name:'붙여넣기',matrix:parseTSV(text)}],origin:batch.name} : {text,origin:batch.name};

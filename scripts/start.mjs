@@ -186,6 +186,11 @@ export async function main(argv = process.argv.slice(2), root = projectRoot) {
     }
     const directories = mode === 'all' ? ['web', 'runner'] : mode === 'web' ? ['web'] : ['runner'];
     for (const directory of directories) await ensureDependencies(resolve(root, directory), group.run);
+    if (mode !== 'web') {
+      // 문서 변환기는 Node 패키지와 별도인 Python 가상환경에 고정한다. 시스템
+      // Python을 오염시키지 않고, requirements가 바뀔 때만 다시 설치한다.
+      await group.run([resolve(root, 'scripts/install-markitdown.mjs')], { cwd: root });
+    }
     group.signal.throwIfAborted();
 
     const services = [];

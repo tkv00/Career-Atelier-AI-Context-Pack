@@ -30,6 +30,8 @@ Career Atelier의 로컬 실행 엔진입니다. 사용자의 로컬 컴퓨터�
 | `providers/` | CLI별 커맨드라인 인자 구성 (`codex.mjs`, `claude.mjs`, `gemini.mjs`) |
 | `lib/` | Supabase 클라이언트, 세션 스토리지, 환경변수 유틸리티 |
 | `mcp/` | Excel·Markdown·JSON·Notion 정리본을 LLM 파싱 없이 가져오는 로컬 MCP 서버 |
+| `markitdown.mjs` | PDF·Office 문서를 Microsoft MarkItDown으로 Markdown화하는 로컬 변환 경계 |
+| `transcript.mjs` | 성적증명서 Markdown의 근거 검증과 과목 구조화 계약 |
 
 ---
 
@@ -74,6 +76,8 @@ npm start
 `import_analyze`와 `import_commit` 작업은 `imports/jobs.mjs`에서 처리한다. 파일·붙여넣기·Notion을 공통 원문 조각과 근거 있는 후보로 변환하며, 정형 파서·저장 매핑은 기존 MCP와 공유한다. 경험 제목과 대표 역량은 공통 로컬 CLI 후처리로 정리한다. MCP도 정책에 맞지 않는 경험 제목·태그는 이 후처리를 사용한다. 제목은 최대 40자, 역량은 지정된 12개 중 최대 3개이며 본문은 보존한다. [분류 근거와 처리 정책](../docs/EXPERIENCE-METADATA.md)을 참고한다. 적용 후 러너 재시작이 필요하다.
 
 원문은 모델 작업 폴더와 분리한다. 새 `source_imports` 행은 자동 백업에 포함하지만 Storage 원본 바이너리는 포함하지 않는다.
+
+PDF·Word·PowerPoint·Excel 등 외부 문서는 러너의 격리된 Python 가상환경에 설치한 Microsoft MarkItDown 0.1.7로 먼저 Markdown화한다. `npm start`가 Python 3.10 이상을 확인하고 `runner/requirements-markitdown.txt`가 바뀐 경우에만 가상환경을 갱신한다. 원본 경로를 임의 URL로 확장하지 않도록 Python 브리지는 `convert_local()`만 호출한다. 학력 항목에 `성적증명서` 종류의 PDF를 올리면 `transcript` 작업이 이 Markdown만 읽고 원문 인용을 검증한 뒤 기존 과목과 중복되지 않는 행을 `education_courses`에 추가한다. 스캔 이미지뿐인 PDF는 OCR을 위해 외부 API로 보내지 않고 명확한 실패로 남긴다. 라이선스 전문은 [THIRD-PARTY-NOTICES.md](../THIRD-PARTY-NOTICES.md)에 있다.
 
 ## 4. 개발 시 주의사항
 

@@ -84,9 +84,9 @@ Save the situation, judgment, action, and result in **경험 카드** (Experienc
 
 ### “I already organized this in Notion and Excel.”
 
-Use **자료 가져오기** (Imports) for Markdown/XLSX files, pasted text or spreadsheet cells, and Notion page/database URLs. **Compare extracted fields with the source, edit, then save.** Optional local AI helps organize free-form notes.
+Use **자료 가져오기** (Imports) for Markdown, PDF, Word, PowerPoint, and Excel files, pasted text or spreadsheet cells, and Notion page/database URLs. External documents are first converted to Markdown by local [Microsoft MarkItDown](https://github.com/microsoft/markitdown), so the model never receives the source binary directly. **Compare extracted fields with the source, edit, then save.** Optional local AI helps organize free-form notes.
 
-Analysis requires an approved runner. Notion requires a separate connection on the runner. Excel imports detect multirow and merged headers and let you adjust classification and column mapping per sheet. Formulas use saved results only. Local AI summarizes experience titles within 40 characters and selects up to three evidence-supported competencies from a fixed set of 12. Review the [classification policy (Korean)](docs/EXPERIENCE-METADATA.md) and [Excel import guide (Korean)](docs/EXCEL-IMPORTS.ko.md) before saving.
+Analysis requires an approved runner. Notion requires a separate connection on the runner. Excel imports retain multirow and merged-header detection, per-sheet classification, column mapping, and cached formula-value checks. Uploading a PDF transcript to an education record automatically adds course names, terms, credits, and grades through the same Markdown conversion path. Local AI summarizes experience titles within 40 characters and selects up to three evidence-supported competencies from a fixed set of 12. MarkItDown's MIT license is recorded in the [third-party notices](THIRD-PARTY-NOTICES.md). Review the [classification policy (Korean)](docs/EXPERIENCE-METADATA.md) and [Excel import guide (Korean)](docs/EXCEL-IMPORTS.ko.md) before saving.
 
 <details>
 <summary>View the import screen — compare source and extracted fields</summary>

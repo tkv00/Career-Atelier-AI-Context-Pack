@@ -1,5 +1,6 @@
 'use server';
 
+import { randomUUID } from 'node:crypto';
 import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
@@ -140,7 +141,9 @@ export async function uploadAttachment(sectionId: string, recordId: string, file
   // 정리해 두는 편이 낫다. 확장자가 없거나 이상하면 bin으로 떨어뜨린다.
   const storagePath = file.storagePath;
 
+  const attachmentId = randomUUID();
   const { error } = await supabase.from('record_attachments').insert({
+    id: attachmentId,
     owner_id: user.id,
     record_type: sectionId,
     record_id: recordId,
@@ -153,6 +156,16 @@ export async function uploadAttachment(sectionId: string, recordId: string, file
     // 행을 못 남겼으면 파일만 떠도는 상태가 된다. 되돌린다.
     await supabase.storage.from(BUCKET).remove([storagePath]);
     throw new Error(error.message);
+  }
+
+  if (sectionId === 'education' && kind === '성적증명서' && stored.contentType === 'application/pdf') {
+    const { error: jobError } = await supabase.from('jobs').insert({
+      owner_id: user.id,
+      kind: 'transcript',
+      payload: { attachmentId, educationId: recordId, provider: 'codex' },
+      harness_snapshot: { document_converter: 'microsoft/markitdown@0.1.7' },
+    });
+    if (jobError) throw new Error(`파일은 보관했지만 과목 자동 정리를 요청하지 못했습니다: ${jobError.message}`);
   }
 
   revalidatePath('/records');

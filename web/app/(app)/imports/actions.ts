@@ -8,6 +8,8 @@ import type { ImportCandidate } from '@/lib/imports';
 import type { Json } from '@/lib/supabase/database.types';
 import { tableOptions, sheetOptions } from '@/lib/import-options';
 
+const IMPORT_FILE_PATTERN = /\.(md|markdown|pdf|xlsx|xls|docx|pptx|csv|html|htm)$/i;
+
 async function session() {
   const supabase=await createClient();
   const {data:{user}}=await supabase.auth.getUser();
@@ -39,8 +41,8 @@ export async function createImport(form:FormData) {
   if(source_type==='file') {
     const file=form.get('file');
     if(!(file instanceof File)||!file.size||file.size>10*1024*1024) throw new Error('10 MiB 이하 파일을 선택하세요.');
-    const extension=file.name.match(/\.(md|markdown|xlsx)$/i)?.[1]?.toLowerCase();
-    if(!extension) throw new Error('MD와 XLSX만 지원합니다. XLS는 XLSX로 저장하세요.');
+    const extension=file.name.match(IMPORT_FILE_PATTERN)?.[1]?.toLowerCase();
+    if(!extension) throw new Error('MD, PDF, Excel, Word, PowerPoint, CSV, HTML 파일만 지원합니다.');
     name=file.name.slice(0,200); source_ref=`${user.id}/${id}/source.${extension}`;
     const {error}=await supabase.storage.from('import-sources').upload(source_ref,file,{upsert:false});
     if(error) throw new Error(error.message);
@@ -58,9 +60,9 @@ export async function createImport(form:FormData) {
 export async function prepareImportUpload(form:FormData) {
   const {supabase,user}=await session();
   const id=randomUUID(),name=String(form.get('file_name')||'');
-  const extension=name.match(/\.(md|markdown|xlsx)$/i)?.[1]?.toLowerCase();
+  const extension=name.match(IMPORT_FILE_PATTERN)?.[1]?.toLowerCase();
   const size=Number(form.get('file_size'));
-  if(!extension||!Number.isFinite(size)||size<=0||size>10*1024*1024) throw new Error('10 MiB 이하 MD 또는 XLSX 파일을 선택하세요.');
+  if(!extension||!Number.isFinite(size)||size<=0||size>10*1024*1024) throw new Error('10 MiB 이하 MD, PDF, Office, CSV 또는 HTML 파일을 선택하세요.');
   const path=`${user.id}/${id}/source.${extension}`;
   const {error}=await supabase.from('source_imports').insert({id,owner_id:user.id,name:name.slice(0,200),source_type:'file',source_ref:path,options:optionsFrom(form),status:'uploading'});
   if(error) throw new Error(error.message);
