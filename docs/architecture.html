@@ -1,0 +1,69 @@
+<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Career Atelier — System architecture</title><link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&amp;family=Geist:wght@400;600&amp;family=Geist+Mono:wght@400;500&amp;family=Noto+Sans+KR:wght@400;600&amp;family=Noto+Serif+KR:wght@400&amp;display=swap" rel="stylesheet"><style>*{box-sizing:border-box}body{margin:0;padding:32px;background:#f5f5f5;color:#2d3142;font-family:'Geist','Noto Sans KR',sans-serif}main{max-width:1200px;margin:auto}h1{font-family:'Instrument Serif','Noto Serif KR',serif;font-size:32px;font-weight:400;margin:12px 0}p{line-height:1.8}.eyebrow{font-family:'Geist Mono',monospace;font-size:12px;color:#4f5d75}.canvas{overflow-x:auto}svg{display:block;width:100%;min-width:960px}.name{font-family:'Geist','Noto Sans KR',sans-serif;font-size:16px;font-weight:600;fill:#2d3142}.detail{font-family:'Geist','Noto Sans KR',sans-serif;font-size:12px;fill:#4f5d75}.tech,.tag,.zone,.protocol{font-family:'Geist Mono',monospace;font-size:8px;fill:#4f5d75}.zone{font-size:12px}.notes{border-top:1px solid #bfc0c0;margin-top:24px;padding-top:16px;font-size:16px;color:#4f5d75}@media(max-width:640px){body{padding:20px}h1{font-size:28px}}@media print{body{padding:0}svg{min-width:0}.canvas{overflow:visible}}body:target{padding:20px}body:target main>p,body:target h1,body:target .notes{display:none}</style></head><body id="embed"><main><p class="eyebrow">DP INTEGRATION · CAREER ATELIER</p><h1>Data in the cloud. Execution on your machine.</h1><p>웹은 작업을 등록하고, 내 컴퓨터의 러너가 구독 CLI로 실행합니다.</p><div class="canvas" tabindex="0" role="region" aria-label="시스템 아키텍처, 좁은 화면에서는 좌우로 스크롤"><svg viewBox="0 0 1200 640" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="architecture-title architecture-desc">
+<title id="architecture-title">Career Atelier 시스템 통합 아키텍처</title>
+<desc id="architecture-desc">웹과 첨부 자료는 Supabase에 저장되고 로컬 러너가 작업과 근거를 가져와 Codex, Claude Code, Antigravity CLI를 실행한 뒤 결과를 Supabase에 저장합니다. 로컬 MCP는 러너의 가져오기 로직을 공유합니다.</desc><defs>
+<marker id="arrow" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#4f5d75"/></marker>
+<marker id="arrow-accent" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#eb6c36"/></marker>
+<marker id="arrow-link" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#2e5aa8"/></marker>
+<marker id="arrow-sm" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#4f5d75"/></marker>
+<marker id="arrow-dim" markerWidth="8" markerHeight="8" refX="8" refY="4" orient="auto"><path d="M0 0 L8 4 L0 8 Z" fill="#7a8399"/></marker>
+</defs><rect width="1200" height="640" fill="#f5f5f5"/>
+<!-- 실행 위치를 혼동하지 않도록 중앙 통합 영역 안에서도 클라우드와 로컬 경계를 구분한다. -->
+<rect x="260" y="72" width="696" height="400" rx="8" fill="#f0f0f1" stroke="#bfc0c0"/>
+<path d="M600 104 V368" stroke="#bfc0c0" stroke-dasharray="4 4"/>
+<g class="zone"><text x="40" y="48">INPUT SURFACES</text><text x="280" y="48">CAREER ATELIER · INTEGRATION</text><text x="1000" y="48">AI CLI · LOCAL</text></g>
+<g class="name"><text x="288" y="136">클라우드 데이터</text><text x="656" y="136">사용자 컴퓨터</text></g>
+<path d="M200 212 H288" fill="none" stroke="#eb6c36" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+<rect x="212" y="188" width="44" height="16" fill="#f5f5f5"/><text class="protocol" x="234" y="200" text-anchor="middle">HTTPS</text>
+<path d="M200 300 H288" fill="none" stroke="#eb6c36" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+<rect x="208" y="276" width="48" height="16" fill="#f5f5f5"/><text class="protocol" x="232" y="288" text-anchor="middle">UPLOAD</text>
+<path d="M200 388 H608 Q616 388 616 380 V336 Q616 328 624 328 H656" fill="none" stroke="#4f5d75" stroke-width="1.4" marker-end="url(#arrow)"/>
+<rect x="384" y="364" width="44" height="16" fill="#f5f5f5"/><text class="protocol" x="406" y="376" text-anchor="middle">LOCAL</text>
+<path d="M528 224 H656" fill="none" stroke="#eb6c36" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+<rect x="548" y="200" width="68" height="16" fill="#f5f5f5"/><text class="protocol" x="582" y="212" text-anchor="middle">JOB / DATA</text>
+<path d="M656 300 H528" fill="none" stroke="#eb6c36" stroke-width="1.4" stroke-dasharray="4 4" marker-end="url(#arrow-accent)"/>
+<rect x="548" y="276" width="64" height="16" fill="#f5f5f5"/><text class="protocol" x="580" y="288" text-anchor="middle">WRITEBACK</text>
+<path d="M896 200 H920 Q928 200 928 192 V132 Q928 124 936 124 H1000" fill="none" stroke="#eb6c36" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+<rect x="944" y="100" width="44" height="16" fill="#f5f5f5"/><text class="protocol" x="966" y="112" text-anchor="middle">STDIO</text>
+<path d="M896 248 H964 Q972 248 972 240 V220 Q972 212 980 212 H1000" fill="none" stroke="#eb6c36" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+<rect x="904" y="224" width="44" height="16" fill="#f5f5f5"/><text class="protocol" x="926" y="236" text-anchor="middle">STDIO</text>
+<path d="M896 320 H928 Q936 320 936 312 V308 Q936 300 944 300 H1000" fill="none" stroke="#eb6c36" stroke-width="1.4" marker-end="url(#arrow-accent)"/>
+<rect x="948" y="276" width="44" height="16" fill="#f5f5f5"/><text class="protocol" x="970" y="288" text-anchor="middle">STDIO</text>
+<path d="M608 524 V472" fill="none" stroke="#eb6c36" stroke-width="1.4" stroke-dasharray="4 4" marker-end="url(#arrow-accent)"/>
+<rect x="620" y="484" width="36" height="16" fill="#f5f5f5"/><text class="protocol" x="638" y="496" text-anchor="middle">AUTH</text>
+<g class="node"><rect x="40" y="180" width="160" height="80" rx="8" fill="#ededf0" stroke="#7a8399"/><text class="tag" x="56" y="200">WEB</text><text class="name" x="56" y="224">웹 작업실</text>
+<text class="tech" x="56" y="244">Next.js · Vercel/local</text>
+</g>
+<g class="node"><rect x="40" y="268" width="160" height="80" rx="8" fill="#ededf0" stroke="#7a8399"/><text class="tag" x="56" y="288">FILES</text><text class="name" x="56" y="312">첨부 자료</text>
+<text class="tech" x="56" y="332">PDF / Office / images</text>
+</g>
+<g class="node"><rect x="40" y="356" width="160" height="80" rx="8" fill="#ededf0" stroke="#7a8399"/><text class="tag" x="56" y="376">MCP</text><text class="name" x="56" y="400">로컬 가져오기</text>
+<text class="tech" x="56" y="420">Excel / MD / JSON</text>
+</g>
+<g class="node"><rect x="288" y="176" width="240" height="168" rx="8" fill="#f9ece5" stroke="#eb6c36"/><text class="tag" x="304" y="196">DATA + QUEUE</text><text class="name" x="304" y="220">Supabase</text>
+<text class="detail" x="304" y="240">Postgres · Storage</text>
+<text class="detail" x="304" y="264">jobs · agent_runs</text>
+<text class="detail" x="304" y="288">run_events · 결과 테이블</text>
+</g>
+<g class="node"><rect x="656" y="176" width="240" height="168" rx="8" fill="#f9ece5" stroke="#eb6c36"/><text class="tag" x="672" y="196">EXECUTION</text><text class="name" x="672" y="220">로컬 러너</text>
+<text class="detail" x="672" y="240">작업 선점 · 컨텍스트 팩</text>
+<text class="detail" x="672" y="264">스키마 정규화 · CLI 실행</text>
+<text class="detail" x="672" y="288">출력 검증 · 결과 저장</text>
+</g>
+<g class="node"><rect x="1000" y="92" width="160" height="80" rx="8" fill="#ededf0" stroke="#7a8399"/><text class="tag" x="1016" y="112">PROVIDER</text><text class="name" x="1016" y="136">Codex</text>
+<text class="tech" x="1016" y="156">codex</text>
+</g>
+<g class="node"><rect x="1000" y="180" width="160" height="80" rx="8" fill="#ededf0" stroke="#7a8399"/><text class="tag" x="1016" y="200">PROVIDER</text><text class="name" x="1016" y="224">Claude Code</text>
+<text class="tech" x="1016" y="244">claude</text>
+</g>
+<g class="node"><rect x="1000" y="268" width="160" height="80" rx="8" fill="#ededf0" stroke="#7a8399"/><text class="tag" x="1016" y="288">PROVIDER</text><text class="name" x="1016" y="312">Antigravity</text>
+<text class="tech" x="1016" y="332">agy</text>
+</g>
+<text class="detail" x="656" y="424">CLI 인증정보는 로컬에 보관</text>
+<rect x="40" y="524" width="1120" height="56" rx="8" fill="#e9e9ec" stroke="#bfc0c0"/>
+<text class="name" x="64" y="548">Supabase Auth · 소유자별 RLS · 러너 기기 승인</text>
+<text class="detail" x="64" y="568">앱과 데이터 접근의 공통 경계 · AI 제공자 로그인은 사용자가 각 CLI에서 별도로 완료</text>
+<path d="M40 604 H1160" stroke="#bfc0c0"/>
+<path d="M40 624 H80" stroke="#eb6c36"/><text class="detail" x="92" y="628">작업·데이터 연동</text>
+<path d="M336 624 H376" stroke="#eb6c36" stroke-dasharray="4 4"/><text class="detail" x="388" y="628">결과 저장 / 인증</text>
+<path d="M664 624 H704" stroke="#4f5d75"/><text class="detail" x="716" y="628">로컬 가져오기</text>
+</svg></div><div class="notes"><p><strong>읽는 법.</strong> 웹의 요청과 첨부 원본은 Supabase에 저장됩니다. 러너가 <code>claim_next_job</code> RPC로 작업을 가져오고 필요한 데이터를 읽습니다. 그림의 JOB / DATA 화살표는 데이터 전달 방향이며, 네트워크 요청은 러너가 시작합니다. 첨부 업로드는 웹을 경유하며, 로컬 MCP는 러너의 가져오기 코드를 공유합니다.</p><p><strong>실행과 반환.</strong> 일곱 비서는 작업에 설정된 CLI를 사용합니다. STDIO는 로컬 자식 프로세스와의 입력·출력 연결이며, CLI는 해당 AI 제공자에 접속합니다. 러너가 구조화 출력을 검증하고 결과와 이벤트를 Supabase에 저장하면 웹에서 조회할 수 있습니다.</p><p><strong>경계.</strong> 중앙 영역은 논리적 통합 범위입니다. Supabase는 클라우드, 러너와 CLI는 사용자 컴퓨터에서 실행됩니다. Auth·RLS·기기 승인은 앱 데이터 접근에 적용되며 AI 제공자 인증을 대신하지 않습니다. GitHub Pages는 이 구조를 소개하는 정적 사이트입니다.</p></div></main></body></html>

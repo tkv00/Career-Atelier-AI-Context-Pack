@@ -272,6 +272,7 @@ footer{padding:56px 0 72px; font-size:14px; color:var(--ink-2)}
     <nav class="topnav" aria-label="주요">
       <a href="#promise" class="hide-sm">다른 점</a>
       <a href="#features">기능</a>
+      <a href="#architecture" class="hide-sm">아키텍처</a>
       <a href="#data" class="hide-sm">실측</a>
       <a href="#install">설치</a>
       <a href="#faq" class="hide-sm">FAQ</a>
@@ -487,6 +488,35 @@ footer{padding:56px 0 72px; font-size:14px; color:var(--ink-2)}
       <div class="pilot"><div class="stage"><img src="images/agents/agent-subtitle.png" alt="콤마 캐릭터"></div><p class="nm">콤마</p><p class="role">문항 소제목</p><p class="cli">기본 · Antigravity</p></div>
       <div class="pilot"><div class="stage"><img src="images/agents/agent-interview.png" alt="에코 캐릭터"></div><p class="nm">에코</p><p class="role">면접 질문 준비</p><p class="cli">기본 · Codex</p></div>
     </div>
+  </div>
+</section>
+
+<section class="band" id="architecture" aria-labelledby="architecture-heading">
+  <div class="shell">
+    <div class="head">
+      <p class="eyebrow">System architecture · DP integration</p>
+      <h2 id="architecture-heading">데이터는 웹에, AI 실행은 내 컴퓨터에</h2>
+      <p>Career Atelier는 웹과 로컬 러너를 Supabase 작업 큐로 연결합니다. 웹에서 비서에게 일을 맡기면 승인된 러너가 작업을 가져와, 사용자가 로그인한 AI CLI로 실행하고 결과를 저장합니다.</p>
+    </div>
+    <figure style="margin:32px 0 0">
+      <iframe src="architecture.html#embed" title="Career Atelier DP integration 아키텍처" loading="lazy" style="display:block;width:100%;height:640px;border:1px solid var(--rule);border-radius:8px;background:#f5f5f5"></iframe>
+      <figcaption style="margin-top:12px;color:var(--ink-2);font-size:14px">밝은 회색·주황 강조의 DP integration 도표. 좁은 화면에서는 도표를 좌우로 스크롤할 수 있습니다. <a href="architecture.html">아키텍처 크게 보기</a></figcaption>
+    </figure>
+    <div class="promises">
+      <div class="promise">
+        <div class="side"><p class="eyebrow">01 · Web &amp; data</p><h3>웹은 입력과 결과를 관리합니다</h3></div>
+        <div class="body"><p>Next.js 웹은 Vercel 또는 localhost에서 실행됩니다. 경험·지원 정보와 첨부 자료를 Supabase 데이터베이스·Storage에 저장하고, AI 요청은 <code>jobs</code> 행으로 등록합니다. 웹 서버는 모델을 호출하지 않으며 AI 인증정보도 보관하지 않습니다.</p><p class="note">지금 보고 있는 GitHub Pages는 정적 소개 사이트입니다. 실제 취업 준비 작업실은 사용자가 별도로 설치·실행합니다.</p></div>
+      </div>
+      <div class="promise">
+        <div class="side"><p class="eyebrow">02 · Local runner</p><h3>러너가 필요한 근거를 골라 실행합니다</h3></div>
+        <div class="body"><p>내 컴퓨터의 러너가 <code>claim_next_job</code> RPC로 대기 작업을 선점합니다. 함수는 로그인한 소유자와 기기 승인을 확인합니다. 러너는 작업별 컨텍스트 팩을 만들고 출력 스키마를 정규화한 뒤, 선택된 Codex·Claude Code·Antigravity CLI를 자식 프로세스로 실행합니다.</p><p class="note">CLI 인증정보는 로컬에 남습니다. 작업에 필요한 컨텍스트는 CLI를 통해 해당 AI 제공자에게 전달되므로, 모델 추론까지 오프라인으로 이루어지는 구조는 아닙니다.</p></div>
+      </div>
+      <div class="promise">
+        <div class="side"><p class="eyebrow">03 · Results &amp; ownership</p><h3>실행 기록과 결과가 다시 웹으로 돌아옵니다</h3></div>
+        <div class="body"><p>러너는 진행 이벤트를 <code>run_events</code>에 묶어 저장하고, 구조화된 출력과 작업별 근거를 검사해 자소서·조사 결과·면접 자료에 반영합니다. 웹은 저장된 결과와 상태를 조회합니다. Supabase Auth와 소유자별 RLS가 데이터 접근을 제한하고, 러너의 하트비트가 실행 상태를 알립니다.</p><p class="note">러너가 꺼져 있으면 새 AI 작업을 처리할 수 없습니다. 실행 중 하트비트가 90초 이상 끊긴 작업은 회수 대상이며, 생성 후 6시간이 지난 작업은 만료됩니다.</p></div>
+      </div>
+    </div>
+    <p style="margin-top:24px">구현 더 보기: <a href="https://github.com/tkv00/Career-Atelier-AI-Context-Pack/blob/main/docs/HARNESS-ENGINEERING.md">하네스 설계</a> · <a href="https://github.com/tkv00/Career-Atelier-AI-Context-Pack/blob/main/runner/README.md">로컬 러너</a> · <a href="https://github.com/tkv00/Career-Atelier-AI-Context-Pack/blob/main/supabase/migrations/0035_queue_function_boundaries.sql">작업 큐의 권한 경계</a></p>
   </div>
 </section>
 
