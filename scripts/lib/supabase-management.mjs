@@ -1,4 +1,53 @@
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
+
+export function runCliQuery(command, argv, options, { launch = spawn, killTree = spawn } = {}) {
+  return new Promise((resolve) => {
+    const child = launch(command, argv, options);
+    let stdout = '';
+    let stderr = '';
+    let size = 0;
+    let finished = false;
+    const finish = (result) => {
+      if (finished) return;
+      finished = true;
+      clearTimeout(timer);
+      resolve(result);
+    };
+    const stop = (message) => {
+      finish({ error: new Error(message), status: null, stdout: '', stderr: '' });
+      // 셸만 죽이면 파이프를 가진 자식이 남으므로 close 이벤트를 기다리지 않는다.
+      if (options.shell && child.pid) {
+        try {
+          const killer = killTree('taskkill', ['/pid', String(child.pid), '/t', '/f'], {
+            stdio: 'ignore', windowsHide: true, timeout: 5000,
+          });
+          killer.on('error', () => {});
+          killer.unref();
+        } catch { /* 종료 실패도 설치기의 시간 제한을 막아서는 안 된다. */ }
+      } else {
+        child.kill('SIGKILL');
+      }
+      child.stdin?.destroy();
+      child.stdout?.destroy();
+      child.stderr?.destroy();
+      child.unref();
+    };
+    const timer = setTimeout(() => stop(`${options.timeout / 1000}초 제한을 초과했습니다. 네트워크·프록시와 Supabase 프로젝트 상태를 확인하세요.`), options.timeout);
+    for (const [stream, append] of [[child.stdout, (chunk) => { stdout += chunk; }], [child.stderr, (chunk) => { stderr += chunk; }]]) {
+      stream.on('data', (chunk) => {
+        if (finished) return;
+        size += chunk.length;
+        if (size > options.maxBuffer) stop('CLI 응답 크기 제한을 초과했습니다.');
+        else append(chunk);
+      });
+    }
+    child.on('error', () => stop('Supabase CLI 실행에 실패했습니다. 설치와 PATH를 확인하세요.'));
+    child.on('close', (status) => finish({ status, stdout, stderr }));
+    child.stdin.on('error', () => stop('Supabase CLI에 SQL을 전달하지 못했습니다.'));
+    // spawn은 input 옵션을 전송하지 않는다. EOF까지 보내야 CLI가 SQL 읽기를 끝낸다.
+    child.stdin.end(options.input);
+  });
+}
 
 function validateProjectRef(projectRef) {
   if (!/^[a-z]{20}$/.test(projectRef)) throw new Error('Supabase 프로젝트 ref 형식이 올바르지 않습니다.');
@@ -16,18 +65,25 @@ export function supportsSupabaseDbQuery({ run = spawnSync, platform = process.pl
   return !result.error && result.status === 0;
 }
 
-export function createCliManagementQuery({ projectRef, run = spawnSync, platform = process.platform, timeoutMs = 65_000 }) {
+export function createCliManagementQuery({ projectRef, run = runCliQuery, platform = process.platform, timeoutMs = 65_000, onProgress = () => {} }) {
   validateProjectRef(projectRef);
   return async (query) => {
     // SQL을 argv에 넣으면 Windows 명령 길이 제한과 프로세스 목록 노출에 걸린다.
     // CLI의 stdin 경로는 같은 로그인 세션으로 Management API를 호출한다.
-    const result = run('supabase', [
+    const started = Date.now();
+    const progress = setInterval(() => onProgress(`Supabase DB 응답 대기 중 (${Math.floor((Date.now() - started) / 1000)}초, 요청당 최대 ${timeoutMs / 1000}초)`), 10_000);
+    let result;
+    try {
+      result = await run('supabase', [
       'db', 'query', '--linked', '--project-ref', projectRef,
       '--output', 'json', '--agent', 'no',
     ], {
       encoding: 'utf8', input: query, stdio: ['pipe', 'pipe', 'pipe'], timeout: timeoutMs,
       maxBuffer: 10 * 1024 * 1024, windowsHide: true, shell: platform === 'win32',
     });
+    } finally {
+      clearInterval(progress);
+    }
     if (result.error || result.status !== 0) {
       const detail = safeCliOutput(result.stderr || result.stdout || result.error?.message);
       throw new Error(`Supabase CLI SQL 실행이 실패하거나 시간 초과됐습니다. 같은 설치 명령을 다시 실행하면 적용 이력부터 확인합니다.${detail ? `\n${detail}` : ''}`);

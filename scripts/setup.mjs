@@ -30,7 +30,7 @@ import { parseEnv } from 'node:util';
 import { checkLocalWebProject } from './lib/auth-target.mjs';
 import { markDatabaseCurrent } from './lib/database-version.mjs';
 import { loadManagementToken } from './lib/supabase-token.mjs';
-import { createCliManagementQuery, createManagementQuery, supportsSupabaseDbQuery } from './lib/supabase-management.mjs';
+import { createManagementQuery } from './lib/supabase-management.mjs';
 import { applyMigrations } from './lib/setup-migrations.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
@@ -285,7 +285,7 @@ async function main() {
   }
   if (!args.migrateOnly) ok('anon key 확보');
 
-  // 최신 CLI의 db query --linked는 DB 포트 대신 Management API(HTTPS)를 사용한다.
+  // DB 포트가 제한된 교육망에서도 적용되도록 SQL은 Management API HTTPS로 보낸다.
   console.log(c.bold('\n\n데이터베이스 준비\n'));
   if (args.skipMigrations) {
     warn('--skip-migrations — 적용 상태를 검증하지 않고 건너뜁니다. 모든 마이그레이션 적용을 별도로 확인한 경우에만 사용하세요.');
@@ -293,15 +293,10 @@ async function main() {
     // 않으면 다음 npm start가 같은 파일 집합을 다시 적용하려 든다.
     markDatabaseCurrent(root, projectRef);
   } else {
-    // 최신 CLI는 로그인 자격 증명을 외부에 꺼내지 않고 Management API SQL을
-    // 실행한다. 키체인 구현을 설치기가 흉내 내면 CLI 저장 형식 변경 때 깨진다.
-    const cliQuery = supportsSupabaseDbQuery();
-    const query = cliQuery
-      ? createCliManagementQuery({ projectRef })
-      : createManagementQuery({ projectRef, token: loadManagementToken() });
-    console.log(cliQuery
-      ? 'Supabase CLI 로그인 세션으로 적용 이력을 확인합니다.'
-      : 'Management API(HTTPS)로 적용 이력을 확인합니다.');
+    // db query 지원 여부는 HTTPS 사용을 보장하지 않는다. CLI 로그인 토큰만
+    // 메모리에서 재사용하고 DB 직접 연결 경로로 자동 전환하지 않는다.
+    console.log('Management API(HTTPS)로 적용 이력을 확인합니다. 요청당 최대 65초입니다.');
+    const query = createManagementQuery({ projectRef, token: loadManagementToken() });
     const result = await applyMigrations({ root, query, onProgress: ok });
     ok(`마이그레이션 이력 검증 완료: 신규 ${result.applied}개, 기존 ${result.skipped}개`);
     markDatabaseCurrent(root, projectRef);
