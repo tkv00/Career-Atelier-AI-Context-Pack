@@ -4,6 +4,29 @@ User-facing changes are recorded here before release. See [the release policy](d
 
 ## [Unreleased]
 
+## [0.2.0-beta.3] - 2026-09-10
+
+### Added
+
+- Convert PDF, Word, PowerPoint, and Excel uploads to Markdown with local Microsoft MarkItDown before they enter an agent context. Keep the original binary outside the model workspace and record the MarkItDown MIT license in the third-party notices.
+- Extract course names, terms, credits, and grades from uploaded education transcripts after validating each result against consecutive Markdown evidence, while skipping duplicate courses.
+
+### Fixed
+
+- Preserve Excel-specific table mapping, merged-header handling, cached formula checks, and import diagnostics while sharing the new document-normalization boundary.
+- Make transcript and document-processing fixtures deterministic across platforms and clean up temporary source files after conversion.
+
+### Upgrade notes
+
+- No database migration is required for this release. Keep the web and local Runner on the same version.
+- Document imports now require Python 3.10 or later on the local Runner. `npm start` installs or refreshes the isolated MarkItDown environment when needed.
+
+### Known limitations and verification
+
+- This is a prerelease for beta testing. AI tasks still require an approved local runner and a signed-in provider CLI.
+- Scanned image-only PDFs are rejected rather than sent to an external OCR service.
+- `npm run verify` and the relevant document, transcript, startup, migration, and import tests were run locally; live provider authentication, browser smoke checks, and a full production database restore were not run.
+
 ## [0.2.0-beta.2] - 2026-09-10
 
 ### Changed
