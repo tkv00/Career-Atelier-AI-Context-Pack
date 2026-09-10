@@ -12,6 +12,7 @@
     "login": "node scripts/start.mjs login",
     "setup": "node scripts/setup.mjs",
     "deploy": "node scripts/deploy.mjs",
+    "release:update": "node scripts/release-update.mjs",
     "doctor": "node scripts/start.mjs doctor",
     "runner": "node scripts/start.mjs runner",
     "check:version": "node scripts/release.mjs check",

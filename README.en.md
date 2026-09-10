@@ -197,6 +197,8 @@ npm start
 
 Already cloned? Run only `npm start` from that folder. It opens the setup wizard when configuration is missing, installs the locked web/runner dependencies when needed, and starts both services. Existing configuration is reused. When `git pull` adds migrations, startup applies them to the configured Supabase project before launching services. If the Supabase CLI login has expired, it asks you to complete browser login once. The first launch needs internet access and can take a few minutes.
 
+`npm start` also checks GitHub Releases on each run. If a newer release is found, it prints the same install steps with the release tag and recommends `npm run release:update -- --yes --deploy`, which updates the code, applies Supabase migrations, and redeploys Vercel in one pass.
+
 ### 2. Complete your account steps
 
 1. On first setup, follow the Supabase sign-in and project selection prompts. The wizard discovers the project details and applies database migrations.
@@ -317,6 +319,8 @@ These labels match the application's left navigation.
 ## Versions and updates
 
 See the version badge above or run `npm run check:version` for the current version. Web, runner, and installer share one product version. Check [GitHub Releases](https://github.com/tkv00/Career-Atelier-AI-Context-Pack/releases) for actual published versions and release files.
+
+When a new release is available, you can run `npm run release:update -- --yes --deploy` from this folder to apply the recommended flow automatically (repository tag check/checkout, `npm install`, `node scripts/setup.mjs --yes`, and optional Vercel deploy).
 
 Run `npm run check:version` from the repository root. Before updating, read the [changelog](CHANGELOG.md) and [upgrade guide](docs/UPGRADING.md). Contributors can run `npm run verify` for version checks, tests, types, lint, and build.
 

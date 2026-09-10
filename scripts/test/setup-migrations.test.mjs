@@ -1,14 +1,58 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import { EventEmitter } from 'node:events';
+import { PassThrough } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import { applyMigrations, migrationFiles, inspectMigrations } from '../lib/setup-migrations.mjs';
-import { createCliManagementQuery, createManagementQuery, supportsSupabaseDbQuery } from '../lib/supabase-management.mjs';
+import { createCliManagementQuery, createManagementQuery, supportsSupabaseDbQuery, runCliQuery } from '../lib/supabase-management.mjs';
 import { loadManagementToken } from '../lib/supabase-token.mjs';
 
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const files = migrationFiles(root);
 const token = 'sbp_' + 'a'.repeat(40);
 const projectRef = 'a'.repeat(20);
+
+test('CLI receives SQL and EOF before returning JSON', async () => {
+  const child = new EventEmitter();
+  child.stdin = new PassThrough();
+  child.stdout = new PassThrough();
+  child.stderr = new PassThrough();
+  let input = '';
+  child.stdin.on('data', chunk => { input += chunk; });
+  child.stdin.on('finish', () => {
+    child.stdout.write('[{"ok":1}]');
+    child.emit('close', 0);
+  });
+  const query = createCliManagementQuery({ projectRef, run: (command, argv, options) => runCliQuery(command, argv, options, { launch: () => child }) });
+  assert.deepEqual(await query('select 1'), [{ ok: 1 }]);
+  assert.equal(input, 'select 1');
+});
+
+test('Windows CLI timeout settles even when the process never emits close', async () => {
+  const child = new EventEmitter();
+  child.pid = 12345;
+  child.stdin = new PassThrough();
+  child.stdout = new PassThrough();
+  child.stderr = new PassThrough();
+  let detached = false;
+  child.unref = () => { detached = true; };
+  const kills = [];
+  const query = createCliManagementQuery({ projectRef, platform: 'win32', timeoutMs: 20,
+    run: (command, argv, options) => runCliQuery(command, argv, options, {
+      launch: () => child,
+      killTree: (command, argv) => {
+        kills.push({ command, argv });
+        const killer = new EventEmitter();
+        killer.unref = () => {};
+        return killer;
+      },
+    }),
+  });
+  await assert.rejects(query('select 1'), /제한을 초과/);
+  assert.deepEqual(kills, [{ command: 'taskkill', argv: ['/pid', '12345', '/t', '/f'] }]);
+  assert.equal(detached, true);
+  assert.ok(child.stdin.destroyed && child.stdout.destroyed && child.stderr.destroyed);
+});
 
 test('every application table grants authenticated access before RLS filtering', () => {
   const sql = files.map(file => file.sql).join('\n');

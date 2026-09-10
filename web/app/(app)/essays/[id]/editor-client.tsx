@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { addEssayQuestion } from '../question-actions';
 import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
@@ -18,7 +19,6 @@ import { cancelQueuedJob } from '@/lib/jobs-actions';
 import {
   applySubtitle,
   deleteCompanyAttachment,
-  requestAllDrafts,
   requestCompanyResearch,
   requestReview,
   requestSubtitle,
@@ -163,6 +163,11 @@ export function EssayEditor({
   const attachmentInputRef = useRef<HTMLInputElement>(null);
   const [subtitle, setSubtitle] = useState(essay.subtitle ?? '');
   const [savingSubtitle, setSavingSubtitle] = useState(false);
+  const [switchingQuestion, setSwitchingQuestion] = useState(false);
+  const [questionMessage, setQuestionMessage] = useState('');
+  const [addingQuestion, setAddingQuestion] = useState(false);
+  const [newQuestion, setNewQuestion] = useState('');
+  const [newLimit, setNewLimit] = useState(1000);
 
   const deviceNameRef = useRef('');
   const lastKeystrokeAt = useRef(0);
@@ -319,6 +324,7 @@ export function EssayEditor({
   }, [reviewPending, writerPending, companyPending, subtitlePending, router]);
 
   async function handleRequestReview() {
+    if (!await prepareQuestionChange()) return;
     await requestReview(essay.id);
     router.refresh();
   }
@@ -395,10 +401,44 @@ export function EssayEditor({
     router.refresh();
   }
 
-  async function handleRequestAllDrafts() {
-    if (!essay.job_id) return;
-    await requestAllDrafts(essay.job_id);
-    router.refresh();
+  async function prepareQuestionChange() {
+    setQuestionMessage('');
+    if (conflictRef.current || savingRef.current || !recoveredRef.current) {
+      setQuestionMessage('저장이 끝나거나 충돌을 해결한 뒤 다시 시도해 주세요.');
+      return false;
+    }
+    if (dirtyRef.current) {
+      await performCloudSave();
+      if (dirtyRef.current || conflictRef.current) {
+        setQuestionMessage('현재 문항을 저장하지 못했습니다. 연결 상태와 저장 충돌을 확인해 주세요.');
+        return false;
+      }
+    }
+    return true;
+  }
+
+  async function selectQuestion(id: string) {
+    if (id === essay.id || switchingQuestion) return;
+    setSwitchingQuestion(true);
+    try {
+      if (await prepareQuestionChange()) router.push(`/essays/${id}`);
+    } finally {
+      setSwitchingQuestion(false);
+    }
+  }
+
+  async function handleAddQuestion(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setSwitchingQuestion(true);
+    try {
+      if (!await prepareQuestionChange()) return;
+      const id = await addEssayQuestion(essay.id, newQuestion, newLimit);
+      router.push(`/essays/${id}`);
+    } catch (error) {
+      setQuestionMessage(error instanceof Error ? error.message : '문항 추가에 실패했습니다.');
+    } finally {
+      setSwitchingQuestion(false);
+    }
   }
 
   async function handleRequestSubtitle() {
@@ -566,6 +606,26 @@ export function EssayEditor({
           {statusText}
         </span>
       </div>
+      <section className="card card-pad" style={{ marginBottom: 14 }} aria-label="문항 선택">
+        <p style={{ marginTop: 0 }}>문항별 작성 · 선택한 문항의 본문과 에이전트 수정 이력을 따로 관리합니다.</p>
+        <nav aria-label="자기소개서 문항" style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+          {(siblingEssays.length ? siblingEssays : [essay]).map((item, index) => (
+            <button key={item.id} type="button" className={item.id === essay.id ? 'run-button' : 'secondary-button'}
+              aria-current={item.id === essay.id ? 'page' : undefined}
+              title={item.question || '문항 미설정'} disabled={switchingQuestion}
+              onClick={() => void selectQuestion(item.id)}>
+              {index + 1}번 · {countChars(item.id === essay.id ? content : item.draft).withSpaces}/{item.target_chars}자
+            </button>
+          ))}
+          {essay.job_id && <button type="button" className="secondary-button" onClick={() => setAddingQuestion(!addingQuestion)} disabled={switchingQuestion}>+ 문항 추가</button>}
+        </nav>
+        {addingQuestion && <form onSubmit={handleAddQuestion} style={{ display: 'grid', gap: 8, marginTop: 12 }}>
+          <label>새 문항<textarea required className="field-input" value={newQuestion} onChange={event => setNewQuestion(event.target.value)} /></label>
+          <label>목표 글자 수<input required type="number" min={0} max={100000} className="field-input" value={newLimit} onChange={event => setNewLimit(Number(event.target.value))} /></label>
+          <button className="run-button" disabled={switchingQuestion || !newQuestion.trim()}>{switchingQuestion ? '저장 중…' : '문항 추가하고 작성'}</button>
+        </form>}
+        {questionMessage && <p role="alert">{questionMessage}</p>}
+      </section>
       <div className="card card-pad" style={{ marginBottom: 14 }}>
         {showQuestionForm ? (
           <form onSubmit={handleSaveQuestionSettings} style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -622,9 +682,6 @@ export function EssayEditor({
             <span style={{ color: 'var(--text-dim)', fontSize: 11, fontWeight: 700, letterSpacing: '0.05em' }}>
               이 공고의 문항 {siblingEssays.length}개
             </span>
-            <button type="button" className="secondary-button" onClick={handleRequestAllDrafts} disabled={!runnerOnline}>
-              전체 초안 한 번에 생성 (뮤즈)
-            </button>
           </div>
           <ul style={{ listStyle: 'none', margin: '10px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: 4 }}>
             {siblingEssays.map((sibling, idx) => {
@@ -649,9 +706,9 @@ export function EssayEditor({
                       {idx + 1}. {sibling.question || '(문항 미지정)'} · 지금 보는 중
                     </b>
                   ) : (
-                    <Link href={`/essays/${sibling.id}`} style={{ color: 'var(--cyan)' }}>
+                    <button type="button" className="secondary-button" disabled={switchingQuestion} onClick={() => void selectQuestion(sibling.id)}>
                       {idx + 1}. {sibling.question || '(문항 미지정)'}
-                    </Link>
+                    </button>
                   )}
                   <span style={{ color: 'var(--text-dim)', fontSize: 12, flexShrink: 0 }}>
                     {written > 0 ? `${written}/${sibling.target_chars}자` : '미작성'}
@@ -874,7 +931,8 @@ export function EssayEditor({
           onChange={handleChange}
           disabled={!!conflict}
           className="writing-area"
-          placeholder="자소서 내용을 입력하세요…"
+          aria-label="선택한 문항의 답변"
+          placeholder="이 문항의 답변을 작성하세요…"
         />
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 14, flexWrap: 'wrap', gap: 10 }}>
           <div className="count-pills">
@@ -918,7 +976,7 @@ export function EssayEditor({
           </div>
         </div>
         <form className="essay-revision" onSubmit={handleRequestRevision}>
-          <label htmlFor="revision-input">뮤즈에게 수정 요청</label>
+          <label htmlFor="revision-input">이 문항을 뮤즈에게 수정 요청</label>
           <div>
             <input
               id="revision-input"
@@ -932,7 +990,7 @@ export function EssayEditor({
             </button>
           </div>
           <p>
-            지금 화면의 본문을 기준으로 고칩니다. 이전 요청도 함께 기억하므로 이어서 말하듯 시켜도 됩니다.
+            선택한 문항의 본문만 고칩니다. 이 문항의 이전 요청을 함께 참고하며, 결과를 확인한 뒤 본문에 적용할 수 있습니다.
             {revisionRequests.length > 0 && (
               <>
                 {' · '}

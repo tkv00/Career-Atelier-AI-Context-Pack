@@ -12,6 +12,8 @@ import { printCareerBanner } from './lib/career-banner.mjs';
 
 const projectRoot = dirname(dirname(fileURLToPath(import.meta.url)));
 const version = JSON.parse(readFileSync(resolve(projectRoot, 'package.json'), 'utf8')).version;
+const releaseRepository = 'tkv00/Career-Atelier-AI-Context-Pack';
+const versionPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-(beta|rc)\.(0|[1-9]\d*))?$/;
 
 export function dependencyFingerprint(directory) {
   return createHash('sha256')
@@ -87,6 +89,76 @@ export async function waitForWeb(url, service, signal, timeoutMs = 120_000) {
   throw new Error('웹 서버 준비가 시간 초과됐습니다. 위의 오류를 확인한 뒤 npm start를 다시 실행하세요.');
 }
 
+function parseVersion(version) {
+  const match = versionPattern.exec(version.startsWith('v') ? version.slice(1) : version);
+  if (!match) return null;
+  const preType = match[4];
+  return [
+    BigInt(match[1]),
+    BigInt(match[2]),
+    BigInt(match[3]),
+    BigInt(preType === 'beta' ? 0 : preType === 'rc' ? 1 : 2),
+    BigInt(match[5] ?? 0),
+  ];
+}
+
+function compareVersions(left, right) {
+  for (let index = 0; index < left.length; index += 1) {
+    if (left[index] < right[index]) return -1;
+    if (left[index] > right[index]) return 1;
+  }
+  return 0;
+}
+
+function formatReleaseMessage(tag) {
+  return [
+    `A newer release (${tag}) is available.`,
+    'To install:',
+    '  1) git fetch --all --tags',
+    `  2) git checkout tags/${tag}`,
+    '  3) npm install',
+    '  4) node scripts/setup.mjs --yes',
+    '  5) npm run release:update -- --yes --deploy',
+    '',
+    '`npm run release:update -- --yes --deploy` will also run Supabase migration and Vercel deployment automatically.',
+    '',
+  ].join('\n');
+}
+
+async function checkForLatestRelease(root) {
+  let currentVersionString;
+  try {
+    currentVersionString = JSON.parse(readFileSync(resolve(root, 'package.json'), 'utf8')).version;
+  } catch {
+    return;
+  }
+  const currentVersion = parseVersion(currentVersionString);
+  if (!currentVersion) return;
+  let response;
+  try {
+    response = await fetch(`https://api.github.com/repos/${releaseRepository}/releases/latest`, {
+      headers: {
+        'Accept': 'application/vnd.github+json',
+        'User-Agent': 'career-atelier-start',
+      },
+      signal: AbortSignal.timeout(2500),
+    });
+  } catch {
+    return;
+  }
+  if (!response.ok) return;
+  let latestTag;
+  try {
+    ({ tag_name: latestTag } = await response.json());
+  } catch {
+    return;
+  }
+  if (typeof latestTag !== 'string') return;
+  const latestVersion = parseVersion(latestTag);
+  if (!latestVersion || compareVersions(currentVersion, latestVersion) >= 0) return;
+  console.log('\n' + formatReleaseMessage(latestTag));
+}
+
 export async function main(argv = process.argv.slice(2), root = projectRoot) {
   const mode = argv[0] ?? 'all';
   if (mode === '--help' || mode === '-h') {
@@ -95,6 +167,7 @@ export async function main(argv = process.argv.slice(2), root = projectRoot) {
   }
   if (argv.length > 1 || !['all', 'web', 'runner', 'login', 'doctor'].includes(mode)) throw new Error('알 수 없는 실행 옵션입니다. npm start -- --help를 확인하세요.');
   const [major, minor] = process.versions.node.split('.').map(Number);
+  await checkForLatestRelease(root);
   if (major < 22 || (major === 22 && minor < 13)) throw new Error('Node.js 22.13 이상을 설치한 뒤 npm start를 실행하세요.');
   printCareerBanner({ version, mode });
   const group = createProcessGroup();

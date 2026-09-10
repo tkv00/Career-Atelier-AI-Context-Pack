@@ -81,8 +81,9 @@ export default async function EssayPage({ params }: { params: Promise<{ id: stri
 
   const { data: pinChoices } = await supabase.from('experience_cards').select('id,title').order('title');
   return (<>
-    <ExperiencePins essayId={essay.id} initialIds={essay.pinned_experience_ids??[]} experiences={pinChoices??[]}/>
+    <ExperiencePins key={essay.id} essayId={essay.id} initialIds={essay.pinned_experience_ids??[]} experiences={pinChoices??[]}/>
     <EssayEditor
+      key={essay.id}
       essay={essay}
       initialVersions={versions ?? []}
       latestReview={reviews?.[0] ?? null}
