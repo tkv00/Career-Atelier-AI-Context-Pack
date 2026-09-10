@@ -334,6 +334,7 @@ Run `npm run check:version` from the repository root. Before updating, read the 
 | Understand backups, privacy, and costs | [Backup scope](docs/REFERENCE.md#backups) · [Privacy and costs](docs/PRIVACY-AND-COST.md) |
 | Frequently asked questions | [FAQ: accounts, costs, AI, backups, and imports](docs/FAQ.md) |
 | Explore features and architecture | [Detailed reference](docs/REFERENCE.md) |
+| System design diagrams (Korean) | [Agent execution, sessions, memory, and context](https://tkv00.github.io/Career-Atelier-AI-Context-Pack/architecture.html) |
 | Contribute | [Contribution rules](CONTRIBUTING.md) · [AGENTS.md](AGENTS.md) |
 
 [MIT License](LICENSE)
