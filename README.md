@@ -197,6 +197,8 @@ npm start
 
 이미 내려받았다면 해당 폴더에서 `npm start`만 실행하세요. 설정이 없으면 설치 마법사를 안내하고, 필요한 웹·러너 패키지를 잠금 파일 기준으로 설치한 뒤 둘을 함께 시작합니다. 기존 설정은 재사용하며, `git pull`로 새 마이그레이션이 들어온 경우 서비스를 켜기 전에 기존 Supabase 프로젝트에 자동 적용합니다. 이때 Supabase CLI 로그인이 만료됐으면 브라우저 로그인을 한 번 요청합니다. 첫 실행에는 인터넷 연결이 필요하며 몇 분 걸릴 수 있습니다.
 
+`npm start`는 실행할 때마다 GitHub Releases를 확인해 새 릴리즈가 있으면 릴리즈 태그 기준 설치 단계(기존 버전 제안 문구와 동일한 순서)를 출력합니다. 새 릴리즈 반영은 `npm run release:update -- --yes --deploy`로 실행하면 개인 Supabase 마이그레이션 적용과 Vercel 배포까지 한 번에 처리할 수 있습니다.
+
 ### 2. 본인 계정으로 마무리
 
 1. 처음 설정할 때 Supabase 로그인과 프로젝트 선택 안내를 따르세요. 마법사가 프로젝트 정보를 찾고 데이터베이스 마이그레이션을 적용합니다.
@@ -317,6 +319,8 @@ npm start
 ## 버전과 업데이트
 
 현재 버전은 상단의 버전 배지와 `npm run check:version`으로 확인합니다. 웹·Runner·설치 도구는 같은 제품 버전으로 관리합니다. 실제 발행 여부와 배포 파일은 [GitHub Releases](https://github.com/tkv00/Career-Atelier-AI-Context-Pack/releases)에서 확인하세요.
+
+새 릴리즈가 있을 때는 현재 폴더에서 `npm run release:update -- --yes --deploy`를 실행하면 권장 업그레이드 흐름(릴리즈 태그 적용, `npm install`, `node scripts/setup.mjs --yes`, Vercel 배포)을 자동으로 진행합니다.
 
 저장소 최상위에서 `npm run check:version`으로 버전을 확인합니다. 기존 설치를 바꾸기 전 [변경 이력](CHANGELOG.md)과 [업그레이드 안내](docs/UPGRADING.md)를 읽으세요. 개발자는 `npm run verify`로 버전·테스트·타입·린트·빌드를 한 번에 검사합니다.
 
