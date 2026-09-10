@@ -21,6 +21,7 @@ import {
   createSubtitleContextPack,
   createWorkspace,
   createWriterContextPack,
+  pruneWorkspaces,
 } from './context-pack.mjs';
 import { runProvider } from './execute.mjs';
 import { stopManagedProcesses } from './lib/managed-process.mjs';
@@ -1172,6 +1173,9 @@ async function startLoop() {
     process.exitCode = 1;
     return;
   }
+
+  const pruned = pruneWorkspaces();
+  if (pruned.removed) console.log(`보관 기한이 지난 작업 폴더 ${pruned.removed}개를 정리했습니다.`);
 
   const runner = await ensureRunnerRow(supabase, user.id);
   console.log(`러너 시작 — 기기: ${env.deviceName}, 승인 상태: ${runner.approved ? '승인됨' : '승인 대기 중'}`);

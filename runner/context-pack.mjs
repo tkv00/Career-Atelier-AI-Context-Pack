@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { homedir, tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import { convertToMarkdown } from './markitdown.mjs';
@@ -6,6 +6,37 @@ import { convertToMarkdown } from './markitdown.mjs';
 // 실행마다 작업 폴더를 분리해 서로 다른 작업의 자료가 섞이지 않게 한다.
 export function workspaceRoot(runId) {
   return resolve(homedir(), '.career-atelier', 'workspaces', runId);
+}
+
+// 실행마다 만든 작업 폴더에는 성적증명서 변환본·경험 카드·초안이 그대로 남는다.
+// 지우는 코드가 없어 홈 디렉터리에 무기한 쌓였다. 실행 직후 지우지 않는 이유는
+// 실패한 실행의 팩을 사람이 직접 열어봐야 할 때가 있어서다 — 기한을 두고 지운다.
+export const WORKSPACE_RETENTION_DAYS = 7;
+
+export function pruneWorkspaces(retentionDays = WORKSPACE_RETENTION_DAYS) {
+  const root = resolve(homedir(), '.career-atelier', 'workspaces');
+  const cutoff = Date.now() - retentionDays * 24 * 60 * 60 * 1000;
+  let entries;
+  try {
+    entries = readdirSync(root);
+  } catch {
+    return { scanned: 0, removed: 0, failed: 0 };
+  }
+  let removed = 0;
+  let failed = 0;
+  for (const name of entries) {
+    const path = resolve(root, name);
+    try {
+      if (statSync(path).mtimeMs >= cutoff) continue;
+      rmSync(path, { recursive: true, force: true });
+      removed += 1;
+    } catch {
+      // 다른 실행이 쓰는 중이거나 권한이 없으면 건너뛴다. 정리는 다음 기동에
+      // 다시 시도하므로 여기서 러너를 멈출 이유가 없다.
+      failed += 1;
+    }
+  }
+  return { scanned: entries.length, removed, failed };
 }
 
 export function createWorkspace(runId, job) {

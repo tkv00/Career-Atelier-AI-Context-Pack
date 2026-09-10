@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import test from 'node:test';
 import { countPackReferences, measurePack, packFileNames, summarizeReferences } from '../pack-metrics.mjs';
+import { pruneWorkspaces } from '../context-pack.mjs';
 
 function fixturePack() {
   const dir = mkdtempSync(resolve(tmpdir(), 'pack-metrics-'));
@@ -45,4 +46,24 @@ test('프롬프트를 되돌려 주는 user 이벤트는 참조로 세지 않는
   assert.equal(summary.referenced_count, 1);
   assert.equal(summary.file_count, 2);
   assert.equal(summary.measurement, 'name_appeared_in_stream_not_confirmed_read');
+});
+
+test('보관 기한이 지난 작업 폴더만 지운다', () => {
+  const root = resolve(process.env.HOME ?? tmpdir(), '.career-atelier', 'workspaces');
+  const fresh = resolve(root, 'prune-test-fresh');
+  const stale = resolve(root, 'prune-test-stale');
+  mkdirSync(fresh, { recursive: true });
+  mkdirSync(stale, { recursive: true });
+  writeFileSync(resolve(stale, 'draft.md'), '개인 자료');
+  const old = Date.now() / 1000 - 30 * 24 * 60 * 60;
+  utimesSync(stale, old, old);
+  try {
+    const result = pruneWorkspaces(7);
+    assert.ok(result.scanned >= 2);
+    assert.throws(() => packFileNames(stale), '기한이 지난 폴더는 사라져야 한다');
+    assert.deepEqual(packFileNames(fresh), [], '최근 폴더는 남아 있어야 한다');
+  } finally {
+    rmSync(fresh, { recursive: true, force: true });
+    rmSync(stale, { recursive: true, force: true });
+  }
 });
