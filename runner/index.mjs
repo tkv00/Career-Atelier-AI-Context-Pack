@@ -26,6 +26,7 @@ import { runProvider } from './execute.mjs';
 import { stopManagedProcesses } from './lib/managed-process.mjs';
 import { processImportJob } from './imports/jobs.mjs';
 import { selectExperiences } from './context-selection.mjs';
+import { measurePack, packFileNames } from './pack-metrics.mjs';
 import { experienceCardMarkdown } from './context-pack.mjs';
 import { runBackup, shouldBackupNow } from './backup.mjs';
 import { readCodexRateLimits } from './providers/codex-usage.mjs';
@@ -154,8 +155,23 @@ async function recordAndRun(supabase, ownerId, job, { provider, prompt, workspac
     .single();
   if (runError) throw runError;
 
-  if (contextManifest) {
-    const { error } = await supabase.from('run_events').insert({owner_id:ownerId,run_id:run.id,sequence:0,kind:'context_selection',payload:contextManifest});
+  // 팩 크기는 뮤즈만이 아니라 모든 비서에서 잰다. 계측이 없으면 개선 전후를
+  // 비교할 수 없고, 계측을 나중에 붙이면 붙이는 순간 before가 사라진다.
+  // 계측 실패로 실행을 막지는 않는다.
+  let packFiles = [];
+  let packMeasurement = null;
+  try {
+    if (contextDir) {
+      packFiles = packFileNames(contextDir);
+      packMeasurement = measurePack(contextDir);
+    }
+  } catch (error) {
+    console.error(`잡 ${job.id}: 컨텍스트 팩 계측 실패(무시하고 계속): ${error.message}`);
+  }
+  const manifest = contextManifest ? { ...contextManifest, pack: packMeasurement } : packMeasurement;
+
+  if (manifest) {
+    const { error } = await supabase.from('run_events').insert({owner_id:ownerId,run_id:run.id,sequence:0,kind:'context_selection',payload:manifest});
     if (error) throw error;
   }
   await (supabase.from('jobs').update({ status: 'running' }).eq('id', job.id)).throwOnError();
@@ -175,10 +191,11 @@ async function recordAndRun(supabase, ownerId, job, { provider, prompt, workspac
     outputSchema,
     jsonSchema,
     liveWebSearch,
+    packFiles,
   });
 
   let finalResult = result;
-  await (supabase.from('run_events').insert({owner_id:ownerId,run_id:run.id,sequence:2147483647,kind:'execution_metrics',payload:{usage:result.usage??null,requested_model:model||null,provider,cli_version:subscription.version,context:contextManifest??null}})).throwOnError();
+  await (supabase.from('run_events').insert({owner_id:ownerId,run_id:run.id,sequence:2147483647,kind:'execution_metrics',payload:{usage:result.usage??null,requested_model:model||null,provider,cli_version:subscription.version,context:manifest??null,pack_references:result.packReferences??null}})).throwOnError();
   if (result.status === 'completed' && onComplete) {
     try {
       // 저장·검증까지 끝나야 completed다. 예전에는 CLI 종료 직후 completed로

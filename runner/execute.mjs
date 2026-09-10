@@ -4,6 +4,7 @@ import { spawnGemini, extractOutput as extractGeminiOutput, geminiResult } from 
 import { TIMEOUT_MINUTES_CAP, detectPaidOverage, isUsageLimitError } from './safety.mjs';
 import { collectUsage } from './usage.mjs';
 import { terminateManaged, terminationReason } from './lib/managed-process.mjs';
+import { countPackReferences, summarizeReferences } from './pack-metrics.mjs';
 
 const PROVIDERS = {
   codex: { spawn: spawnCodex, extractOutput: extractCodexOutput },
@@ -54,6 +55,7 @@ export function runProvider({
   outputSchema,
   jsonSchema,
   liveWebSearch = false,
+  packFiles = [],
 }, { spawnProvider = PROVIDERS[provider]?.spawn, scheduleTimeout = setTimeout } = {}) {
   const safeTimeoutMinutes = Math.max(1, Math.min(TIMEOUT_MINUTES_CAP, Number(timeoutMinutes) || TIMEOUT_MINUTES_CAP));
   const child = spawnProvider({ workspace, contextDir, prompt, model, effort, outputSchema, jsonSchema, liveWebSearch });
@@ -68,7 +70,12 @@ export function runProvider({
     let providerError = '';
     const eventBuffer = [];
     const usageEvents = [];
-    const finish = result => resolveRun({ ...result, usage: collectUsage(usageEvents, provider) });
+    const packReferenceCounts = {};
+    const finish = result => resolveRun({
+      ...result,
+      usage: collectUsage(usageEvents, provider),
+      packReferences: summarizeReferences(packReferenceCounts, packFiles),
+    });
     const flushTimer = setInterval(() => flushBuffer(supabase, runId, ownerId, eventBuffer), EVENT_FLUSH_MS);
     const terminate = reason => {
       void terminateManaged(child, reason).catch(error => { providerError = error.message; console.error(error.message); });
@@ -86,6 +93,7 @@ export function runProvider({
         parsed = { type: 'text', text: line };
       }
       eventBuffer.push({ sequence: sequence++, kind: parsed.type || parsed.event || 'event', payload: parsed });
+      countPackReferences(line, parsed, packFiles, packReferenceCounts);
       const outcome = provider === 'gemini' ? geminiResult(parsed) : parsed;
       if (outcome?.usage || outcome?.model || outcome?.message?.model) usageEvents.push(outcome);
       if (parsed.type === 'result' && parsed.is_error) {
