@@ -268,7 +268,22 @@ export function CalendarClient({ events, jobs, essays }: { events: CalendarEvent
               <div className="calendar-day-items">
                 {dayItems.slice(0, CHIPS_PER_DAY).map((item) => {
                   const job = item.jobPostId ? jobs.find((row) => row.id === item.jobPostId) : undefined;
-                  return <button className={`calendar-progress-chip ${progressTone(job)}`} key={item.id} onClick={() => openItem(item)} title={`${item.title} · ${job?.submission_status || '일정'}`}><i /><span>{item.company}</span></button>;
+                  return (
+                    <div className="calendar-progress-row" key={item.id}>
+                      <button className={`calendar-progress-chip ${progressTone(job)}`} onClick={() => openItem(item)} title={`${item.title} · ${job?.submission_status || '일정'}`}><i /><span>{item.company}</span></button>
+                      {job && (
+                        <JobPostDeleteButton
+                          compact
+                          jobPostId={job.id}
+                          company={job.company}
+                          role={job.role}
+                          linkedEssayTitles={essayTitlesByJobPost.get(job.id) ?? []}
+                          submissionComplete={job.submission_status === '제출 완료'}
+                          onDeleted={() => { if (form.jobPostId === job.id) setDrawerOpen(false); }}
+                        />
+                      )}
+                    </div>
+                  );
                 })}
                 {dayItems.length > CHIPS_PER_DAY && (
                   <button type="button" className="calendar-day-more" onClick={() => setExpandedDay(isExpanded ? null : key)} aria-expanded={isExpanded}>
@@ -295,12 +310,25 @@ export function CalendarClient({ events, jobs, essays }: { events: CalendarEvent
                       const remaining = remainingLabel(item.startsAt, now);
                       return (
                         <li key={item.id}>
-                          <button type="button" onClick={() => openItem(item)}>
-                            <span className={`status-pill ${progressTone(job)}`}><i />{job?.result_status ?? '일정'}</span>
-                            <b>{item.company}</b>
-                            {job?.role && <small>{job.role}</small>}
-                            <em className={`calendar-day-preview-remaining urgency ${remaining.tone}`}>{remaining.label}</em>
-                          </button>
+                          <div className="calendar-day-preview-item">
+                            <button type="button" className="calendar-day-preview-open" onClick={() => openItem(item)}>
+                              <span className={`status-pill ${progressTone(job)}`}><i />{job?.result_status ?? '일정'}</span>
+                              <b>{item.company}</b>
+                              {job?.role && <small>{job.role}</small>}
+                              <em className={`calendar-day-preview-remaining urgency ${remaining.tone}`}>{remaining.label}</em>
+                            </button>
+                            {job && (
+                              <JobPostDeleteButton
+                                compact
+                                jobPostId={job.id}
+                                company={job.company}
+                                role={job.role}
+                                linkedEssayTitles={essayTitlesByJobPost.get(job.id) ?? []}
+                                submissionComplete={job.submission_status === '제출 완료'}
+                                onDeleted={() => { setExpandedDay(null); if (form.jobPostId === job.id) setDrawerOpen(false); }}
+                              />
+                            )}
+                          </div>
                         </li>
                       );
                     })}

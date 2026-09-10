@@ -1373,6 +1373,13 @@ option {
   gap: 2px;
   min-width: 0;
 }
+.calendar-progress-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 22px;
+  align-items: center;
+  gap: 2px;
+  min-width: 0;
+}
 .calendar-day.outside {
   opacity: 0.35;
 }
@@ -1454,7 +1461,13 @@ option {
   max-height: 220px;
   overflow-y: auto;
 }
-.calendar-day-preview li button {
+.calendar-day-preview-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: var(--s1);
+}
+.calendar-day-preview-item > .calendar-day-preview-open {
   width: 100%;
   padding: var(--s1);
   border: 0;
@@ -1466,7 +1479,7 @@ option {
   font-family: inherit;
   cursor: pointer;
 }
-.calendar-day-preview li button:hover {
+.calendar-day-preview-item > .calendar-day-preview-open:hover {
   background: var(--surface-3);
 }
 /* li 버튼이 display:grid라 inline-flex인 알약이 칸 폭만큼 늘어나 입력창처럼
@@ -1607,6 +1620,28 @@ option {
 .calendar-progress-chip.submitted { color: var(--info); border-color: var(--info-line); background: var(--info-bg); }
 .calendar-progress-chip.working { color: var(--warn); border-color: var(--warn-line); background: var(--warn-bg); }
 .calendar-progress-chip.waiting { color: var(--text-3); }
+.calendar-item-delete {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--r-chip);
+  background: transparent;
+  color: var(--text-dim);
+  font-size: var(--fs-base);
+  line-height: 1;
+  cursor: pointer;
+}
+.calendar-item-delete:hover:not(:disabled),
+.calendar-item-delete:focus-visible {
+  border-color: var(--danger-line);
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.calendar-item-delete:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 
 /* 등록·편집 서랍. 예전에는 이 폼이 달력 옆에 340px 고정 폭으로 상시 붙어
    있었지만, 실제로 쓰이는 건 저장하는 순간뿐인데 달력 폭의 27%를 늘 먹었다.
@@ -1874,9 +1909,8 @@ option {
   color: var(--danger);
   font-size: var(--fs-xs);
 }
-/* 자소서가 걸려 있거나 이미 제출 완료한 공고를 지우기 전 한 번 더 묻는
-   확인창. 흔한 삭제(관심 없어진 공고 정리)는 이 창을 거치지 않는다 —
-   조건이 있을 때만 뜨므로 폭은 좁게, 내용은 왜 다시 물었는지부터 읽힌다. */
+/* 캘린더의 작은 × 버튼도 실수로 누를 수 있으므로 모든 공고 삭제가 이 확인창을
+   거친다. 자소서나 제출 이력이 있으면 경고 목록이 추가되지만 창 크기는 유지한다. */
 .job-delete-confirm {
   width: min(420px, 100%);
   display: grid;
