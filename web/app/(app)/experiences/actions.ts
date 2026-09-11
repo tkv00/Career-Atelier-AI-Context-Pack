@@ -63,3 +63,13 @@ export async function deleteExperience(id: string) {
   revalidatePath('/experiences');
   revalidatePath('/dashboard');
 }
+
+// 체크박스로 고른 여러 경험 카드를 한 번에 지운다.
+export async function deleteExperiences(ids: string[]) {
+  if (ids.length === 0) return;
+  const { supabase } = await requireUser();
+  const { error } = await supabase.from('experience_cards').delete().in('id', ids);
+  if (error) throw new Error(error.message);
+  revalidatePath('/experiences');
+  revalidatePath('/dashboard');
+}

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
-import { deleteExperience, saveExperience } from './actions';
+import { deleteExperience, deleteExperiences, saveExperience } from './actions';
 import type { Database } from '@/lib/supabase/database.types';
 import { experienceTags } from '@/lib/experience-tags';
 import { EXPERIENCE_COMPETENCIES, MAX_EXPERIENCE_TAGS } from '@/lib/experience-policy.mjs';
@@ -70,6 +70,8 @@ export function ExperienceVault({ initialExperiences }: { initialExperiences: Ex
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [deleting, setDeleting] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
   const tagOptions = TAG_OPTIONS;
   const previewExperience = useMemo(() => initialExperiences.find((experience) => experience.id === previewId) ?? null, [initialExperiences, previewId]);
   const previewForm = useMemo(() => (previewExperience ? toFormState(previewExperience) : null), [previewExperience]);
@@ -128,11 +130,38 @@ export function ExperienceVault({ initialExperiences }: { initialExperiences: Ex
       await deleteExperience(id);
       if (editingId === id) cancelEdit();
       if (previewId === id) closePreview();
+      setSelectedIds((current) => current.filter((item) => item !== id));
       router.refresh();
     } catch {
       setError('경험을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.');
     } finally {
       setDeleting(false);
+    }
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
+  }
+
+  function setSelection(ids: string[]) {
+    setSelectedIds(ids);
+  }
+
+  async function handleBulkDelete() {
+    if (selectedIds.length === 0) return;
+    setBulkDeleting(true);
+    setError('');
+    try {
+      const ids = selectedIds;
+      await deleteExperiences(ids);
+      if (editingId && ids.includes(editingId)) cancelEdit();
+      if (previewId && ids.includes(previewId)) closePreview();
+      setSelectedIds([]);
+      router.refresh();
+    } catch {
+      setError('선택한 경험을 삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.');
+    } finally {
+      setBulkDeleting(false);
     }
   }
 
@@ -150,7 +179,17 @@ export function ExperienceVault({ initialExperiences }: { initialExperiences: Ex
         </div>
       </div>
 
-      <ExperienceUniverse experiences={initialExperiences} onOpen={openPreview} onEdit={startEdit} onNew={startNew}/>
+      <ExperienceUniverse
+        experiences={initialExperiences}
+        onOpen={openPreview}
+        onEdit={startEdit}
+        onNew={startNew}
+        selectedIds={selectedIds}
+        onToggleSelect={toggleSelect}
+        onSetSelection={setSelection}
+        onBulkDelete={handleBulkDelete}
+        bulkDeleting={bulkDeleting}
+      />
       {error && !editingId && !previewId && <p role="alert" className={styles.error}>{error}</p>}
         {editingId && (
           <ExperienceModal label={editingId === 'new' ? '새 경험 정리' : '경험 카드 편집'} onClose={cancelEdit}>

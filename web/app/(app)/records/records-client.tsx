@@ -8,6 +8,7 @@ import {
   deleteAttachment,
   deleteCourse,
   deleteRecord,
+  deleteRecords,
   getAttachmentUrl,
   saveCourse,
   saveRecord,
@@ -136,6 +137,7 @@ export function RecordsClient({
   const [schoolType, setSchoolType] = useState('대학교');
   const [message, setMessage] = useState('');
   const [pending, startTransition] = useTransition();
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const transcriptActive = transcriptJobs.some(job => ['queued', 'running'].includes(job.status));
   useEffect(() => {
     if (!transcriptActive) return;
@@ -146,11 +148,34 @@ export function RecordsClient({
   const section = sections.find((item) => item.id === activeId)!;
   const rows = rowsBySection[activeId] ?? [];
   const formOpen = adding || editing !== null;
+  const allSelected = rows.length > 0 && selectedIds.length === rows.length;
 
   function closeForm() {
     setAdding(false);
     setEditing(null);
     setSchoolType('대학교');
+  }
+
+  function toggleSelect(id: string) {
+    setSelectedIds((current) => (current.includes(id) ? current.filter((item) => item !== id) : [...current, id]));
+  }
+
+  function toggleSelectAll() {
+    setSelectedIds(allSelected ? [] : rows.map((row) => row.id));
+  }
+
+  function removeSelected() {
+    if (selectedIds.length === 0) return;
+    const ids = selectedIds;
+    run(
+      () => deleteRecords(section.id, ids),
+      `${ids.length}건을 삭제했습니다.`,
+      '선택한 항목을 삭제하지 못했습니다.',
+      () => {
+        if (editing && ids.includes(editing.id)) closeForm();
+        setSelectedIds([]);
+      },
+    );
   }
 
   function openEdit(row: RecordRow) {
@@ -206,6 +231,7 @@ export function RecordsClient({
               setActiveId(item.id);
               closeForm();
               setMessage('');
+              setSelectedIds([]);
             }}
           >
             <b>{item.title}</b>
@@ -236,6 +262,19 @@ export function RecordsClient({
         </header>
 
         {message && <p className="records-message">{message}</p>}
+
+        {rows.length > 0 && (
+          <div className="records-bulk-bar">
+            <label className="records-select-all">
+              <input type="checkbox" checked={allSelected} onChange={toggleSelectAll} aria-label="전체 선택" />
+              전체 선택
+            </label>
+            <span className="records-bulk-count">{selectedIds.length > 0 ? `${selectedIds.length}건 선택됨` : ''}</span>
+            <button type="button" className="danger" onClick={removeSelected} disabled={pending || selectedIds.length === 0}>
+              선택 삭제
+            </button>
+          </div>
+        )}
 
         {formOpen && (
           <form action={submit} className="records-form" key={editing?.id ?? 'new'}>
@@ -274,9 +313,17 @@ export function RecordsClient({
               return (
                 <li key={row.id} className="records-item">
                   <div className="records-item-head">
-                    <div>
-                      <b>{text(row[section.titleField]) || '(이름 없음)'}</b>
-                      {period && <time>{period}</time>}
+                    <div className="records-item-title">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(row.id)}
+                        onChange={() => toggleSelect(row.id)}
+                        aria-label={`${text(row[section.titleField]) || '이 항목'} 선택`}
+                      />
+                      <div>
+                        <b>{text(row[section.titleField]) || '(이름 없음)'}</b>
+                        {period && <time>{period}</time>}
+                      </div>
                     </div>
                     <div className="records-item-actions">
                       <button type="button" onClick={() => openEdit(row)} disabled={pending}>

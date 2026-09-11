@@ -14,11 +14,16 @@ const subscribeMotion = (callback: () => void) => {
 const readMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const serverMotion = () => true;
 
-export function ExperienceUniverse({ experiences, onOpen, onEdit, onNew }: {
+export function ExperienceUniverse({ experiences, onOpen, onEdit, onNew, selectedIds, onToggleSelect, onSetSelection, onBulkDelete, bulkDeleting }: {
   experiences: Experience[];
   onOpen: (experience: Experience) => void;
   onEdit: (experience: Experience) => void;
   onNew: () => void;
+  selectedIds: string[];
+  onToggleSelect: (id: string) => void;
+  onSetSelection: (ids: string[]) => void;
+  onBulkDelete: () => void;
+  bulkDeleting: boolean;
 }) {
   const [mode, setMode] = useState<UniverseMode>('tags');
   const [query, setQuery] = useState('');
@@ -37,6 +42,12 @@ export function ExperienceUniverse({ experiences, onOpen, onEdit, onNew }: {
   const related = selected ? filtered.filter(experience => selected.experienceIds.includes(experience.id)) : filtered;
   const neighbours = selected ? graph.connections.filter(edge => edge.from === selected.id || edge.to === selected.id)
     .map(edge => ({ planet: graph.planets.find(planet => planet.id === (edge.from === selected.id ? edge.to : edge.from))!, count: edge.experienceIds.length })) : [];
+  const allRelatedSelected = related.length > 0 && related.every(experience => selectedIds.includes(experience.id));
+
+  function toggleSelectAll() {
+    if (allRelatedSelected) onSetSelection(selectedIds.filter(id => !related.some(experience => experience.id === id)));
+    else onSetSelection(Array.from(new Set([...selectedIds, ...related.map(experience => experience.id)])));
+  }
 
   useEffect(() => {
     if (!canvas.current) return;
@@ -146,15 +157,32 @@ export function ExperienceUniverse({ experiences, onOpen, onEdit, onNew }: {
             {neighbours.length > 0 && <div className={styles.neighbours}><span>연결된 {mode === 'tags' ? '해시태그' : '경험'}</span><div>{neighbours.map(({ planet, count }) =>
               <button type="button" key={planet.id} onClick={() => select(planet.id)} title={`함께 연결된 경험 ${count}개`}>{mode === 'tags' ? '#' : ''}{planet.label}<small>{count}</small></button>)}</div></div>}
           </div>
+          {related.length > 0 && (
+            <div className={styles.bulkBar}>
+              <label>
+                <input type="checkbox" checked={allRelatedSelected} onChange={toggleSelectAll} aria-label="전체 선택"/>
+                전체 선택
+              </label>
+              <span>{selectedIds.length > 0 ? `${selectedIds.length}개 선택됨` : ''}</span>
+              <button type="button" className={styles.bulkDelete} onClick={onBulkDelete} disabled={bulkDeleting || selectedIds.length === 0}>
+                {bulkDeleting ? '삭제 중…' : '선택 삭제'}
+              </button>
+            </div>
+          )}
           <div className={styles.experienceList}>
             {related.slice(0, cardLimit).map((experience, index) => {
               const tags = experienceTags(experience.tags);
               const metrics = Array.isArray(experience.metrics) ? experience.metrics.filter((metric): metric is string => typeof metric === 'string') : [];
               return <article className={styles.experienceCard} key={experience.id}>
-                <button type="button" className={styles.openCard} onClick={() => onOpen(experience)}>
-                  <span className={styles.cardIndex}>MEMORY {String(index + 1).padStart(2, '0')}<span>↗</span></span>
-                  <h4>{experience.title}</h4><p>{experience.result || experience.action || experience.context || experience.situation || '이 경험의 이야기를 채워보세요.'}</p>
-                </button>
+                <div className={styles.cardTop}>
+                  <label className={styles.cardSelect}>
+                    <input type="checkbox" checked={selectedIds.includes(experience.id)} onChange={() => onToggleSelect(experience.id)} aria-label={`${experience.title} 선택`}/>
+                  </label>
+                  <button type="button" className={styles.openCard} onClick={() => onOpen(experience)}>
+                    <span className={styles.cardIndex}>MEMORY {String(index + 1).padStart(2, '0')}<span>↗</span></span>
+                    <h4>{experience.title}</h4><p>{experience.result || experience.action || experience.context || experience.situation || '이 경험의 이야기를 채워보세요.'}</p>
+                  </button>
+                </div>
                 {metrics.length > 0 && <div className={styles.metrics}>{metrics.slice(0, 2).map((metric, i) => <span key={`${i}:${metric}`}>{metric}</span>)}</div>}
                 <div className={styles.cardTags}>{tags.map(tag => <button type="button" key={tag} onClick={() => selectTag(tag)} aria-label={`#${tag} 행성 보기`}>#{tag}</button>)}</div>
                 <button type="button" className={styles.editCard} onClick={() => onEdit(experience)} aria-label={`${experience.title} 편집`}>경험 편집</button>

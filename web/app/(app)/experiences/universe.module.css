@@ -54,10 +54,19 @@
 .neighbours > div { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 9px; max-height: 88px; overflow-y: auto; }
 .neighbours button { border: 1px solid #899bb12a; border-radius: 5px; background: #a5b7cd09; color: #b1c5df; padding: 5px 7px; font-size: 10px; max-width: 100%; overflow-wrap: anywhere; text-align: left; }
 .neighbours small { padding-left: 8px; color: #debb92; }
+.bulkBar { display: flex; align-items: center; gap: 14px; padding: 10px 23px; border-top: 1px solid var(--space-border); border-bottom: 1px solid var(--space-border); background: #0f1928; }
+.bulkBar label { display: flex; align-items: center; gap: 7px; color: #b7c6d9; font-size: 10px; cursor: pointer; }
+.bulkBar > span { flex: 1; color: #8496af; font-size: 10px; font-family: ui-monospace, monospace; }
+.bulkDelete { border: 1px solid #a5675f4d; border-radius: 6px; background: transparent; color: #d99286; padding: 6px 12px; font-size: 10px !important; }
+.bulkDelete:hover:not(:disabled) { background: #3a201e; border-color: #c17368; color: #f2b3a4; }
+.bulkDelete:disabled { opacity: .45; cursor: default; }
 .experienceList { padding: 18px; display: flex; flex-direction: column; gap: 13px; overflow-y: auto; min-height: 0; flex: 1; scrollbar-width: thin; scrollbar-color: #314359 transparent; }
 .experienceCard { border: 1px solid #7f9cbb25; border-radius: 10px; background: linear-gradient(135deg, #1a2838, #152131); padding: 17px; flex-shrink: 0; transition: border-color .18s; }
+.cardTop { display: flex; align-items: flex-start; gap: 10px; }
+.cardSelect { flex: none; padding-top: 3px; }
+.cardSelect input { width: 15px; height: 15px; cursor: pointer; }
 .experienceCard:hover { border-color: #b9a38466; }
-.openCard { display: block; width: 100%; padding: 0; text-align: left; border: 0; background: none; color: #e8edf4; }
+.openCard { display: block; flex: 1; min-width: 0; padding: 0; text-align: left; border: 0; background: none; color: #e8edf4; }
 .cardIndex { display: flex; justify-content: space-between; font: 8px ui-monospace, monospace; letter-spacing: .12em; color: #8098b3; margin-bottom: 12px; }
 .cardIndex > span { color: #bdcedf; font: 15px sans-serif; margin-top: -4px; }
 .openCard h4 { font-size: 14px; line-height: 1.55; margin: 0 0 10px; font-weight: 550; overflow-wrap: anywhere; }

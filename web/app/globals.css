@@ -3574,6 +3574,60 @@ input.interview-question-title:focus {
   color: var(--danger);
 }
 
+.records-item-title {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--s2);
+  min-width: 0;
+}
+.records-item-title input[type='checkbox'] {
+  margin-top: 3px;
+  flex: none;
+}
+
+.records-bulk-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--s3);
+  margin: 0 0 var(--s3);
+  padding: var(--s2) var(--s3);
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-control);
+  background: var(--surface-2);
+}
+.records-select-all {
+  display: flex;
+  align-items: center;
+  gap: var(--s1);
+  color: var(--text-2);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+.records-bulk-count {
+  flex: 1;
+  color: var(--text-dim);
+  font-size: var(--fs-xs);
+  font-family: var(--font-mono);
+}
+.records-bulk-bar button.danger {
+  padding: 4px var(--s3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-chip);
+  background: transparent;
+  color: var(--text-3);
+  font-size: var(--fs-xs);
+  cursor: pointer;
+}
+.records-bulk-bar button.danger:hover:not(:disabled) {
+  border-color: var(--danger-line);
+  background: var(--danger-bg);
+  color: var(--danger);
+}
+.records-bulk-bar button.danger:disabled {
+  opacity: .5;
+  cursor: default;
+}
+
 .records-item-fields {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));

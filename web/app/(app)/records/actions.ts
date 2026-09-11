@@ -113,6 +113,32 @@ export async function deleteRecord(sectionId: string, id: string) {
   revalidatePath('/records');
 }
 
+// 체크박스로 고른 여러 건을 한 번에 지운다. 단건 삭제와 같은 순서(첨부 →
+// 본문)를 따르되 record_id를 in()으로 묶어 왕복 횟수를 줄인다.
+export async function deleteRecords(sectionId: string, ids: string[]) {
+  if (ids.length === 0) return;
+  const section = sectionById(sectionId);
+  if (!section) throw new Error('알 수 없는 항목입니다.');
+
+  const { supabase } = await requireUser();
+
+  const { data: files } = await supabase
+    .from('record_attachments')
+    .select('id, storage_path')
+    .eq('record_type', sectionId)
+    .in('record_id', ids);
+
+  if (files?.length) {
+    await supabase.storage.from(BUCKET).remove(files.map((file) => file.storage_path));
+    await supabase.from('record_attachments').delete().eq('record_type', sectionId).in('record_id', ids);
+  }
+
+  const { error } = await supabase.from(section.table).delete().in('id', ids);
+  if (error) throw new Error(error.message);
+
+  revalidatePath('/records');
+}
+
 export async function uploadAttachment(sectionId: string, recordId: string, file: { storagePath: string; fileName: string }, kind: string) {
   const section = sectionById(sectionId);
   if (!section?.attachments) throw new Error('이 항목은 첨부를 지원하지 않습니다.');
